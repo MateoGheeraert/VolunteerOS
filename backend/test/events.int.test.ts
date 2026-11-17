@@ -11,28 +11,8 @@ beforeAll(async () => {
 afterAll(() => t.close());
 beforeEach(() => t.reset());
 
-/** The admin invites `email` as a member; the invitee signs up, accepts and activates the org. */
-async function inviteMember(
-  admin: TestClient,
-  organizationId: string,
-  name: string,
-  email: string,
-) {
-  const invite = await admin.post('/api/auth/organization/invite-member', {
-    email,
-    role: 'member',
-  });
-  expect(invite.status).toBe(200);
-  const invitationId = invite.body.id as string;
-  expect(t.emails.lastTo(email)?.text).toContain(`/invitations/${invitationId}`);
-
-  const invitee = t.client();
-  const user = await invitee.signUp(name, email);
-  const accept = await invitee.post('/api/auth/organization/accept-invitation', { invitationId });
-  expect(accept.status).toBe(200);
-  await invitee.setActiveOrganization(organizationId);
-  return { client: invitee, user, invitationId };
-}
+const inviteMember = (admin: TestClient, organizationId: string, name: string, email: string) =>
+  t.inviteMember(admin, organizationId, name, email);
 
 describe('internal secret', () => {
   it('rejects requests without the secret, including auth routes', async () => {

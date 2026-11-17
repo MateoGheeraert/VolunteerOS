@@ -1205,16 +1205,23 @@ Statuses:
 - createdAt
 - sentAt
 
-### AuditLog
+### ActivityLog
+
+Implemented as `activity_log`; see "Activity log" in the backend README.
 
 - id
 - organizationId
+- eventId (nullable: organization-level changes)
+- actorType (user / volunteer / system / ai)
 - actorId
+- onBehalfOfUserId (the user an AI agent acted for)
 - action
 - entityType
 - entityId
-- metadata
+- changes (field names; values only for non-personal fields)
 - createdAt
+
+Every deletion is a soft delete (`deleted_at`). The only planned exception is GDPR erasure of personal data.
 
 This is an initial conceptual model.
 

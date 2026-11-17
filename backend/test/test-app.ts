@@ -29,6 +29,13 @@ export interface TestApp {
   emails: CapturingEmailService;
   /** A cookie-keeping client that acts like the Next.js server: it sends the internal secret. */
   client: () => TestClient;
+  /** The admin invites `email` as a member; the invitee signs up, accepts and activates the org. */
+  inviteMember: (
+    admin: TestClient,
+    organizationId: string,
+    name: string,
+    email: string,
+  ) => Promise<{ client: TestClient; user: { id: string; email: string }; invitationId: string }>;
   reset: () => Promise<void>;
   close: () => Promise<void>;
 }
@@ -53,10 +60,30 @@ export async function createTestApp(): Promise<TestApp> {
     db,
     emails,
     client: () => new TestClient(app),
+    inviteMember: async (admin, organizationId, name, email) => {
+      const invite = await admin.post('/api/auth/organization/invite-member', {
+        email,
+        role: 'member',
+      });
+      if (invite.status !== 200) throw new Error(`invite failed: ${invite.status} ${invite.text}`);
+      const invitationId = invite.body.id as string;
+      if (!emails.lastTo(email)?.text.includes(`/invitations/${invitationId}`)) {
+        throw new Error(`no invitation email with a link to ${invitationId}`);
+      }
+
+      const invitee = new TestClient(app);
+      const user = await invitee.signUp(name, email);
+      const accept = await invitee.post('/api/auth/organization/accept-invitation', {
+        invitationId,
+      });
+      if (accept.status !== 200) throw new Error(`accept failed: ${accept.status} ${accept.text}`);
+      await invitee.setActiveOrganization(organizationId);
+      return { client: invitee, user, invitationId };
+    },
     reset: async () => {
       emails.sent.length = 0;
       await db.execute(sql`
-        truncate table event_member, event, invitation, member, organization,
+        truncate table activity_log, event_member, event, invitation, member, organization,
           session, account, verification, "user" restart identity cascade
       `);
     },

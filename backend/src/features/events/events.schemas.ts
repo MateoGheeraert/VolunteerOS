@@ -52,7 +52,10 @@ export const eventSchema = createSelectSchema(event, {
   endsAt: dateTimeOutput,
   createdAt: dateTimeOutput,
   updatedAt: dateTimeOutput,
-}).meta({ id: 'Event' });
+})
+  // Soft deletion is internal: deleted events are never returned.
+  .omit({ deletedAt: true })
+  .meta({ id: 'Event' });
 export type EventDto = z.infer<typeof eventSchema>;
 
 export const addEventMemberSchema = createInsertSchema(eventMember, {
@@ -64,6 +67,7 @@ export const addEventMemberSchema = createInsertSchema(eventMember, {
 export type AddEventMemberInput = z.input<typeof addEventMemberSchema>;
 
 export const eventMemberSchema = createSelectSchema(eventMember, { createdAt: dateTimeOutput })
+  .omit({ deletedAt: true })
   .extend(createSelectSchema(user).pick({ name: true, email: true }).shape)
   .meta({ id: 'EventMember' });
 export type EventMemberDto = z.infer<typeof eventMemberSchema>;
