@@ -3,3 +3,5 @@ node_modules
 **/dist
 **/.env
 .git
+**/.next
+frontend/src/api/generated

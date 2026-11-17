@@ -804,6 +804,50 @@ Use server components where appropriate.
 
 Use client components for interactive interfaces.
 
+Decided November 2026:
+
+- **Versions:** Next.js 16 (App Router, Turbopack, Cache Components and Partial Prefetching on), React 19, Tailwind v4 (CSS-first config), shadcn/ui (Radix base, "Maia" preset, restyled), Node 24. With Cache Components, anything that reads the request (session, params) sits behind `<Suspense>`; the rest of each page is a prerendered static shell.
+- **Typed client:** `@hey-api/openapi-ts` (fetch client + Zod plugin) generates the SDK and the Zod schemas from `backend/openapi.json` into `frontend/src/api/generated/`. The output is gitignored and regenerated on `predev`, `prebuild` and in CI.
+- **One way to reach Nest:** the generated SDK is configured once (`src/server/api.ts`, hey-api `runtimeConfigPath`): every call forwards the session cookie, `X-Internal-Secret` and `x-forwarded-for`, and a non-2xx answer throws a typed `ApiError`. That file imports `server-only`, so the SDK can't end up in the browser, and a lint rule allows SDK imports only under `src/server/`. No TanStack Query and no browser calls to Nest. The only exception is the Better Auth React client, which calls `/api/auth/*` through the Next.js route handler.
+- **Contract checks:** breaking backend changes fail `tsc` in CI (the client is generated from the committed `openapi.json`). At runtime, every SDK call validates its request body and its response with the generated Zod schemas; a mismatch is logged as a contract violation. Better Auth reads (not in OpenAPI) are validated with small schemas in `src/server/auth.ts`. `better-auth`, `auth`, `zod` and `typescript` come from the pnpm catalog in `pnpm-workspace.yaml`, so both apps always use the same version.
+- **Reads and writes (the convention):**
+  - **Reads** live in `src/server/<feature>/queries.ts` (`server-only`), named `getX`/`listX`, each a one-liner around `query(sdkCall())`. `query()` turns API errors into pages: 401 → `/login`, no active organization → `/onboarding`, 403 → forbidden, 400/404 → not found. Server components call them behind `<Suspense>`.
+  - **Writes** live in `src/server/<feature>/actions.ts` (`'use server'` once at the top), named with a verb (`createX`, `updateX`, `archiveX`), always built with `actionClient` from `src/server/action-client.ts` (next-safe-action): `.metadata({ name, apiFields? }).bindArgsSchemas([...])?.inputSchema(schema).action(...)`. Actions contain only the happy path; `toActionError` turns every failure into `{ message, fields? }`.
+  - **Forms** use `useActionForm(action, schema, { defaultValues, onSuccess })` (`src/hooks/use-action-form.ts`); buttons use next-safe-action's `useAction`. Field and form errors are shown with `FormFieldError` / `FormError`.
+  - **Schemas** shared by a form and its action live in `src/features/<feature>/schemas.ts` (`xFormSchema`). Their messages are translation keys (`msg('eventForm.validation.nameRequired')`), never text, so the same schema works on client and server; the UI translates when it shows them.
+- **URLs:** no organization in the URL (`/events`, `/events/[eventId]/tasks`). The active organization lives in the Better Auth session and is changed with the organization switcher.
+- **Route protection:** middleware only checks that the session cookie exists (redirect to `/login`). The `(app)` layout checks the real session server-side and sends users without an active organization to `/onboarding`. Nest still enforces all authorization.
+- **i18n:** `next-intl`, `nl-BE` only, no locale prefix in URLs, every string in `messages/nl.json`. Dates and money use `Intl` (`nl-BE`, EUR). 24h time.
+- **Timezone:** every event is in `Europe/Brussels` for the MVP. Forms convert Brussels time to UTC. No timezone setting.
+- **Event form:** one date plus a start and end time. An end time before the start time means the event runs past midnight (end on the next day). Multi-day events (a festival weekend) can't be entered yet; add an end date when a pilot needs it.
+- **Active organization on login:** every new Better Auth session starts in the user's oldest organization (a `session.create.before` hook in `backend/src/auth/auth.ts`), so returning organizers land on their events.
+- **Auth flows in the first slice:** signup → `/onboarding` (organization name only; slug generated from the name with a numeric suffix if taken, never shown) → `/events`. `/invitations/[id]`: log in or sign up first, then Accept/Decline; accepting sets that organization as active. Password reset (`/forgot-password`, `/reset-password`) is included and needs Better Auth's `sendResetPassword` on the backend. Organizer email verification is deferred until just before the pilot.
+- **Layout:** organizer app uses the shadcn `Sidebar` (organization level: Events, Suppliers, Members, Settings, org switcher, user menu). It collapses to a sheet on mobile. Inside an event, the sections (Overview, Tasks, Volunteers, Budget, Suppliers, Settings) are tabs under the event header. Public volunteer pages (`/e/[publicSlug]`, later `/v/[token]`) use their own minimal mobile-first layout.
+- **Folder layout:**
+
+  ```text
+  frontend/
+    src/
+      app/(auth)/  app/(app)/  app/(public)/   thin routes
+      server/                       everything server-only
+        api.ts  api-errors.ts  query.ts  action-client.ts  auth.ts  env.ts
+        <feature>/{queries.ts, actions.ts}   mirrors backend features
+      features/<feature>/           UI: components + schemas.ts (shared with server/)
+      components/ui/                shadcn components, restyled
+      components/layout/            sidebar, event header, tabs
+      hooks/                        use-action-form.ts
+      api/generated/                generated SDK + Zod (gitignored)
+      lib/                          format.ts, navigation.ts, auth-client.ts
+      i18n/  messages/nl.json
+    test/
+      unit/                         Vitest, mirrors src/ paths
+      e2e/                          Playwright
+  ```
+
+- **Dev workflow:** root `pnpm dev` runs Nest and Next in parallel. `frontend/.env.example` has `BACKEND_URL=http://127.0.0.1:4000` and `INTERNAL_API_SECRET`, validated with Zod at startup.
+- **Quality gates:** oxlint (type-aware), Prettier, `tsc`, Vitest unit tests in `test/unit/` (money, dates, form mapping, action error mapping); tests never sit next to source files. One Playwright smoke test (signup → create organization → create event) runs locally, not in CI yet. CI frontend job: generate client → lint → typecheck → test → build → Docker build (`output: 'standalone'`).
+- **First frontend slice:** scaffold + auth (signup, login, password reset, onboarding, invitations) + organizer shell + events list/create/edit, end-to-end against Nest.
+
 ### Backend
 
 **NestJS 12 (ESM) on Node.js 24 LTS** — a separate API in `backend/`, built as a modular monolith.
@@ -811,7 +855,7 @@ Use client components for interactive interfaces.
 Decided November 2026 (replaces the earlier Next.js + tRPC plan):
 
 - **REST, with the Drizzle tables as the single source of truth.** Each feature derives its request/response Zod schemas from its tables with `drizzle-zod`. Nest validates them natively with `StandardSchemaValidationPipe` (`@Body({ schema })`), and `@nestjs/swagger` turns the same schemas into OpenAPI. The document is committed as `backend/openapi.json`, CI checks that it is up to date, and the frontend generates its typed client (and form schemas) from it. There is no shared code package between backend and frontend.
-- **Next.js is the only way in (backend-for-frontend).** Browsers never call Nest. Next.js server components, server actions and route handlers call Nest with the typed client and forward the user's cookie. `/api/auth/*` is proxied by a Next.js rewrite, so the session cookie stays first-party on the Next.js origin.
+- **Next.js is the only way in (backend-for-frontend).** Browsers never call Nest. Next.js server components, server actions and route handlers call Nest with the typed client and forward the user's cookie. `/api/auth/*` is forwarded by a Next.js route handler (`frontend/src/app/api/auth/[...all]/route.ts`; a plain rewrite can't add the internal secret), so the session cookie stays first-party on the Next.js origin.
 - **Nest is private.** It listens on a private network only, with CORS disabled. Every request must carry the shared `X-Internal-Secret` header (except `/api/health`). This is defense in depth: Nest still authenticates and authorizes every request itself.
 - **pnpm workspaces**: `backend`, `frontend`.
 - **CI** (GitHub Actions): format, lint (oxlint, type-aware), type checks, unit and integration tests (Testcontainers), migration and OpenAPI sync checks, and the Docker build.
@@ -1411,6 +1455,31 @@ Examples:
 - 8 of 12 tasks completed.
 - €420 spent from €600 estimated expenses.
 
+### Visual Style ("Lagune", decided November 2026)
+
+Friendly and community-like, deliberately not the default shadcn / Linear / Notion look. Simple, uncluttered screens.
+
+- **Light mode only** for the MVP. Every color is a CSS variable, so dark mode can be added later.
+- **Colors are defined in one place:** a single block of brand variables in `frontend/src/app/globals.css`. shadcn's semantic variables (`--primary`, `--ring`, `--sidebar`, …) only reference these brand variables, never raw hex values.
+
+  | Token | Value | Use |
+  | --- | --- | --- |
+  | `--brand-primary` | `#147A90` | Button fills, active tab (white text passes AA) |
+  | `--brand-primary-bright` | `#1A9DB8` (pacific cyan) | Links, focus rings, highlights |
+  | `--brand-secondary` | `#43B3AE` (verdigris) | Secondary actions, progress bars, selected states |
+  | `--brand-tint` | `#E3F0ED` | Light surfaces: sidebar, soft buttons, selected rows |
+  | `--brand-tint-strong` | `#7FB3AA` (muted teal) | Borders of checkboxes, avatars, subtle accents |
+  | `--brand-accent` | `#F28C6B` (coral), text `#4A1E10` | Sparingly: main public call to action, "new" badges |
+  | `--background` | `#FAF7F2` (warm cream) | Page background; cards are white on top |
+  | `--foreground` | `#1F3B3F`, muted `#5B7376` | Teal-tinted text |
+
+- **Status colors are separate from the brand colors:** green `#2E9E5B` = done or filled, amber `#B7791F` = due soon or partly filled, red `#C2453D` = overdue or unfilled (each with a light background tint).
+- **Type:** Nunito everywhere (via `next/font`), headings at weight 800.
+- **Shape:** `1rem` radius on cards and dialogs, pill-shaped buttons, tabs and badges, soft shadows instead of hard borders, 44px buttons and inputs, generous padding. One primary action per screen. Tables only where they really pay off.
+- **Icons:** Lucide, placed in soft colored circles for empty states, dashboard cards and section headers. No custom illustrations in the MVP.
+- **Public volunteer pages:** same tokens, lighter feel. A colored header with soft circles and the form on a rounded sheet, large touch targets, a coral submit button.
+- Reference prototype: https://claude.ai/artifact/VNcfaPKRXKhxBER4zfvJ6a (variant A).
+
 ### AI Must Be Explainable
 
 When AI suggests an action, users should understand why.
@@ -1624,7 +1693,6 @@ The following decisions are NOT final:
 - Whether both volunteer registration modes are necessary for the first pilot.
 - Exact scheduling algorithm.
 - Exact organization pricing.
-- Dutch-only MVP or bilingual launch.
 - Event template design.
 - Volunteer data retention periods.
 

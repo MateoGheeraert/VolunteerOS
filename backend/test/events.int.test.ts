@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { TEST_APP_URL } from './env.js';
 import { createTestApp, type TestApp, type TestClient } from './test-app.js';
 
 let t: TestApp;
@@ -58,6 +59,58 @@ describe('authentication', () => {
     const c = t.client();
     await c.signUp('Lone Wolf', 'lone@example.com');
     expect((await c.get('/api/events')).status).toBe(403);
+  });
+
+  it('starts a new session in the organization the user already belongs to', async () => {
+    const first = t.client();
+    await first.signUp('Returning Rita', 'rita@example.com');
+    await first.createOrganization('Chiro Rita');
+
+    const later = t.client();
+    const signIn = await later.post('/api/auth/sign-in/email', {
+      email: 'rita@example.com',
+      password: 'correct-horse-battery',
+    });
+    expect(signIn.status).toBe(200);
+    expect((await later.get('/api/events')).status).toBe(200);
+  });
+
+  it('resets a forgotten password through the emailed Next.js link', async () => {
+    const c = t.client();
+    await c.signUp('Forgetful Fien', 'fien@example.com');
+
+    const ask = await c.post('/api/auth/request-password-reset', {
+      email: 'fien@example.com',
+      redirectTo: '/reset-password',
+    });
+    expect(ask.status).toBe(200);
+
+    const link = t.emails
+      .lastTo('fien@example.com')
+      ?.text.match(/(\S+\/reset-password\?token=\S+)/)?.[1];
+    expect(link).toBeDefined();
+    const url = new URL(link!);
+    expect(url.origin).toBe(new URL(TEST_APP_URL).origin);
+    const token = url.searchParams.get('token')!;
+
+    const reset = await c.post('/api/auth/reset-password', {
+      token,
+      newPassword: 'a-brand-new-password',
+    });
+    expect(reset.status).toBe(200);
+
+    const signIn = await t.client().post('/api/auth/sign-in/email', {
+      email: 'fien@example.com',
+      password: 'a-brand-new-password',
+    });
+    expect(signIn.status).toBe(200);
+
+    // The token is single-use.
+    const again = await c.post('/api/auth/reset-password', {
+      token,
+      newPassword: 'yet-another-one!',
+    });
+    expect(again.status).toBe(400);
   });
 });
 

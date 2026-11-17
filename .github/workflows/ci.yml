@@ -13,7 +13,7 @@ permissions:
   contents: read
 
 jobs:
-  # Repository-wide checks. Frontend jobs get added next to the backend ones below.
+  # Repository-wide checks.
   format:
     name: Format
     runs-on: ubuntu-latest
@@ -103,3 +103,44 @@ jobs:
           push: false
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  frontend-checks:
+    name: Frontend · lint, types, unit tests, build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      # The typed client comes from backend/openapi.json, which the backend job keeps up to date.
+      - name: Generate API client
+        run: pnpm api:generate
+      - name: Lint
+        run: pnpm lint
+      - name: Type check
+        run: pnpm typecheck
+      - name: Unit tests
+        run: pnpm test
+      - name: Build
+        run: pnpm build
+
+  frontend-docker:
+    name: Frontend · Docker image builds
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: frontend/Dockerfile
+          push: false
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,mode=max,scope=frontend

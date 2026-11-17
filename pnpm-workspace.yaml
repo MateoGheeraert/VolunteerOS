@@ -1,3 +1,12 @@
 packages:
   - backend
   - frontend
+
+# Dependencies both apps must agree on. Packages refer to these with "catalog:", so the
+# versions can't drift apart; an upgrade is one line here.
+catalog:
+  better-auth: ^1.7.25
+  # Better Auth's CLI (schema generation); always the same release as better-auth.
+  auth: ^1.7.25
+  zod: ^4.6.7
+  typescript: ^6.0.3
