@@ -166,6 +166,166 @@ describe('events', () => {
     expect((await admin.get('/api/events/00000000-0000-4000-8000-000000000000')).status).toBe(404);
   });
 
+  it('stores an event that spans several days', async () => {
+    const created = await admin.createEvent({
+      startsAt: '2026-12-18T17:00:00+01:00',
+      endsAt: '2026-12-20T20:00:00+01:00',
+      expectedAttendance: 1500,
+    });
+    const got = await admin.get(`/api/events/${created.id}`);
+    expect(got.body).toMatchObject({
+      eventType: 'market',
+      endsAt: '2026-12-20T19:00:00.000Z',
+      expectedAttendance: 1500,
+      actualAttendance: null,
+      previousEditionId: null,
+      previousEdition: null,
+      nextEdition: null,
+    });
+  });
+
+  it('requires an event type', async () => {
+    const res = await admin.post('/api/events', {
+      name: 'x',
+      startsAt: '2026-12-12T14:00:00Z',
+      endsAt: '2026-12-12T15:00:00Z',
+    });
+    expect(res.status).toBe(400);
+  });
+
+  describe('editions', () => {
+    const edition = (year: number, overrides: Record<string, unknown> = {}) =>
+      admin.createEvent({
+        name: `Kerstmarkt ${year}`,
+        startsAt: `${year}-12-12T14:00:00+01:00`,
+        endsAt: `${year}-12-12T23:00:00+01:00`,
+        ...overrides,
+      });
+    const createRaw = (year: number, previousEditionId: string) =>
+      admin.post('/api/events', {
+        name: `Kerstmarkt ${year}`,
+        eventType: 'market',
+        startsAt: `${year}-12-13T14:00:00+01:00`,
+        endsAt: `${year}-12-13T23:00:00+01:00`,
+        previousEditionId,
+      });
+
+    it('links an event to the edition it continues, both ways', async () => {
+      const first = await edition(2025);
+      const second = await edition(2026, { previousEditionId: first.id });
+      expect(second.previousEditionId).toBe(first.id);
+
+      const got = await admin.get(`/api/events/${second.id}`);
+      expect(got.body.previousEdition).toEqual({
+        id: first.id,
+        name: 'Kerstmarkt 2025',
+        startsAt: '2025-12-12T13:00:00.000Z',
+      });
+      expect(got.body.nextEdition).toBeNull();
+      expect((await admin.get(`/api/events/${first.id}`)).body.nextEdition).toMatchObject({
+        id: second.id,
+      });
+
+      // List responses carry only the id.
+      const list = await admin.get('/api/events');
+      const listed = list.body.find((e: { id: string }) => e.id === second.id);
+      expect(listed.previousEditionId).toBe(first.id);
+      expect(listed).not.toHaveProperty('previousEdition');
+    });
+
+    it('can continue an archived edition', async () => {
+      const first = await edition(2025);
+      await admin.post(`/api/events/${first.id}/archive`);
+      const second = await edition(2026, { previousEditionId: first.id });
+      expect(second.previousEditionId).toBe(first.id);
+    });
+
+    it('only continues an earlier event, never itself', async () => {
+      const later = await edition(2027);
+      const res = await createRaw(2026, later.id);
+      expect(res.status).toBe(400);
+      expect(res.body.message).toBe('previousEditionId: must start before this event');
+
+      const self = await admin.patch(`/api/events/${later.id}`, { previousEditionId: later.id });
+      expect(self.status).toBe(400);
+    });
+
+    it('allows only one event to continue an edition', async () => {
+      const first = await edition(2025);
+      await edition(2026, { previousEditionId: first.id });
+      const res = await createRaw(2026, first.id);
+      expect(res.status).toBe(400);
+      expect(res.body.message).toBe('previousEditionId: already continued by another event');
+    });
+
+    it('keeps editions in date order when the dates change', async () => {
+      const first = await edition(2025);
+      const second = await edition(2026, { previousEditionId: first.id });
+
+      const beforePrevious = await admin.patch(`/api/events/${second.id}`, {
+        startsAt: '2025-01-01T10:00:00Z',
+        endsAt: '2025-01-01T12:00:00Z',
+      });
+      expect(beforePrevious.status).toBe(400);
+
+      const afterNext = await admin.patch(`/api/events/${first.id}`, {
+        startsAt: '2027-01-01T10:00:00Z',
+        endsAt: '2027-01-01T12:00:00Z',
+      });
+      expect(afterNext.status).toBe(400);
+
+      const fine = await admin.patch(`/api/events/${second.id}`, {
+        startsAt: '2026-12-18T17:00:00+01:00',
+        endsAt: '2026-12-20T20:00:00+01:00',
+      });
+      expect(fine.status).toBe(200);
+    });
+
+    it('can move or remove the link', async () => {
+      const first = await edition(2024);
+      const second = await edition(2025);
+      const third = await edition(2026, { previousEditionId: first.id });
+
+      const moved = await admin.patch(`/api/events/${third.id}`, { previousEditionId: second.id });
+      expect(moved.body.previousEditionId).toBe(second.id);
+      // The old edition is free again.
+      expect((await admin.get(`/api/events/${first.id}`)).body.nextEdition).toBeNull();
+
+      const removed = await admin.patch(`/api/events/${third.id}`, { previousEditionId: null });
+      expect(removed.body.previousEditionId).toBeNull();
+    });
+
+    it('does not reveal or accept editions the caller may not see', async () => {
+      const hidden = await edition(2025);
+      const { client: member } = await inviteMember(admin, orgId, 'Mo Member', 'mo@example.com');
+      const own = await member.createEvent({ name: 'Kerstmarkt 2026' });
+
+      const res = await member.patch(`/api/events/${own.id}`, { previousEditionId: hidden.id });
+      expect(res.status).toBe(400);
+      expect(res.body.message).toBe('previousEditionId: event not found');
+
+      // Linked by an admin: the member still doesn't see the hidden edition's name.
+      const linked = await admin.patch(`/api/events/${own.id}`, { previousEditionId: hidden.id });
+      expect(linked.status).toBe(200);
+      const got = await member.get(`/api/events/${own.id}`);
+      expect(got.body.previousEditionId).toBe(hidden.id);
+      expect(got.body.previousEdition).toBeNull();
+    });
+
+    it('hides a deleted previous edition but keeps the link', async () => {
+      const first = await edition(2025);
+      const second = await edition(2026, { previousEditionId: first.id });
+      await t.db.execute(sql`update event set deleted_at = now() where id = ${first.id}`);
+
+      const got = await admin.get(`/api/events/${second.id}`);
+      expect(got.body.previousEditionId).toBe(first.id);
+      expect(got.body.previousEdition).toBeNull();
+      // Unrelated edits still work while the link points at a deleted event.
+      const renamed = await admin.patch(`/api/events/${second.id}`, { name: 'Kerstmarkt' });
+      expect(renamed.status).toBe(200);
+    });
+  });
+
   describe('organization isolation', () => {
     it('hides one organization’s events from another', async () => {
       const event = await admin.createEvent();

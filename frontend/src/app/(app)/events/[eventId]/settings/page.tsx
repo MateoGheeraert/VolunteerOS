@@ -5,8 +5,8 @@ import { FormError } from '@/components/form-error';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ArchiveEvent } from '@/features/events/archive-event';
 import { EventForm } from '@/features/events/event-form';
-import { toEventFormValues } from '@/features/events/schemas';
-import { getEvent } from '@/server/events/queries';
+import { editionOptions, toEventFormValues } from '@/features/events/schemas';
+import { getEvent, listEvents } from '@/server/events/queries';
 
 export const metadata: Metadata = { title: 'Instellingen' };
 
@@ -20,7 +20,11 @@ export default function EventSettingsPage({ params }: PageProps<'/events/[eventI
 
 async function EventSettings({ params }: Pick<PageProps<'/events/[eventId]/settings'>, 'params'>) {
   const { eventId } = await params;
-  const [event, t] = await Promise.all([getEvent(eventId), getTranslations()]);
+  const [event, events, t] = await Promise.all([
+    getEvent(eventId),
+    listEvents(),
+    getTranslations(),
+  ]);
   const archived = event.status === 'archived';
 
   return (
@@ -33,6 +37,7 @@ async function EventSettings({ params }: Pick<PageProps<'/events/[eventId]/setti
           key={event.updatedAt}
           eventId={event.id}
           defaultValues={toEventFormValues(event)}
+          editions={editionOptions(events, event.id)}
           readOnly={archived}
         />
       </section>

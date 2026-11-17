@@ -8,6 +8,7 @@ import {
 
 const valid = {
   name: 'Kerstmarkt 2026',
+  eventType: 'market',
   startsAt: '2026-12-12T14:00:00+01:00',
   endsAt: '2026-12-12T23:00:00+01:00',
 };
@@ -52,8 +53,33 @@ describe('createEventSchema', () => {
     expect(parsed).not.toHaveProperty('status');
   });
 
-  it('requires name, startsAt and endsAt', () => {
+  it('requires name, eventType, startsAt and endsAt', () => {
     expect(createEventSchema.safeParse({}).success).toBe(false);
+    const { eventType: _, ...withoutType } = valid;
+    expect(createEventSchema.safeParse(withoutType).success).toBe(false);
+  });
+
+  it('only accepts known event types', () => {
+    expect(createEventSchema.safeParse({ ...valid, eventType: 'quiz' }).success).toBe(true);
+    expect(createEventSchema.safeParse({ ...valid, eventType: 'wedding' }).success).toBe(false);
+  });
+
+  it('accepts an optional edition link, attendance and retrospective', () => {
+    const parsed = createEventSchema.parse({
+      ...valid,
+      previousEditionId: '00000000-0000-4000-8000-000000000000',
+      expectedAttendance: 800,
+      actualAttendance: 0,
+      retrospective: '  Meer glühwein  ',
+    });
+    expect(parsed).toMatchObject({ expectedAttendance: 800, retrospective: 'Meer glühwein' });
+    expect(createEventSchema.safeParse({ ...valid, previousEditionId: null }).success).toBe(true);
+  });
+
+  it('rejects a malformed edition id and negative or fractional attendance', () => {
+    expect(createEventSchema.safeParse({ ...valid, previousEditionId: 'x' }).success).toBe(false);
+    expect(createEventSchema.safeParse({ ...valid, expectedAttendance: -1 }).success).toBe(false);
+    expect(createEventSchema.safeParse({ ...valid, actualAttendance: 1.5 }).success).toBe(false);
   });
 });
 
@@ -92,11 +118,16 @@ describe('eventSchema', () => {
       id: '00000000-0000-4000-8000-000000000000',
       organizationId: 'org',
       name: 'x',
+      eventType: 'market',
       description: null,
       location: null,
       startsAt: '2026-12-12T13:00:00.000Z',
       endsAt: '2026-12-12T22:00:00.000Z',
       status: 'draft',
+      previousEditionId: null,
+      expectedAttendance: null,
+      actualAttendance: null,
+      retrospective: null,
       createdAt: '2026-11-17T10:00:00.000Z',
       updatedAt: '2026-11-17T10:00:00.000Z',
     });

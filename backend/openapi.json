@@ -82,7 +82,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Event"
+                  "$ref": "#/components/schemas/EventDetail"
                 }
               }
             }
@@ -281,6 +281,20 @@
           "name": {
             "type": "string"
           },
+          "eventType": {
+            "type": "string",
+            "enum": [
+              "market",
+              "festival",
+              "party",
+              "quiz",
+              "meal",
+              "sports",
+              "camp",
+              "trip",
+              "other"
+            ]
+          },
           "description": {
             "nullable": true,
             "type": "string"
@@ -303,6 +317,28 @@
             "type": "string",
             "enum": ["draft", "published", "completed", "archived"]
           },
+          "previousEditionId": {
+            "nullable": true,
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "expectedAttendance": {
+            "nullable": true,
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          },
+          "actualAttendance": {
+            "nullable": true,
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          },
+          "retrospective": {
+            "nullable": true,
+            "type": "string"
+          },
           "createdAt": {
             "type": "string",
             "format": "date-time",
@@ -318,11 +354,16 @@
           "id",
           "organizationId",
           "name",
+          "eventType",
           "description",
           "location",
           "startsAt",
           "endsAt",
           "status",
+          "previousEditionId",
+          "expectedAttendance",
+          "actualAttendance",
+          "retrospective",
           "createdAt",
           "updatedAt"
         ],
@@ -336,6 +377,20 @@
             "minLength": 1,
             "maxLength": 200
           },
+          "eventType": {
+            "type": "string",
+            "enum": [
+              "market",
+              "festival",
+              "party",
+              "quiz",
+              "meal",
+              "sports",
+              "camp",
+              "trip",
+              "other"
+            ]
+          },
           "description": {
             "nullable": true,
             "type": "string",
@@ -355,9 +410,172 @@
             "format": "date-time",
             "type": "string",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          },
+          "previousEditionId": {
+            "nullable": true,
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "expectedAttendance": {
+            "nullable": true,
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2147483647
+          },
+          "actualAttendance": {
+            "nullable": true,
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2147483647
+          },
+          "retrospective": {
+            "nullable": true,
+            "type": "string",
+            "maxLength": 5000
           }
         },
-        "required": ["name", "startsAt", "endsAt"]
+        "required": ["name", "eventType", "startsAt", "endsAt"]
+      },
+      "EventDetail": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "organizationId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "eventType": {
+            "type": "string",
+            "enum": [
+              "market",
+              "festival",
+              "party",
+              "quiz",
+              "meal",
+              "sports",
+              "camp",
+              "trip",
+              "other"
+            ]
+          },
+          "description": {
+            "nullable": true,
+            "type": "string"
+          },
+          "location": {
+            "nullable": true,
+            "type": "string"
+          },
+          "startsAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          },
+          "endsAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["draft", "published", "completed", "archived"]
+          },
+          "previousEditionId": {
+            "nullable": true,
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "expectedAttendance": {
+            "nullable": true,
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          },
+          "actualAttendance": {
+            "nullable": true,
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          },
+          "retrospective": {
+            "nullable": true,
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          },
+          "previousEdition": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EditionRef"
+              }
+            ]
+          },
+          "nextEdition": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EditionRef"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "organizationId",
+          "name",
+          "eventType",
+          "description",
+          "location",
+          "startsAt",
+          "endsAt",
+          "status",
+          "previousEditionId",
+          "expectedAttendance",
+          "actualAttendance",
+          "retrospective",
+          "createdAt",
+          "updatedAt",
+          "previousEdition",
+          "nextEdition"
+        ],
+        "additionalProperties": false
+      },
+      "EditionRef": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "name": {
+            "type": "string"
+          },
+          "startsAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          }
+        },
+        "required": ["id", "name", "startsAt"],
+        "additionalProperties": false
       },
       "UpdateEvent": {
         "type": "object",
@@ -367,6 +585,20 @@
             "minLength": 1,
             "maxLength": 200
           },
+          "eventType": {
+            "type": "string",
+            "enum": [
+              "market",
+              "festival",
+              "party",
+              "quiz",
+              "meal",
+              "sports",
+              "camp",
+              "trip",
+              "other"
+            ]
+          },
           "description": {
             "nullable": true,
             "type": "string",
@@ -386,6 +618,29 @@
             "format": "date-time",
             "type": "string",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          },
+          "previousEditionId": {
+            "nullable": true,
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "expectedAttendance": {
+            "nullable": true,
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2147483647
+          },
+          "actualAttendance": {
+            "nullable": true,
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2147483647
+          },
+          "retrospective": {
+            "nullable": true,
+            "type": "string",
+            "maxLength": 5000
           },
           "status": {
             "type": "string",

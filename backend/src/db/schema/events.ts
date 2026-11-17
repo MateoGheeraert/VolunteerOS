@@ -1,7 +1,9 @@
 import { sql } from 'drizzle-orm';
 import {
   check,
+  type AnyPgColumn,
   index,
+  integer,
   pgEnum,
   pgTable,
   text,
@@ -18,9 +20,26 @@ export const eventStatusEnum = pgEnum('event_status', [
   'completed',
   'archived',
 ]);
+/**
+ * What kind of event it is: its format, not its occasion ("Christmas Market 2026" is a `market`;
+ * the edition link says which market). A fixed list so AI planning can rely on it. Adding a value
+ * is a one-line migration; removing or renaming one is not.
+ */
+export const eventTypeEnum = pgEnum('event_type', [
+  'market',
+  'festival',
+  'party',
+  'quiz',
+  'meal',
+  'sports',
+  'camp',
+  'trip',
+  'other',
+]);
 export const eventMemberRoleEnum = pgEnum('event_member_role', ['manager']);
 
 export type EventStatus = (typeof eventStatusEnum.enumValues)[number];
+export type EventType = (typeof eventTypeEnum.enumValues)[number];
 export type EventMemberRole = (typeof eventMemberRoleEnum.enumValues)[number];
 
 const createdAt = timestamp('created_at', { withTimezone: true }).notNull().defaultNow();
@@ -37,11 +56,24 @@ export const event = pgTable(
       .notNull()
       .references(() => organization.id, { onDelete: 'cascade' }),
     name: text('name').notNull(),
+    eventType: eventTypeEnum('event_type').notNull(),
     description: text('description'),
     location: text('location'),
     startsAt: timestamp('starts_at', { withTimezone: true }).notNull(),
     endsAt: timestamp('ends_at', { withTimezone: true }).notNull(),
     status: eventStatusEnum('status').notNull().default('draft'),
+    /**
+     * The earlier event this one continues ("Christmas Market 2026" continues "... 2025"). The
+     * service checks it is an earlier event of the same organization, which also rules out cycles.
+     */
+    previousEditionId: uuid('previous_edition_id').references((): AnyPgColumn => event.id, {
+      onDelete: 'set null',
+    }),
+    expectedAttendance: integer('expected_attendance'),
+    /** Filled in after the event: the main number to compare editions by. */
+    actualAttendance: integer('actual_attendance'),
+    /** Lessons learned, written after the event for the next edition. Free text. */
+    retrospective: text('retrospective'),
     createdAt,
     updatedAt,
     deletedAt: deletedAt(),
@@ -49,6 +81,13 @@ export const event = pgTable(
   (t) => [
     index('event_organization_id_idx').on(t.organizationId),
     check('event_ends_after_starts', sql`${t.endsAt} > ${t.startsAt}`),
+    check('event_expected_attendance_non_negative', sql`${t.expectedAttendance} >= 0`),
+    check('event_actual_attendance_non_negative', sql`${t.actualAttendance} >= 0`),
+    check('event_not_own_previous_edition', sql`${t.previousEditionId} <> ${t.id}`),
+    // An edition has at most one live successor, so editions form a single chain.
+    uniqueIndex('event_previous_edition_uidx')
+      .on(t.previousEditionId)
+      .where(sql`${t.deletedAt} is null`),
   ],
 );
 

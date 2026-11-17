@@ -1081,11 +1081,16 @@ Authentication-related tables are managed by the authentication solution.
 - id
 - organizationId
 - name
+- eventType (market, festival, party, quiz, meal, sports, camp, trip, other)
 - description
 - location
 - startsAt
-- endsAt
+- endsAt (may be days later: a festival weekend is one event)
 - status
+- previousEditionId (the earlier event this one continues; editions form one chain, in date order)
+- expectedAttendance
+- actualAttendance
+- retrospective (lessons learned, for the next edition)
 - createdAt
 - updatedAt
 
