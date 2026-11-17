@@ -1,0 +1,5 @@
+pnpm-lock.yaml
+dist
+**/migrations/**
+backend/src/db/schema/auth.ts
+docs/info.md

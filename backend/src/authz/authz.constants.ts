@@ -1,0 +1,2 @@
+export const REQUIRE_ORG_ADMIN = Symbol('REQUIRE_ORG_ADMIN');
+export const REQUIRE_EVENT_ACCESS = Symbol('REQUIRE_EVENT_ACCESS');

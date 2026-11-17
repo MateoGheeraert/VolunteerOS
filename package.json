@@ -1,0 +1,23 @@
+{
+  "name": "volunteeros",
+  "private": true,
+  "packageManager": "pnpm@9.15.4",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "build": "pnpm -r build",
+    "dev": "pnpm --filter @volunteeros/backend dev",
+    "test": "pnpm -r test",
+    "typecheck": "pnpm -r typecheck",
+    "lint": "pnpm -r lint",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "db:generate": "pnpm --filter @volunteeros/backend db:generate",
+    "db:migrate": "pnpm --filter @volunteeros/backend db:migrate"
+  },
+  "devDependencies": {
+    "prettier": "^3.4.2",
+    "typescript": "^6.0.3"
+  }
+}
