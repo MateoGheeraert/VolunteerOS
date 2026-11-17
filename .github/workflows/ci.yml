@@ -1,0 +1,105 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # Repository-wide checks. Frontend jobs get added next to the backend ones below.
+  format:
+    name: Format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm format:check
+
+  backend-checks:
+    name: Backend · lint, types, unit tests, build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+      - name: Type check
+        run: pnpm typecheck
+      - name: Unit tests
+        run: pnpm test:unit
+      - name: Build
+        run: pnpm build
+
+      - name: Migrations match the schema
+        # Generating from an up-to-date schema writes nothing. A new file means someone changed
+        # src/db/schema without running `pnpm db:generate`.
+        env:
+          DATABASE_URL: postgres://ci:ci@localhost:5432/ci
+        run: |
+          pnpm db:generate
+          if [ -n "$(git status --porcelain src/db/migrations)" ]; then
+            echo "::error::Schema changes without a migration. Run 'pnpm db:generate' and commit the result."
+            git status --porcelain src/db/migrations
+            exit 1
+          fi
+
+      - name: OpenAPI document is up to date
+        # The frontend generates its API client from backend/openapi.json.
+        run: |
+          pnpm openapi:export
+          if ! git diff --exit-code openapi.json; then
+            echo "::error::backend/openapi.json is out of date. Run 'pnpm openapi:export' and commit the result."
+            exit 1
+          fi
+
+  backend-integration:
+    name: Backend · integration tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # Testcontainers starts a throwaway Postgres 17 on the runner's Docker.
+      - run: pnpm test:int
+
+  backend-docker:
+    name: Backend · Docker image builds
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: backend/Dockerfile
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

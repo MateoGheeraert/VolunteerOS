@@ -806,20 +806,15 @@ Use client components for interactive interfaces.
 
 ### Backend
 
-**Next.js + TypeScript**
+**NestJS 12 (ESM) on Node.js 24 LTS** — a separate API in `backend/`, built as a modular monolith.
 
-Use a modular monolith initially.
+Decided November 2026 (replaces the earlier Next.js + tRPC plan):
 
-Preferred API approach:
-
-**tRPC**
-
-Reasons:
-
-- Type-safe frontend/backend integration.
-- Familiar developer experience.
-- Shared TypeScript models.
-- Good fit for complex forms and dashboards.
+- **REST, with the Drizzle tables as the single source of truth.** Each feature derives its request/response Zod schemas from its tables with `drizzle-zod`. Nest validates them natively with `StandardSchemaValidationPipe` (`@Body({ schema })`), and `@nestjs/swagger` turns the same schemas into OpenAPI. The document is committed as `backend/openapi.json`, CI checks that it is up to date, and the frontend generates its typed client (and form schemas) from it. There is no shared code package between backend and frontend.
+- **Next.js is the only way in (backend-for-frontend).** Browsers never call Nest. Next.js server components, server actions and route handlers call Nest with the typed client and forward the user's cookie. `/api/auth/*` is proxied by a Next.js rewrite, so the session cookie stays first-party on the Next.js origin.
+- **Nest is private.** It listens on a private network only, with CORS disabled. Every request must carry the shared `X-Internal-Secret` header (except `/api/health`). This is defense in depth: Nest still authenticates and authorizes every request itself.
+- **pnpm workspaces**: `backend`, `frontend`.
+- **CI** (GitHub Actions): format, lint (oxlint, type-aware), type checks, unit and integration tests (Testcontainers), migration and OpenAPI sync checks, and the Docker build.
 
 Do not introduce microservices prematurely.
 
@@ -827,18 +822,18 @@ Do not introduce microservices prematurely.
 
 **PostgreSQL**
 
-Preferred ORM:
+Hosted on **Neon** (pooled connection string for the app, direct one for migrations). Development uses a `dev` branch branched from production. Integration tests run against a throwaway Postgres 17 container (Testcontainers) that is started and removed with each test run.
 
-**Drizzle ORM**
+ORM: **Drizzle ORM** (decided), via the first-party `@nestjs/drizzle` module.
 
 Reasons:
 
 - Strong TypeScript integration.
 - SQL-oriented approach.
 - Explicit schemas and migrations.
-- Good control over database queries.
+- Good control over database queries (e.g. concurrent signup capacity).
 
-Prisma is a valid alternative, but choose one ORM and use it consistently.
+Migrations are generated with `drizzle-kit generate` and committed as SQL. Never use `drizzle-kit push` against Neon.
 
 ### Authentication
 
@@ -852,6 +847,12 @@ For:
 - Role management integration.
 
 Authorization and tenant isolation must be enforced on the server.
+
+Decided approach:
+
+- **Better Auth organization plugin** handles organizations, membership, the organization roles (`owner`/`admin` = Organization Admin, `member` = organizer) and expiring/revocable invitations.
+- **Event-level access** is a small hand-written authorization module in `backend/src/authz`: pure policy functions plus Nest guards (`@OrgScoped()`, `@RequireEventAccess()`). Event Managers are rows in `event_member`. No CASL or external permission service until the P1 Team Coordinator role demands it.
+- **Tenant isolation is application-level**: every repository method takes the `organizationId` it works in, and events of other organizations answer 404. No Postgres row-level security in the MVP; revisit after the pilot.
 
 Volunteer access should use separately designed email-based access links rather than full application accounts.
 
@@ -919,10 +920,12 @@ The scheduling engine should remain logically separate from LLM interpretation.
 
 ### Hosting
 
+Constraint: Next.js and Nest must run **on the same platform with private networking** (e.g. Railway or Fly.io; provider chosen near the pilot), because Nest is not exposed to the internet. Vercel-hosted Next.js cannot reach a private Nest service. Both apps ship as Docker images.
+
 Recommended initial approach:
 
-- Vercel for Next.js deployment.
-- Managed PostgreSQL (e.g. Neon or Supabase).
+- Next.js and Nest on one platform with private networking.
+- Managed PostgreSQL: Neon.
 - Cloud object storage later if necessary.
 - Managed email provider.
 - Managed background jobs.
@@ -967,33 +970,27 @@ Priority test areas:
 
 Start with a modular monolith.
 
-Suggested modules:
+Repository layout:
 
 ```text
-src/
-├── app/
-│   ├── (auth)/
-│   ├── (dashboard)/
-│   └── (public)/
-├── components/
-│   ├── ui/
-│   └── shared/
-├── features/
-│   ├── organizations/
-│   ├── events/
-│   ├── tasks/
-│   ├── volunteers/
-│   ├── scheduling/
-│   ├── budgets/
-│   ├── suppliers/
-│   └── ai/
-├── server/
-│   ├── api/
-│   ├── auth/
-│   ├── db/
-│   ├── jobs/
-│   └── email/
-└── lib/
+backend/                 NestJS API (private, reached only via the Next.js server)
+└── src/
+    ├── config/          env validation (Zod)
+    ├── db/              Drizzle schema + committed SQL migrations
+    ├── auth/            Better Auth instance, global AuthGuard, @Public/@CurrentUser
+    ├── authz/           org context, event policies, guards
+    ├── email/           EmailService (console in dev, Resend in production)
+    ├── common/          health check, internal-secret middleware
+    └── features/
+        ├── events/      controller → service → repository
+        ├── tasks/       (next)
+        ├── volunteers/  …
+        ├── scheduling/
+        ├── budgets/
+        ├── suppliers/
+        └── ai/
+frontend/                Next.js (App Router): UI + server-side calls to the backend,
+                         through a client generated from backend/openapi.json
 ```
 
 Each feature should contain its own:
