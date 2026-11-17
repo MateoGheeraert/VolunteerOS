@@ -19,3 +19,22 @@ export function organizationInvitationEmail(input: {
     ].join('\n'),
   };
 }
+
+export function passwordResetEmail(input: {
+  to: string;
+  name: string;
+  resetUrl: string;
+}): EmailMessage {
+  return {
+    to: input.to,
+    subject: 'Stel een nieuw wachtwoord in voor VolunteerOS',
+    text: [
+      `Dag ${input.name},`,
+      '',
+      'Je vroeg om een nieuw wachtwoord. Kies er een via deze link:',
+      input.resetUrl,
+      '',
+      'De link is 1 uur geldig. Heb je dit niet gevraagd? Dan mag je deze mail negeren.',
+    ].join('\n'),
+  };
+}

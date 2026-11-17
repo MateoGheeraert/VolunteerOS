@@ -1,0 +1,48 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "import", "react", "nextjs", "jsx-a11y", "vitest"],
+  "env": {
+    "browser": true,
+    "node": true
+  },
+  "rules": {
+    "typescript/no-floating-promises": "error",
+    "typescript/no-misused-promises": "error",
+    "typescript/await-thenable": "error",
+    "typescript/no-explicit-any": "error",
+    "import/no-cycle": "error",
+    "react/rules-of-hooks": "error",
+    "no-restricted-imports": [
+      "error",
+      {
+        "patterns": [
+          {
+            "group": [
+              "@/api/generated",
+              "@/api/generated/sdk.gen",
+              "@/api/generated/client*",
+              "@/api/generated/client/*"
+            ],
+            "message": "Only src/server may call the API. Elsewhere import types from @/api/generated/types.gen or schemas from @/api/generated/zod.gen, and data through src/server/<feature>/queries or actions."
+          }
+        ]
+      }
+    ]
+  },
+  "ignorePatterns": [
+    "src/api/generated",
+    "src/components/ui",
+    "src/hooks/use-mobile.ts",
+    ".next",
+    "test-results",
+    "playwright-report"
+  ],
+  "overrides": [
+    {
+      "files": ["src/server/**"],
+      "rules": {
+        "no-restricted-imports": "off"
+      }
+    }
+  ]
+}

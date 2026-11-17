@@ -65,7 +65,17 @@
     "/api/events/{eventId}": {
       "get": {
         "operationId": "EventsController_get",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "eventId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "",
@@ -82,7 +92,17 @@
       },
       "patch": {
         "operationId": "EventsController_update",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "eventId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -111,7 +131,17 @@
     "/api/events/{eventId}/archive": {
       "post": {
         "operationId": "EventsController_archive",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "eventId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "",
@@ -130,7 +160,17 @@
     "/api/events/{eventId}/members": {
       "get": {
         "operationId": "EventsController_listMembers",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "eventId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "",
@@ -150,7 +190,17 @@
       },
       "post": {
         "operationId": "EventsController_addMember",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "eventId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -178,6 +228,15 @@
             "required": true,
             "in": "path",
             "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "eventId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
               "type": "string"
             }
           }
