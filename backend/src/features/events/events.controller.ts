@@ -85,7 +85,11 @@ export class EventsController {
   @Delete(':eventId/members/:userId')
   @HttpCode(204)
   @RequireEventAccess('manageMembers')
-  removeMember(@CurrentEvent() event: EventRow, @Param('userId') userId: string) {
-    return this.events.removeMember(event.id, userId);
+  removeMember(
+    @CurrentOrg() org: OrgContext,
+    @CurrentEvent() event: EventRow,
+    @Param('userId') userId: string,
+  ) {
+    return this.events.removeMember(org, event.id, userId);
   }
 }

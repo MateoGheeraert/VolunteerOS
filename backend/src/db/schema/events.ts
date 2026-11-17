@@ -9,6 +9,7 @@ import {
   uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core';
+import { deletedAt } from '../soft-delete.js';
 import { organization, user } from './auth.js';
 
 export const eventStatusEnum = pgEnum('event_status', [
@@ -43,6 +44,7 @@ export const event = pgTable(
     status: eventStatusEnum('status').notNull().default('draft'),
     createdAt,
     updatedAt,
+    deletedAt: deletedAt(),
   },
   (t) => [
     index('event_organization_id_idx').on(t.organizationId),
@@ -62,9 +64,13 @@ export const eventMember = pgTable(
       .references(() => user.id, { onDelete: 'cascade' }),
     role: eventMemberRoleEnum('role').notNull().default('manager'),
     createdAt,
+    deletedAt: deletedAt(),
   },
   (t) => [
-    uniqueIndex('event_member_event_user_uidx').on(t.eventId, t.userId),
+    // One active assignment per user; removed (soft-deleted) assignments stay as history.
+    uniqueIndex('event_member_event_user_uidx')
+      .on(t.eventId, t.userId)
+      .where(sql`${t.deletedAt} is null`),
     index('event_member_user_id_idx').on(t.userId),
   ],
 );

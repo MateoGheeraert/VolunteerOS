@@ -2,6 +2,7 @@ import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/commo
 import { InjectDrizzle } from '@nestjs/drizzle';
 import { and, eq } from 'drizzle-orm';
 import type { Database } from '../db/database.js';
+import { notDeleted } from '../db/soft-delete.js';
 import { event, eventMember, type EventRow } from '../db/schema/index.js';
 import type { OrgContext } from './org-context.js';
 import { canAccessEvent, canSeeEvent, type EventAction } from './policies.js';
@@ -21,9 +22,16 @@ export class EventAccessService {
       .from(event)
       .leftJoin(
         eventMember,
-        and(eq(eventMember.eventId, event.id), eq(eventMember.userId, org.userId)),
+        // A removed (soft-deleted) assignment grants nothing.
+        and(
+          eq(eventMember.eventId, event.id),
+          eq(eventMember.userId, org.userId),
+          notDeleted(eventMember),
+        ),
       )
-      .where(and(eq(event.id, eventId), eq(event.organizationId, org.organizationId)))
+      .where(
+        and(eq(event.id, eventId), eq(event.organizationId, org.organizationId), notDeleted(event)),
+      )
       .limit(1);
 
     const subject = { orgRole: org.role, eventRole: row?.eventRole ?? null };

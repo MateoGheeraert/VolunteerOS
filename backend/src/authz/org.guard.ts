@@ -7,6 +7,7 @@ import {
 import { Reflector } from '@nestjs/core';
 import { InjectDrizzle } from '@nestjs/drizzle';
 import { and, eq } from 'drizzle-orm';
+import { userActor } from '../activity/actor.js';
 import type { Database } from '../db/database.js';
 import { member } from '../db/schema/index.js';
 import type { OrgScopedRequest } from './org-context.js';
@@ -44,6 +45,7 @@ export class OrgGuard implements CanActivate {
       userId: request.user.id,
       organizationId,
       role: toOrgRole(membership.role),
+      actor: userActor(request.user.id),
     };
 
     const requiresAdmin = this.reflector.getAllAndOverride<boolean>(REQUIRE_ORG_ADMIN, [

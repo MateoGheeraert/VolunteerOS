@@ -7,6 +7,7 @@ import type { Database } from '../db/database.js';
 import * as schema from '../db/schema/index.js';
 import type { EmailService } from '../email/email.service.js';
 import { organizationInvitationEmail, passwordResetEmail } from '../email/templates.js';
+import { organizationActivityHooks } from './auth.activity.js';
 
 const SEVEN_DAYS_IN_SECONDS = 7 * 24 * 60 * 60;
 const ONE_HOUR_IN_SECONDS = 60 * 60;
@@ -72,6 +73,10 @@ export function createAuth({ db, env, email }: AuthDependencies) {
       organization({
         invitationExpiresIn: SEVEN_DAYS_IN_SECONDS,
         cancelPendingInvitationsOnReInvite: true,
+        // Nothing is ever permanently deleted, and deleting an organization would cascade into
+        // its events and history. Re-enable only with a soft-delete design for organizations.
+        disableOrganizationDeletion: true,
+        organizationHooks: organizationActivityHooks(db),
         sendInvitationEmail: async ({ id, email: to, organization: org, inviter }) => {
           await email.send(
             organizationInvitationEmail({

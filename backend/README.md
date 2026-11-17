@@ -116,10 +116,12 @@ src/
 ├── config/                 Env validation (Zod) → injectable ENV
 ├── db/
 │   ├── database.module.ts  Drizzle connection (@nestjs/drizzle)
-│   ├── database.ts         The `Database` type
-│   ├── schema/             Tables: auth.ts (generated), events.ts, index.ts
+│   ├── database.ts         The `Database`, `Transaction` and `DbExecutor` types
+│   ├── soft-delete.ts      `deletedAt()` column and `notDeleted(table)` filter
+│   ├── schema/             Tables: auth.ts (generated), events.ts, activity-log.ts, index.ts
 │   └── migrations/         Generated SQL, committed
-├── auth/                   Better Auth instance, global AuthGuard, @Public(), @CurrentUser()
+├── activity/               recordActivity() and the Actor type (see "Activity log")
+├── auth/                   Better Auth instance + its activity hooks, AuthGuard, @Public(), @CurrentUser()
 ├── authz/                  Org context, policies, guards, decorators
 ├── email/                  EmailService (console / Resend) and templates
 ├── common/                 Health check, internal-secret middleware, date schemas
@@ -145,7 +147,7 @@ Next.js server ──► internal-secret middleware ─┬─► /api/auth/*  Be
 1. **Internal secret** ([internal-secret.middleware.ts](src/common/internal-secret.middleware.ts)): rejects any request without the `x-internal-secret` header (403). It's an extra layer on top of the private network, not a replacement for auth.
 2. **Better Auth** owns `/api/auth/*`: sign-up, sign-in, sessions, organizations, invitations. Its endpoints are documented in the [Better Auth docs](https://www.better-auth.com/docs/plugins/organization), not in our OpenAPI.
 3. **AuthGuard** ([auth.guard.ts](src/auth/auth.guard.ts)) is global: every route needs a session unless it's marked `@Public()`.
-4. **OrgGuard** ([org.guard.ts](src/authz/org.guard.ts)) runs on `@OrgScoped()` controllers. It takes the session's active organization, checks the user is a member of it, and puts `{ userId, organizationId, role }` on the request (`@CurrentOrg()`).
+4. **OrgGuard** ([org.guard.ts](src/authz/org.guard.ts)) runs on `@OrgScoped()` controllers. It takes the session's active organization, checks the user is a member of it, and puts `{ userId, organizationId, role, actor }` on the request (`@CurrentOrg()`). `actor` is who the [activity log](#activity-log) records.
 5. **EventAccessGuard** runs on routes marked `@RequireEventAccess('read' | 'manage' | 'manageMembers')`. It loads the `:eventId` event within the active organization and checks the policy. The loaded event is available as `@CurrentEvent()`.
 6. **Validation**: `@Body({ schema })` validates with the feature's Zod schema; invalid input gets a 400.
 
@@ -179,17 +181,78 @@ The schema file only adds what the table can't know:
 
 See [events.schemas.ts](src/features/events/events.schemas.ts).
 
+### Soft deletes
+
+**Nothing is permanently deleted.** A deletion sets `deleted_at`; the row stays.
+
+- Every feature table gets `deletedAt: deletedAt()` ([src/db/soft-delete.ts](src/db/soft-delete.ts)).
+- **Every read filters with `notDeleted(table)`**, joins included. Drizzle has no global scope, so this is on the repository. It matters for security too: `EventAccessService` ignores removed `event_member` rows, otherwise a removed manager would keep access.
+- A delete is an `update ... set deleted_at = now()`, logged as `deleted` (or a domain verb such as `member_removed`).
+- Unique constraints that should only hold for live rows are partial: ``uniqueIndex(...).on(...).where(sql`deleted_at is null`)``. That way a removed manager can be assigned again, as a new row.
+- API schemas `.omit({ deletedAt: true })`: deleted rows are never returned, so clients don't need the field.
+
+Exceptions:
+
+- **Better Auth tables** (`user`, `session`, `account`, `verification`, `member`, `invitation`, `organization`) follow Better Auth, which hard-deletes (removing a member deletes the `member` row). Its organization changes are recorded in the activity log, so the history survives.
+- **Organizations can't be deleted** (`disableOrganizationDeletion`): it would cascade into everything they own.
+- **GDPR erasure** (to be built): when a person asks to be forgotten, their personal data must really go. That workflow, and only that one, will anonymize or hard-delete personal data. Until it exists, don't add other hard deletes.
+
+### Activity log
+
+Every change is recorded in `activity_log` ([schema](src/db/schema/activity-log.ts)): who did it, what they did, to which record, and which fields changed. Admins use it to trace mistakes; the AI agent uses it as history.
+
+| Column                        | What                                                                                       |
+| ----------------------------- | ------------------------------------------------------------------------------------------ |
+| `organization_id`, `event_id` | Where it happened. `event_id` is null for organization-level changes (members, invites).   |
+| `actor_type`, `actor_id`      | `user`, `volunteer`, `ai` (id = the agent) or `system` (no id). Plain text, no FK.         |
+| `on_behalf_of_user_id`        | Only for `ai`: the user whose command the agent carried out.                               |
+| `action`                      | `created`, `updated`, `deleted`, or a domain verb (`archived`, `member_added`, `invited`). |
+| `entity_type`, `entity_id`    | The changed record, e.g. `event` + its id.                                                 |
+| `changes`                     | `{ field: { from, to } }` for loggable values, `{ field: null }` for everything else.      |
+
+Rules:
+
+- **Written in the service, inside the same transaction as the change.** A rolled-back change leaves no entry, and a committed change always has one. No interceptors: only the service knows what changed.
+- **No personal data.** Store IDs, never names, emails, phone numbers or free text. Fields are logged **by name only** unless the call lists them in `values`; only list fields that aren't personal (statuses, dates, IDs, event names).
+- **Append-only.** Nothing updates or deletes log rows. The foreign keys don't cascade.
+- An update that changes nothing writes no entry.
+
+Logging a change is one call, with the transaction the change runs in:
+
+```ts
+const EVENT_LOGGED_VALUES = ['name', 'location', 'startsAt', 'endsAt', 'status'] as const;
+
+await this.db.transaction(async (tx) => {
+  const row = await this.events.update(tx, org.organizationId, current.id, input);
+  await recordActivity(tx, org, {
+    action: 'updated',
+    entityType: 'event',
+    entity: row,
+    before: current, // a row: log what differs; null: a new row; left out: no field changes
+    eventId: row.id,
+    values: EVENT_LOGGED_VALUES,
+  });
+});
+```
+
+`org` is the `OrgContext` from `@CurrentOrg()`; its `actor` is the signed-in user. Code that runs outside a request (jobs, scripts) passes `{ organizationId, actor: SYSTEM_ACTOR }`.
+
+**Better Auth changes** (organization created or renamed, members added, removed or given another role, invitations sent, accepted, rejected or cancelled) are logged from the organization plugin's hooks, in [auth.activity.ts](src/auth/auth.activity.ts). Two differences:
+
+- They run after Better Auth has committed, so they **can't be in the same transaction**. If logging fails, the error is logged and the request still succeeds.
+- The hooks pass the user acted _on_; the actor comes from the current request's session (`tryGetCurrentAuthEndpointContext()`). The invitee's email is stored by name only.
+
 ### Adding a feature
 
 Follow `features/events/`:
 
-1. **Table**: `src/db/schema/<feature>.ts`, exported from `schema/index.ts`. Then `pnpm db:generate`.
-2. **Schemas**: `features/<feature>/<feature>.schemas.ts`, derived from the table (see above).
-3. **Repository**: all queries, each taking the `organizationId` (or an already-authorized event id).
-4. **Service**: business rules (status transitions, invariants). Pure rules go in their own file with a `.spec.ts`.
+1. **Table**: `src/db/schema/<feature>.ts`, exported from `schema/index.ts`, with a `deletedAt: deletedAt()` column. Then `pnpm db:generate`.
+2. **Schemas**: `features/<feature>/<feature>.schemas.ts`, derived from the table (see above), with `deletedAt` omitted from responses.
+3. **Repository**: all queries, each taking the `organizationId` (or an already-authorized event id) and filtering `notDeleted(...)`. Write methods take a `tx: DbExecutor`.
+4. **Service**: business rules (status transitions, invariants). Pure rules go in their own file with a `.spec.ts`. Every write opens a transaction and calls `recordActivity` in it.
 5. **Controller**: `@OrgScoped()`, `@RequireEventAccess(...)` on event routes, `@Body({ schema })`, and `@ApiResponse({ standardSchema })` for the docs.
 6. **Module**: register it in `app.module.ts`.
-7. **Tests**: rules in unit tests; HTTP behavior and organization isolation in `test/*.int.test.ts`.
+7. **Tests**: rules in unit tests; HTTP behavior, organization isolation and the logged entries in `test/*.int.test.ts`.
 8. **Contract**: `pnpm openapi:export`, and commit `openapi.json`.
 
 Adding a column to an existing table: change the table, run `pnpm db:generate`, add the column to the `.pick` if clients may set it, and run `pnpm openapi:export`. CI fails if you forget the migration or the export.
