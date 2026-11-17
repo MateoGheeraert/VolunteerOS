@@ -142,6 +142,36 @@ describe('events', () => {
     expect(archived!.changes).toEqual({ status: { from: 'draft', to: 'archived' } });
   });
 
+  it('logs edition links and attendance with values, the retrospective by name', async () => {
+    const first = await admin.createEvent({
+      name: 'Kerstmarkt 2025',
+      startsAt: '2025-12-12T14:00:00+01:00',
+      endsAt: '2025-12-12T23:00:00+01:00',
+    });
+    const second = await admin.createEvent({
+      previousEditionId: first.id,
+      expectedAttendance: 900,
+    });
+
+    const [created] = await entries({ entityId: second.id, action: 'created' });
+    expect(created!.changes).toMatchObject({
+      eventType: { to: 'market' },
+      previousEditionId: { to: first.id },
+      expectedAttendance: { to: 900 },
+    });
+
+    await admin.patch(`/api/events/${second.id}`, {
+      actualAttendance: 1100,
+      retrospective: 'Te weinig toiletten.',
+    });
+    const [updated] = await entries({ entityId: second.id, action: 'updated' });
+    expect(updated!.changes).toEqual({
+      actualAttendance: { from: null, to: 1100 },
+      // Free text: whether it changed, never what it says.
+      retrospective: null,
+    });
+  });
+
   it('logs nothing for an update that changes nothing', async () => {
     const created = await admin.createEvent();
     const res = await admin.patch(`/api/events/${created.id}`, { name: 'Kerstmarkt 2026' });

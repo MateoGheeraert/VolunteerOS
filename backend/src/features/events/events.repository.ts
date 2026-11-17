@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectDrizzle } from '@nestjs/drizzle';
 import type { CreateEventInput, UpdateEventInput } from './events.schemas.js';
-import { and, asc, eq, exists } from 'drizzle-orm';
+import { and, asc, eq, exists, ne, type SQL } from 'drizzle-orm';
 import type { Database, DbExecutor } from '../../db/database.js';
 import {
   event,
@@ -13,6 +13,15 @@ import {
   type EventRow,
 } from '../../db/schema/index.js';
 import { notDeleted } from '../../db/soft-delete.js';
+
+/** Who is looking: organization admins see every event, other members the ones assigned to them. */
+export interface EventViewer {
+  userId: string;
+  seesAllEvents: boolean;
+}
+
+export type EditionRef = Pick<EventRow, 'id' | 'name' | 'startsAt'>;
+const editionRefColumns = { id: event.id, name: event.name, startsAt: event.startsAt };
 
 /**
  * Data access for events. Every method takes the organization it works in, so a query can
@@ -38,24 +47,102 @@ export class EventsRepository {
       .select()
       .from(event)
       .where(
-        and(
-          eq(event.organizationId, organizationId),
-          notDeleted(event),
-          exists(
-            this.db
-              .select()
-              .from(eventMember)
-              .where(
-                and(
-                  eq(eventMember.eventId, event.id),
-                  eq(eventMember.userId, userId),
-                  notDeleted(eventMember),
-                ),
-              ),
-          ),
-        ),
+        and(eq(event.organizationId, organizationId), notDeleted(event), this.assignedTo(userId)),
       )
       .orderBy(asc(event.startsAt));
+  }
+
+  /**
+   * A live event of the organization, for checking an edition link. With a `viewer`, only an
+   * event they may see: a hidden event behaves as if it doesn't exist.
+   */
+  async findEdition(
+    organizationId: string,
+    eventId: string,
+    viewer?: EventViewer,
+  ): Promise<EventRow | undefined> {
+    const [row] = await this.db
+      .select()
+      .from(event)
+      .where(
+        and(
+          eq(event.id, eventId),
+          eq(event.organizationId, organizationId),
+          notDeleted(event),
+          viewer && this.visibleTo(viewer),
+        ),
+      )
+      .limit(1);
+    return row;
+  }
+
+  /** The live event that continues `eventId`, whoever may see it (there is at most one). */
+  async findSuccessor(
+    organizationId: string,
+    eventId: string,
+    exceptEventId?: string,
+  ): Promise<EditionRef | undefined> {
+    const [row] = await this.db
+      .select(editionRefColumns)
+      .from(event)
+      .where(
+        and(
+          eq(event.previousEditionId, eventId),
+          eq(event.organizationId, organizationId),
+          notDeleted(event),
+          exceptEventId ? ne(event.id, exceptEventId) : undefined,
+        ),
+      )
+      .limit(1);
+    return row;
+  }
+
+  /** The editions just before and after `current` that the viewer may see. */
+  async findNeighbourEditions(
+    organizationId: string,
+    current: EventRow,
+    viewer: EventViewer,
+  ): Promise<{ previous: EditionRef | null; next: EditionRef | null }> {
+    const visible = and(
+      eq(event.organizationId, organizationId),
+      notDeleted(event),
+      this.visibleTo(viewer),
+    );
+    const [previous, next] = await Promise.all([
+      current.previousEditionId
+        ? this.db
+            .select(editionRefColumns)
+            .from(event)
+            .where(and(eq(event.id, current.previousEditionId), visible))
+            .limit(1)
+        : [],
+      this.db
+        .select(editionRefColumns)
+        .from(event)
+        .where(and(eq(event.previousEditionId, current.id), visible))
+        .limit(1),
+    ]);
+    return { previous: previous[0] ?? null, next: next[0] ?? null };
+  }
+
+  private visibleTo(viewer: EventViewer): SQL | undefined {
+    return viewer.seesAllEvents ? undefined : this.assignedTo(viewer.userId);
+  }
+
+  /** The event has a live manager assignment for the user. */
+  private assignedTo(userId: string): SQL {
+    return exists(
+      this.db
+        .select()
+        .from(eventMember)
+        .where(
+          and(
+            eq(eventMember.eventId, event.id),
+            eq(eventMember.userId, userId),
+            notDeleted(eventMember),
+          ),
+        ),
+    );
   }
 
   async insert(tx: DbExecutor, organizationId: string, input: CreateEventInput): Promise<EventRow> {
@@ -64,10 +151,15 @@ export class EventsRepository {
       .values({
         organizationId,
         name: input.name,
+        eventType: input.eventType,
         description: input.description ?? null,
         location: input.location ?? null,
         startsAt: input.startsAt,
         endsAt: input.endsAt,
+        previousEditionId: input.previousEditionId ?? null,
+        expectedAttendance: input.expectedAttendance ?? null,
+        actualAttendance: input.actualAttendance ?? null,
+        retrospective: input.retrospective ?? null,
       })
       .returning();
     return created!;

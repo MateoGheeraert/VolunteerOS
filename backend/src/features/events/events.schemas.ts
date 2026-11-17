@@ -19,15 +19,23 @@ const eventInput = createInsertSchema(event, {
   location: (schema) => schema.trim().max(500),
   startsAt: dateTimeInput,
   endsAt: dateTimeInput,
+  expectedAttendance: (schema) => schema.min(0),
+  actualAttendance: (schema) => schema.min(0),
+  retrospective: (schema) => schema.trim().max(5000),
 });
 
 // Fields a client may set. id, organizationId and timestamps are always set by the server.
 const editableFields = {
   name: true,
+  eventType: true,
   description: true,
   location: true,
   startsAt: true,
   endsAt: true,
+  previousEditionId: true,
+  expectedAttendance: true,
+  actualAttendance: true,
+  retrospective: true,
 } as const;
 
 export const createEventSchema = eventInput
@@ -57,6 +65,24 @@ export const eventSchema = createSelectSchema(event, {
   .omit({ deletedAt: true })
   .meta({ id: 'Event' });
 export type EventDto = z.infer<typeof eventSchema>;
+
+/** Another edition in the same series, as shown next to an event ("Continues: ..."). */
+export const editionRefSchema = createSelectSchema(event, { startsAt: dateTimeOutput })
+  .pick({ id: true, name: true, startsAt: true })
+  .meta({ id: 'EditionRef' });
+export type EditionRefDto = z.infer<typeof editionRefSchema>;
+
+/**
+ * One event with its neighbouring editions. A neighbour the caller may not see, or one that was
+ * deleted, is `null`.
+ */
+export const eventDetailSchema = eventSchema
+  .extend({
+    previousEdition: editionRefSchema.nullable(),
+    nextEdition: editionRefSchema.nullable(),
+  })
+  .meta({ id: 'EventDetail' });
+export type EventDetailDto = z.infer<typeof eventDetailSchema>;
 
 export const addEventMemberSchema = createInsertSchema(eventMember, {
   userId: (schema) => schema.min(1),

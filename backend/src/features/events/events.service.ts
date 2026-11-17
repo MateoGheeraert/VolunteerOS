@@ -8,6 +8,7 @@ import { InjectDrizzle } from '@nestjs/drizzle';
 import type {
   AddEventMemberInput,
   CreateEventInput,
+  EventDetailDto,
   EventDto,
   EventMemberDto,
   UpdateEventInput,
@@ -18,10 +19,23 @@ import type { EventRow } from '../../db/schema/index.js';
 import type { OrgContext } from '../../authz/org-context.js';
 import { isOrgAdmin } from '../../authz/policies.js';
 import { canArchive, canTransition, isReadOnly } from './event-status.js';
-import { EventsRepository } from './events.repository.js';
+import { EventsRepository, type EditionRef, type EventViewer } from './events.repository.js';
 
-/** Event fields whose values the activity log keeps. `description` is free text: name only. */
-const EVENT_LOGGED_VALUES = ['name', 'location', 'startsAt', 'endsAt', 'status'] as const;
+/**
+ * Event fields whose values the activity log keeps. `description` and `retrospective` are free
+ * text: name only.
+ */
+const EVENT_LOGGED_VALUES = [
+  'name',
+  'eventType',
+  'location',
+  'startsAt',
+  'endsAt',
+  'status',
+  'previousEditionId',
+  'expectedAttendance',
+  'actualAttendance',
+] as const;
 /** A manager assignment's user is stored by id only. */
 const MEMBER_LOGGED_VALUES = ['userId', 'role'] as const;
 
@@ -43,29 +57,48 @@ export class EventsService {
     return rows.map(toEventDto);
   }
 
+  /** The event with the editions before and after it that the caller may see. */
+  async get(org: OrgContext, current: EventRow): Promise<EventDetailDto> {
+    const { previous, next } = await this.events.findNeighbourEditions(
+      org.organizationId,
+      current,
+      viewerOf(org),
+    );
+    return {
+      ...toEventDto(current),
+      previousEdition: previous && toEditionRefDto(previous),
+      nextEdition: next && toEditionRefDto(next),
+    };
+  }
+
   /** Creates the event and assigns its creator as manager. */
   async create(org: OrgContext, input: CreateEventInput): Promise<EventDto> {
-    const created = await this.db.transaction(async (tx) => {
-      const row = await this.events.insert(tx, org.organizationId, input);
-      const manager = await this.events.insertMember(tx, row.id, org.userId, 'manager');
-      await recordActivity(tx, org, {
-        action: 'created',
-        entityType: 'event',
-        entity: row,
-        before: null,
-        eventId: row.id,
-        values: EVENT_LOGGED_VALUES,
-      });
-      await recordActivity(tx, org, {
-        action: 'member_added',
-        entityType: 'event_member',
-        entity: manager,
-        before: null,
-        eventId: row.id,
-        values: MEMBER_LOGGED_VALUES,
-      });
-      return row;
-    });
+    if (input.previousEditionId) {
+      await this.assertCanContinue(org, input.previousEditionId, input.startsAt);
+    }
+    const created = await this.db
+      .transaction(async (tx) => {
+        const row = await this.events.insert(tx, org.organizationId, input);
+        const manager = await this.events.insertMember(tx, row.id, org.userId, 'manager');
+        await recordActivity(tx, org, {
+          action: 'created',
+          entityType: 'event',
+          entity: row,
+          before: null,
+          eventId: row.id,
+          values: EVENT_LOGGED_VALUES,
+        });
+        await recordActivity(tx, org, {
+          action: 'member_added',
+          entityType: 'event_member',
+          entity: manager,
+          before: null,
+          eventId: row.id,
+          values: MEMBER_LOGGED_VALUES,
+        });
+        return row;
+      })
+      .catch(rethrowEditionTaken);
     return toEventDto(created);
   }
 
@@ -83,19 +116,78 @@ export class EventsService {
     if (endsAt <= startsAt) {
       throw new BadRequestException('endsAt must be after startsAt');
     }
-    const updated = await this.db.transaction(async (tx) => {
-      const row = await this.events.update(tx, org.organizationId, current.id, input);
-      await recordActivity(tx, org, {
-        action: 'updated',
-        entityType: 'event',
-        entity: row,
-        before: current,
-        eventId: row.id,
-        values: EVENT_LOGGED_VALUES,
-      });
-      return row;
-    });
+    await this.assertEditionOrder(org, current, startsAt, input.previousEditionId);
+    const updated = await this.db
+      .transaction(async (tx) => {
+        const row = await this.events.update(tx, org.organizationId, current.id, input);
+        await recordActivity(tx, org, {
+          action: 'updated',
+          entityType: 'event',
+          entity: row,
+          before: current,
+          eventId: row.id,
+          values: EVENT_LOGGED_VALUES,
+        });
+        return row;
+      })
+      .catch(rethrowEditionTaken);
     return toEventDto(updated);
+  }
+
+  /**
+   * Checks the event may continue `previousEditionId`: a live, earlier event of the organization
+   * that the caller may see, and that no other event continues yet. Messages start with the field
+   * so the form can mark it.
+   */
+  private async assertCanContinue(
+    org: OrgContext,
+    previousEditionId: string,
+    startsAt: Date,
+    eventId?: string,
+  ): Promise<void> {
+    const previous = await this.events.findEdition(
+      org.organizationId,
+      previousEditionId,
+      viewerOf(org),
+    );
+    if (!previous) {
+      throw new BadRequestException('previousEditionId: event not found');
+    }
+    if (previous.startsAt >= startsAt) {
+      throw new BadRequestException('previousEditionId: must start before this event');
+    }
+    if (await this.events.findSuccessor(org.organizationId, previous.id, eventId)) {
+      throw new BadRequestException('previousEditionId: already continued by another event');
+    }
+  }
+
+  /**
+   * On update: a new previous edition gets the full check, and a changed start must stay after the
+   * previous edition and before the next one. Editions stay in date order, so there are no cycles.
+   */
+  private async assertEditionOrder(
+    org: OrgContext,
+    current: EventRow,
+    startsAt: Date,
+    previousEditionId: string | null | undefined,
+  ): Promise<void> {
+    const linkChanged =
+      previousEditionId !== undefined && previousEditionId !== current.previousEditionId;
+    if (linkChanged && previousEditionId) {
+      await this.assertCanContinue(org, previousEditionId, startsAt, current.id);
+    }
+    if (startsAt.getTime() === current.startsAt.getTime()) return;
+
+    const previousId = linkChanged ? null : current.previousEditionId;
+    // The kept link may point at an event the caller can't see: the dates still have to hold.
+    const previous = previousId && (await this.events.findEdition(org.organizationId, previousId));
+    if (previous && previous.startsAt >= startsAt) {
+      throw new BadRequestException('startsAt: must be after the previous edition starts');
+    }
+    const next = await this.events.findSuccessor(org.organizationId, current.id);
+    if (next && next.startsAt <= startsAt) {
+      throw new BadRequestException('startsAt: must be before the next edition starts');
+    }
   }
 
   async archive(org: OrgContext, current: EventRow): Promise<EventDto> {
@@ -174,16 +266,52 @@ export class EventsService {
   }
 }
 
+/**
+ * Two requests continuing the same edition at once both pass assertCanContinue; the unique index
+ * (one live successor per edition) then rejects the second write. Answer that like the check does.
+ */
+function rethrowEditionTaken(error: unknown): never {
+  // Drizzle wraps the driver error: the Postgres code and constraint are on its cause.
+  const cause: unknown = error instanceof Error ? (error.cause ?? error) : error;
+  if (
+    typeof cause === 'object' &&
+    cause !== null &&
+    'code' in cause &&
+    cause.code === '23505' &&
+    'constraint' in cause &&
+    cause.constraint === 'event_previous_edition_uidx'
+  ) {
+    throw new BadRequestException('previousEditionId: already continued by another event');
+  }
+  throw error;
+}
+
+const viewerOf = (org: OrgContext): EventViewer => ({
+  userId: org.userId,
+  seesAllEvents: isOrgAdmin(org.role),
+});
+
+const toEditionRefDto = (ref: EditionRef) => ({
+  id: ref.id,
+  name: ref.name,
+  startsAt: ref.startsAt.toISOString(),
+});
+
 export function toEventDto(row: EventRow): EventDto {
   return {
     id: row.id,
     organizationId: row.organizationId,
     name: row.name,
+    eventType: row.eventType,
     description: row.description,
     location: row.location,
     startsAt: row.startsAt.toISOString(),
     endsAt: row.endsAt.toISOString(),
     status: row.status,
+    previousEditionId: row.previousEditionId,
+    expectedAttendance: row.expectedAttendance,
+    actualAttendance: row.actualAttendance,
+    retrospective: row.retrospective,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };

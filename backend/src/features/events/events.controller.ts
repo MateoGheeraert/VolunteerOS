@@ -3,6 +3,7 @@ import { ApiResponse, ApiTags } from '@nestjs/swagger';
 import {
   addEventMemberSchema,
   createEventSchema,
+  eventDetailSchema,
   eventMemberSchema,
   eventSchema,
   updateEventSchema,
@@ -14,7 +15,7 @@ import { z } from 'zod';
 import { CurrentEvent, OrgScoped, RequireEventAccess } from '../../authz/authz.decorators.js';
 import { CurrentOrg, type OrgContext } from '../../authz/org-context.js';
 import type { EventRow } from '../../db/schema/index.js';
-import { EventsService, toEventDto } from './events.service.js';
+import { EventsService } from './events.service.js';
 
 @ApiTags('events')
 @OrgScoped()
@@ -40,9 +41,9 @@ export class EventsController {
 
   @Get(':eventId')
   @RequireEventAccess('read')
-  @ApiResponse({ status: 200, standardSchema: eventSchema })
-  get(@CurrentEvent() event: EventRow) {
-    return toEventDto(event);
+  @ApiResponse({ status: 200, standardSchema: eventDetailSchema })
+  get(@CurrentOrg() org: OrgContext, @CurrentEvent() event: EventRow) {
+    return this.events.get(org, event);
   }
 
   @Patch(':eventId')

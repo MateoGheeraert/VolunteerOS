@@ -1,11 +1,13 @@
-import { CalendarClock, ListChecks, MapPin, Text } from 'lucide-react';
+import { CalendarClock, Lightbulb, ListChecks, MapPin, Tag, Text, Users } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
 import { Suspense, type ReactNode } from 'react';
 import { IconBlob } from '@/components/layout/icon-blob';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EventStatusActions } from '@/features/events/event-status-actions';
 import { getEvent } from '@/server/events/queries';
-import { formatEventRange } from '@/lib/format';
+import { formatEventRange, LOCALE } from '@/lib/format';
+
+const countFormat = new Intl.NumberFormat(LOCALE);
 
 export default function EventOverviewPage({ params }: PageProps<'/events/[eventId]'>) {
   return (
@@ -18,6 +20,16 @@ export default function EventOverviewPage({ params }: PageProps<'/events/[eventI
 async function EventOverview({ params }: Pick<PageProps<'/events/[eventId]'>, 'params'>) {
   const { eventId } = await params;
   const [event, t] = await Promise.all([getEvent(eventId), getTranslations()]);
+  const count = (value: number) => countFormat.format(value);
+  const { expectedAttendance: expected, actualAttendance: actual } = event;
+  const attendance =
+    actual !== null && expected !== null
+      ? t('eventOverview.attendanceBoth', { actual: count(actual), expected: count(expected) })
+      : actual !== null
+        ? t('eventOverview.attendanceActual', { actual: count(actual) })
+        : expected !== null
+          ? t('eventOverview.attendanceExpected', { expected: count(expected) })
+          : null;
 
   return (
     <div className="grid gap-5 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
@@ -35,6 +47,14 @@ async function EventOverview({ params }: Pick<PageProps<'/events/[eventId]'>, 'p
               <span className="text-muted-foreground">{t('events.noLocation')}</span>
             )}
           </Detail>
+          <Detail icon={<IconBlob icon={Tag} />} label={t('eventOverview.type')}>
+            {t(`eventType.${event.eventType}`)}
+          </Detail>
+          <Detail icon={<IconBlob icon={Users} />} label={t('eventOverview.attendance')}>
+            {attendance ?? (
+              <span className="text-muted-foreground">{t('eventOverview.noAttendance')}</span>
+            )}
+          </Detail>
           <Detail icon={<IconBlob icon={Text} />} label={t('eventOverview.description')}>
             {event.description ? (
               <span className="whitespace-pre-line">{event.description}</span>
@@ -42,6 +62,11 @@ async function EventOverview({ params }: Pick<PageProps<'/events/[eventId]'>, 'p
               <span className="text-muted-foreground">{t('eventOverview.noDescription')}</span>
             )}
           </Detail>
+          {event.retrospective && (
+            <Detail icon={<IconBlob icon={Lightbulb} />} label={t('eventOverview.retrospective')}>
+              <span className="whitespace-pre-line">{event.retrospective}</span>
+            </Detail>
+          )}
         </dl>
       </section>
 

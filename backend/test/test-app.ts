@@ -140,11 +140,12 @@ export class TestClient {
   async createEvent(overrides: Record<string, unknown> = {}) {
     const res = await this.post('/api/events', {
       name: 'Kerstmarkt 2026',
+      eventType: 'market',
       startsAt: '2026-12-12T14:00:00+01:00',
       endsAt: '2026-12-12T23:00:00+01:00',
       ...overrides,
     });
     if (res.status !== 201) throw new Error(`create event failed: ${res.status} ${res.text}`);
-    return res.body as { id: string; status: string };
+    return res.body as { id: string; status: string; previousEditionId: string | null };
   }
 }
