@@ -258,6 +258,12 @@ describe('events', () => {
       expect(res.body.message).toBe('previousEditionId: already continued by another event');
     });
 
+    it('answers 400, not 500, when two events continue the same edition at once', async () => {
+      const first = await edition(2025);
+      const results = await Promise.all([createRaw(2026, first.id), createRaw(2027, first.id)]);
+      expect(results.map((res) => res.status).sort((a, b) => a - b)).toEqual([201, 400]);
+    });
+
     it('keeps editions in date order when the dates change', async () => {
       const first = await edition(2025);
       const second = await edition(2026, { previousEditionId: first.id });

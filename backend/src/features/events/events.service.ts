@@ -76,27 +76,29 @@ export class EventsService {
     if (input.previousEditionId) {
       await this.assertCanContinue(org, input.previousEditionId, input.startsAt);
     }
-    const created = await this.db.transaction(async (tx) => {
-      const row = await this.events.insert(tx, org.organizationId, input);
-      const manager = await this.events.insertMember(tx, row.id, org.userId, 'manager');
-      await recordActivity(tx, org, {
-        action: 'created',
-        entityType: 'event',
-        entity: row,
-        before: null,
-        eventId: row.id,
-        values: EVENT_LOGGED_VALUES,
-      });
-      await recordActivity(tx, org, {
-        action: 'member_added',
-        entityType: 'event_member',
-        entity: manager,
-        before: null,
-        eventId: row.id,
-        values: MEMBER_LOGGED_VALUES,
-      });
-      return row;
-    });
+    const created = await this.db
+      .transaction(async (tx) => {
+        const row = await this.events.insert(tx, org.organizationId, input);
+        const manager = await this.events.insertMember(tx, row.id, org.userId, 'manager');
+        await recordActivity(tx, org, {
+          action: 'created',
+          entityType: 'event',
+          entity: row,
+          before: null,
+          eventId: row.id,
+          values: EVENT_LOGGED_VALUES,
+        });
+        await recordActivity(tx, org, {
+          action: 'member_added',
+          entityType: 'event_member',
+          entity: manager,
+          before: null,
+          eventId: row.id,
+          values: MEMBER_LOGGED_VALUES,
+        });
+        return row;
+      })
+      .catch(rethrowEditionTaken);
     return toEventDto(created);
   }
 
@@ -115,18 +117,20 @@ export class EventsService {
       throw new BadRequestException('endsAt must be after startsAt');
     }
     await this.assertEditionOrder(org, current, startsAt, input.previousEditionId);
-    const updated = await this.db.transaction(async (tx) => {
-      const row = await this.events.update(tx, org.organizationId, current.id, input);
-      await recordActivity(tx, org, {
-        action: 'updated',
-        entityType: 'event',
-        entity: row,
-        before: current,
-        eventId: row.id,
-        values: EVENT_LOGGED_VALUES,
-      });
-      return row;
-    });
+    const updated = await this.db
+      .transaction(async (tx) => {
+        const row = await this.events.update(tx, org.organizationId, current.id, input);
+        await recordActivity(tx, org, {
+          action: 'updated',
+          entityType: 'event',
+          entity: row,
+          before: current,
+          eventId: row.id,
+          values: EVENT_LOGGED_VALUES,
+        });
+        return row;
+      })
+      .catch(rethrowEditionTaken);
     return toEventDto(updated);
   }
 
@@ -260,6 +264,26 @@ export class EventsService {
       });
     });
   }
+}
+
+/**
+ * Two requests continuing the same edition at once both pass assertCanContinue; the unique index
+ * (one live successor per edition) then rejects the second write. Answer that like the check does.
+ */
+function rethrowEditionTaken(error: unknown): never {
+  // Drizzle wraps the driver error: the Postgres code and constraint are on its cause.
+  const cause: unknown = error instanceof Error ? (error.cause ?? error) : error;
+  if (
+    typeof cause === 'object' &&
+    cause !== null &&
+    'code' in cause &&
+    cause.code === '23505' &&
+    'constraint' in cause &&
+    cause.constraint === 'event_previous_edition_uidx'
+  ) {
+    throw new BadRequestException('previousEditionId: already continued by another event');
+  }
+  throw error;
 }
 
 const viewerOf = (org: OrgContext): EventViewer => ({
