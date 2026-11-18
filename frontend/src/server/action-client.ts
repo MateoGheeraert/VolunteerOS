@@ -42,6 +42,7 @@ export function toActionError(
   if (error instanceof ApiError) {
     if (error.status === 401) return { message: msg('common.sessionExpired') };
     if (error.needsOrganization) return { message: msg('common.noOrganization') };
+    if (error.lostMembership) return { message: msg('members.removedNotice') };
     if (error.status === 403 || error.status === 404) {
       return { message: msg('errorPages.forbiddenBody') };
     }

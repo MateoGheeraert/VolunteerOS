@@ -152,7 +152,7 @@ export function organizationActivityHooks(
 }
 
 /** The signed-in user of the current Better Auth request, or the system outside a request. */
-function currentActor(): Actor {
+export function currentActor(): Actor {
   const userId = tryGetCurrentAuthEndpointContext()?.context.session?.user.id;
   return userId ? userActor(userId) : SYSTEM_ACTOR;
 }

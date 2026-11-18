@@ -54,6 +54,16 @@ export function formatEventRange(startsAt: string, endsAt: string): string {
   return `${dayFormat.format(start)} ${timeFormat.format(start)} – ${dayFormat.format(end)} ${timeFormat.format(end)}`;
 }
 
+const dateFormat = new Intl.DateTimeFormat(LOCALE, {
+  timeZone: TIME_ZONE,
+  day: 'numeric',
+  month: 'long',
+  year: 'numeric',
+});
+
+/** "19 december 2026", in Brussels. */
+export const formatDate = (date: Date): string => dateFormat.format(date);
+
 const euro = new Intl.NumberFormat(LOCALE, { style: 'currency', currency: 'EUR' });
 
 /** Money is stored in integer cents (never floats). 42050 → "€ 420,50". */
