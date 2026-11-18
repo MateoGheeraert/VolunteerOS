@@ -5,7 +5,7 @@ import type { Database } from '../db/database.js';
 import { notDeleted } from '../db/soft-delete.js';
 import { event, eventMember, type EventRow } from '../db/schema/index.js';
 import type { OrgContext } from './org-context.js';
-import { canAccessEvent, canSeeEvent, type EventAction } from './policies.js';
+import { canAccessEvent, type EventAction } from './policies.js';
 
 @Injectable()
 export class EventAccessService {
@@ -13,8 +13,8 @@ export class EventAccessService {
 
   /**
    * Loads an event of the caller's organization and checks the action against the policy.
-   * Events of other organizations, and events the caller may not see, answer 404 so their
-   * existence doesn't leak. A visible event with a forbidden action answers 403.
+   * Events of other organizations answer 404 so their existence doesn't leak. Every member
+   * sees every event of their own organization, so a forbidden action answers 403.
    */
   async assertCan(org: OrgContext, action: EventAction, eventId: string): Promise<EventRow> {
     const [row] = await this.db
@@ -34,11 +34,10 @@ export class EventAccessService {
       )
       .limit(1);
 
-    const subject = { orgRole: org.role, eventRole: row?.eventRole ?? null };
-    if (!row || !canSeeEvent(subject)) {
+    if (!row) {
       throw new NotFoundException('Event not found');
     }
-    if (!canAccessEvent(subject, action)) {
+    if (!canAccessEvent({ orgRole: org.role, eventRole: row.eventRole }, action)) {
       throw new ForbiddenException();
     }
     return row.event;

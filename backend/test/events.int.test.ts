@@ -301,21 +301,30 @@ describe('events', () => {
       expect(removed.body.previousEditionId).toBeNull();
     });
 
-    it('does not reveal or accept editions the caller may not see', async () => {
-      const hidden = await edition(2025);
+    it('lets a member continue an edition they do not manage', async () => {
+      const earlier = await edition(2025);
       const { client: member } = await inviteMember(admin, orgId, 'Mo Member', 'mo@example.com');
       const own = await member.createEvent({ name: 'Kerstmarkt 2026' });
 
-      const res = await member.patch(`/api/events/${own.id}`, { previousEditionId: hidden.id });
+      const res = await member.patch(`/api/events/${own.id}`, { previousEditionId: earlier.id });
+      expect(res.status).toBe(200);
+      const got = await member.get(`/api/events/${own.id}`);
+      expect(got.body.previousEdition.name).toBe('Kerstmarkt 2025');
+    });
+
+    it('does not accept an edition of another organization', async () => {
+      const other = t.client();
+      await other.signUp('Otto Other', 'otto@example.com');
+      await other.createOrganization('Chiro Elders');
+      const foreign = await other.createEvent({
+        startsAt: '2025-12-12T14:00:00+01:00',
+        endsAt: '2025-12-12T23:00:00+01:00',
+      });
+
+      const own = await edition(2026);
+      const res = await admin.patch(`/api/events/${own.id}`, { previousEditionId: foreign.id });
       expect(res.status).toBe(400);
       expect(res.body.message).toBe('previousEditionId: event not found');
-
-      // Linked by an admin: the member still doesn't see the hidden edition's name.
-      const linked = await admin.patch(`/api/events/${own.id}`, { previousEditionId: hidden.id });
-      expect(linked.status).toBe(200);
-      const got = await member.get(`/api/events/${own.id}`);
-      expect(got.body.previousEditionId).toBe(hidden.id);
-      expect(got.body.previousEdition).toBeNull();
     });
 
     it('hides a deleted previous edition but keeps the link', async () => {
@@ -366,7 +375,7 @@ describe('events', () => {
   });
 
   describe('event managers', () => {
-    it('gives a member access only to events they are assigned to', async () => {
+    it('lets every member read every event, but manage only the ones assigned to them', async () => {
       const assigned = await admin.createEvent({ name: 'Barbecue' });
       const unassigned = await admin.createEvent({ name: 'Quiz' });
       const { client: member, user } = await inviteMember(
@@ -376,17 +385,19 @@ describe('events', () => {
         'mo@example.com',
       );
 
-      // Before assignment: nothing visible.
-      expect((await member.get('/api/events')).body).toEqual([]);
-      expect((await member.get(`/api/events/${assigned.id}`)).status).toBe(404);
+      // Before assignment: everything readable, nothing editable.
+      const list = await member.get('/api/events');
+      expect(list.body.map((e: { name: string }) => e.name).sort()).toEqual(['Barbecue', 'Quiz']);
+      expect((await member.get(`/api/events/${assigned.id}`)).status).toBe(200);
+      expect((await member.get(`/api/events/${assigned.id}/members`)).status).toBe(200);
+      expect((await member.patch(`/api/events/${assigned.id}`, { name: 'BBQ' })).status).toBe(403);
+      expect((await member.post(`/api/events/${assigned.id}/archive`)).status).toBe(403);
 
       const add = await admin.post(`/api/events/${assigned.id}/members`, { userId: user.id });
       expect(add.status).toBe(204);
 
-      const list = await member.get('/api/events');
-      expect(list.body.map((e: { name: string }) => e.name)).toEqual(['Barbecue']);
       expect((await member.patch(`/api/events/${assigned.id}`, { name: 'BBQ' })).status).toBe(200);
-      expect((await member.get(`/api/events/${unassigned.id}`)).status).toBe(404);
+      expect((await member.patch(`/api/events/${unassigned.id}`, { name: 'Q' })).status).toBe(403);
 
       // Managers can't assign other managers.
       expect(
@@ -397,7 +408,8 @@ describe('events', () => {
       expect((await admin.delete(`/api/events/${assigned.id}/members/${user.id}`)).status).toBe(
         204,
       );
-      expect((await member.get(`/api/events/${assigned.id}`)).status).toBe(404);
+      expect((await member.patch(`/api/events/${assigned.id}`, { name: 'B' })).status).toBe(403);
+      expect((await member.get(`/api/events/${assigned.id}`)).status).toBe(200);
     });
 
     it('lets any member create an event, and makes them its manager', async () => {
