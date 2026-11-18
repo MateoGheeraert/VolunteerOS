@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { canAccessEvent, toOrgRole, type EventAction, type OrgRole } from './policies.js';
+import {
+  canAccessEvent,
+  profileVisibility,
+  toOrgRole,
+  type EventAction,
+  type OrgRole,
+} from './policies.js';
 
 const actions: EventAction[] = ['read', 'manage', 'manageMembers'];
 
@@ -34,5 +40,20 @@ describe('toOrgRole', () => {
     ['something-else', 'member'],
   ])('maps "%s" to %s', (input, expected) => {
     expect(toOrgRole(input)).toBe(expected);
+  });
+});
+
+describe('profileVisibility', () => {
+  it('shows nothing without a shared organization', () => {
+    expect(profileVisibility([])).toBeNull();
+  });
+
+  it('shows members only the phone', () => {
+    expect(profileVisibility(['member'])).toEqual({ personal: false });
+  });
+
+  it('shows admins and owners of any shared organization everything', () => {
+    expect(profileVisibility(['member', 'admin'])).toEqual({ personal: true });
+    expect(profileVisibility(['owner'])).toEqual({ personal: true });
   });
 });

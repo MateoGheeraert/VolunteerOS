@@ -313,6 +313,7 @@ Features:
 - Admin and Event Manager roles.
 - Event-level access permissions.
 - Basic organization settings.
+- Personal settings: name, email, password and profile.
 
 Requirements:
 
@@ -320,6 +321,25 @@ Requirements:
 - Secure authentication.
 - Expiring and revocable invitations.
 - Server-side authorization.
+
+#### Personal settings (implemented)
+
+"As an organizer, I want to change my name, email and password (and later delete my account), so that I control my own data."
+
+`/settings` has three tabs: **Profiel** (`/settings/profile`), **Account** (`/settings/account`) and **Organisatie** (`/settings/organization`, the active organization's settings). The user menu links to it.
+
+- **Profiel**: name, phone, address and birth date, each edited in place. Everything except the name is optional; a card on top (and a dot on the user menu) asks for what is still missing.
+  - Phone: stored in E.164; numbers without a country code are read as Belgian (`0470 12 34 56` → `+32470123456`).
+  - Address: structured (street, number, box, postal code, city, country as ISO code, default BE), saved as a whole. A Belgian postal code has four digits. No geocoding yet: proximity suggestions are a later AI story.
+  - Birth date: anyone under 13 is refused (the Belgian age of digital consent under the GDPR). **Later rule, not built yet:** an unknown birth date will count as "minor" for age-restricted assignments (e.g. working the bar).
+  - Address and birth date carry a short "Waarom vragen we dit?" note: suggestions close to home, and minimum ages for some tasks.
+- **Account**: the email with its verification status (resend the link), changing the email, and changing the password.
+  - Email verification: a link is sent at sign-up (valid 24 hours). It never blocks signing in; it only shows in the settings.
+  - Changing the email sends a confirmation link to the **new** address; the email only changes when it is opened, and then counts as verified. The old address then gets a "your email was changed" notice. An address that already has an account is refused silently, so the answer doesn't reveal it.
+  - Changing the password needs the current one and signs out other devices unless the user unticks that. A security notice is emailed (also after a password reset).
+- **Who sees the profile**: the user sees all of their own. Anyone sharing an organization with them sees their phone; only owners and admins of a shared organization also see the address and birth date. Without a shared organization: nothing (404). Enforced in the backend (`GET /api/users/:userId/profile`).
+- **Audit trail**: every change (profile fields, name, email change requested and confirmed, email verified, password changed or reset) is an account-level entry in the activity log, by field name only (see ActivityLog in section 13). Sign-ins and sign-outs are not logged. There is no screen for it yet.
+- Not in this story: deleting the account (next story) and avatars.
 
 ### 7.2 Event Management
 
@@ -1114,9 +1134,21 @@ Avoid tightly coupling AI logic directly to UI components.
 - id
 - name
 - email
+- emailVerified
 - createdAt
 
 Authentication-related tables are managed by the authentication solution.
+
+### UserProfile
+
+Implemented as `user_profile`: personal details, one row per user (`userId` is the key), created on the first save and deleted with the user. Kept out of Better Auth's user table, so they never travel in the session.
+
+- userId
+- phone (E.164)
+- street, houseNumber, box, postalCode, city, country (ISO 3166-1 alpha-2): all set or all empty, only box optional
+- birthDate
+- createdAt
+- updatedAt
 
 ### OrganizationMember
 
@@ -1295,7 +1327,7 @@ Implemented as `email_delivery`: an append-only log, without soft delete.
 Implemented as `activity_log`; see "Activity log" in the backend README.
 
 - id
-- organizationId
+- organizationId (nullable: changes to a user's own account belong to no organization; entityType is then `user`)
 - eventId (nullable: organization-level changes)
 - actorType (user / volunteer / system / ai)
 - actorId
@@ -1388,7 +1420,7 @@ Essential requirements:
 - Minimal data collection.
 - Audit logging for consequential actions.
 
-Pay particular attention to youth associations where volunteers may be minors.
+Pay particular attention to youth associations where volunteers may be minors. Nobody under 13 can enter a birth date (Belgian age of digital consent); once age-restricted assignments exist, an unknown birth date counts as a minor.
 
 Public registration forms must never expose other volunteers' information.
 

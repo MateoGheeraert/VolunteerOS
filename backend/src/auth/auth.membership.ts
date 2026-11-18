@@ -13,6 +13,7 @@ import {
 } from '../db/schema/index.js';
 import { notDeleted } from '../db/soft-delete.js';
 import type { OrgRole } from '../authz/policies.js';
+import type { AuthHookContext } from './auth.account.js';
 import { currentActor } from './auth.activity.js';
 
 /**
@@ -53,7 +54,7 @@ export const rejectInvitationResendFlag = createAuthMiddleware(async (ctx) => {
  * it was logged) cancels the invitation and answers 502, so the organizer knows to try again.
  */
 export function failInvitationWithoutEmail(db: Database) {
-  return createAuthMiddleware(async (ctx) => {
+  return async (ctx: AuthHookContext): Promise<void> => {
     if (ctx.path !== '/organization/invite-member') return;
     const returned: unknown = ctx.context.returned;
     if (!returned || returned instanceof Error || typeof returned !== 'object') return;
@@ -82,7 +83,7 @@ export function failInvitationWithoutEmail(db: Database) {
       code: 'INVITATION_EMAIL_FAILED',
       message: 'The invitation email could not be sent; the invitation was cancelled',
     });
-  });
+  };
 }
 
 /** The idempotency key of an invitation's email: one email per invitation id. */

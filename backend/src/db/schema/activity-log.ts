@@ -20,14 +20,16 @@ export type ActivityActorType = (typeof activityActorTypeEnum.enumValues)[number
  * `organization_id` and `event_id` are stored even though they could be derived from the entity,
  * because the entity may be gone (Better Auth hard-deletes members) and because an event's history
  * spans many entity types. Their foreign keys don't cascade: the history outlives what it describes.
+ *
+ * Changes to a user's own account belong to no organization: `organization_id` is null and
+ * `entity_type` is `user`. Organization queries filter on `organization_id`, so they never see them.
  */
 export const activityLog = pgTable(
   'activity_log',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    organizationId: text('organization_id')
-      .notNull()
-      .references(() => organization.id),
+    /** Null for account-level changes (a user's own profile, email or password). */
+    organizationId: text('organization_id').references(() => organization.id),
     eventId: uuid('event_id').references(() => event.id),
     actorType: activityActorTypeEnum('actor_type').notNull(),
     // No foreign keys: actors can be users, volunteers or AI agents, and outlive their accounts.

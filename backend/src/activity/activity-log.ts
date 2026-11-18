@@ -1,6 +1,6 @@
 import type { DbExecutor } from '../db/database.js';
 import { activityLog } from '../db/schema/index.js';
-import type { Actor } from './actor.js';
+import { userActor, type Actor } from './actor.js';
 
 export type JsonValue =
   string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
@@ -9,11 +9,20 @@ export type JsonValue =
 export type FieldChange = { from?: JsonValue; to?: JsonValue } | null;
 export type ActivityChanges = Record<string, FieldChange>;
 
-/** Where a change happened and who made it. An `OrgContext` is one. */
+/**
+ * Where a change happened and who made it. An `OrgContext` is one. Changes to a user's own account
+ * belong to no organization: use `accountScope(userId)`.
+ */
 export interface ActivityScope {
-  organizationId: string;
+  organizationId: string | null;
   actor: Actor;
 }
+
+/** A user changing their own account (profile, email, password): no organization. */
+export const accountScope = (userId: string): ActivityScope => ({
+  organizationId: null,
+  actor: userActor(userId),
+});
 
 export interface ActivityInput<Row extends { id: string }> {
   /** What happened: `created`, `updated`, `deleted`, or a domain verb such as `archived`. */

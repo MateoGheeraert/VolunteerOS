@@ -120,17 +120,20 @@ src/
 │   ├── database.module.ts  Drizzle connection (@nestjs/drizzle)
 │   ├── database.ts         The `Database`, `Transaction` and `DbExecutor` types
 │   ├── soft-delete.ts      `deletedAt()` column and `notDeleted(table)` filter
-│   ├── schema/             Tables: auth.ts (generated), events.ts, tasks.ts, activity-log.ts, email-delivery.ts
+│   ├── schema/             Tables: auth.ts (generated), events.ts, tasks.ts, user-profile.ts, activity-log.ts, email-delivery.ts
 │   └── migrations/         Generated SQL, committed
 ├── activity/               recordActivity() and the Actor type (see "Activity log")
-├── auth/                   Better Auth instance + its activity hooks, AuthGuard, @Public(), @CurrentUser()
+├── auth/                   Better Auth instance + its hooks (organization activity, account emails and
+│                           activity in auth.account.ts), AuthGuard, @Public(), @CurrentUser()
 ├── authz/                  Org context, policies, guards, decorators
 ├── email/                  EmailService, providers (console / Resend), React Email templates
 ├── common/                 Health check, internal-secret middleware, date schemas
 ├── openapi-export.ts       Writes openapi.json (`pnpm openapi:export`)
 └── features/
     ├── events/             schemas → controller → service → repository (+ unit tests)
-    └── tasks/              an event's tasks, labels and assignment requests
+    ├── tasks/              an event's tasks, labels and assignment requests
+    └── profile/            a user's own name and personal profile (/api/me/profile), and what
+                            others may see of it (/api/users/:userId/profile); not org-scoped
 test/                       Integration tests and helpers
 openapi.json                The API contract: generated, committed, checked by CI
 ```
@@ -239,14 +242,14 @@ In tests, `CapturingEmailProvider` ([test/test-app.ts](test/test-app.ts)) replac
 
 Every change is recorded in `activity_log` ([schema](src/db/schema/activity-log.ts)): who did it, what they did, to which record, and which fields changed. Admins use it to trace mistakes; the AI agent uses it as history.
 
-| Column                        | What                                                                                       |
-| ----------------------------- | ------------------------------------------------------------------------------------------ |
-| `organization_id`, `event_id` | Where it happened. `event_id` is null for organization-level changes (members, invites).   |
-| `actor_type`, `actor_id`      | `user`, `volunteer`, `ai` (id = the agent) or `system` (no id). Plain text, no FK.         |
-| `on_behalf_of_user_id`        | Only for `ai`: the user whose command the agent carried out.                               |
-| `action`                      | `created`, `updated`, `deleted`, or a domain verb (`archived`, `member_added`, `invited`). |
-| `entity_type`, `entity_id`    | The changed record, e.g. `event` + its id.                                                 |
-| `changes`                     | `{ field: { from, to } }` for loggable values, `{ field: null }` for everything else.      |
+| Column                        | What                                                                                                                              |
+| ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `organization_id`, `event_id` | Where it happened. `event_id` is null for organization-level changes (members, invites); both are null for account-level changes. |
+| `actor_type`, `actor_id`      | `user`, `volunteer`, `ai` (id = the agent) or `system` (no id). Plain text, no FK.                                                |
+| `on_behalf_of_user_id`        | Only for `ai`: the user whose command the agent carried out.                                                                      |
+| `action`                      | `created`, `updated`, `deleted`, or a domain verb (`archived`, `member_added`, `invited`).                                        |
+| `entity_type`, `entity_id`    | The changed record, e.g. `event` + its id.                                                                                        |
+| `changes`                     | `{ field: { from, to } }` for loggable values, `{ field: null }` for everything else.                                             |
 
 Rules:
 
@@ -279,6 +282,19 @@ await this.db.transaction(async (tx) => {
 
 - They run after Better Auth has committed, so they **can't be in the same transaction**. If logging fails, the error is logged and the request still succeeds.
 - The hooks pass the user acted _on_; the actor comes from the current request's session (`tryGetCurrentAuthEndpointContext()`). The invitee's email is stored by name only.
+
+**Account-level changes** (a user changing their own profile, name, email or password) belong to no organization: `organization_id` is null, `entity_type` is `user`, `entity_id` and `actor_id` are the user. Use `accountScope(userId)` as the scope. Everything about an account is personal, so these entries never hold values, only field names. Organization queries filter on `organization_id`, so they never see them.
+
+| `action`                 | Logged by                                                     | `changes`                                     |
+| ------------------------ | ------------------------------------------------------------- | --------------------------------------------- |
+| `updated`                | `ProfileService`, in the transaction of the change            | the changed fields (`name`, `phone`, `city`…) |
+| `email_change_requested` | `auth.account.ts`, after `/change-email`                      | none                                          |
+| `email_changed`          | `auth.account.ts`, when the link to the new address is opened | `email`                                       |
+| `email_verified`         | `auth.account.ts`, when the verification link is opened       | none                                          |
+| `password_changed`       | `auth.account.ts`, after `/change-password`                   | `password`                                    |
+| `password_reset`         | `auth.account.ts`, after the forgot-password flow             | `password`                                    |
+
+The ones from [auth.account.ts](src/auth/auth.account.ts) come from Better Auth hooks, so like the organization hooks they run after Better Auth's write and can't share its transaction. Sign-ins and sign-outs are not logged.
 
 ### Adding a feature
 

@@ -7,6 +7,7 @@ const PUBLIC_PREFIXES = [
   '/signup',
   '/forgot-password',
   '/reset-password',
+  '/verify-email',
   '/invitations',
   '/e/',
 ];

@@ -115,7 +115,7 @@ export async function createTestApp(): Promise<TestApp> {
       await db.execute(sql`
         truncate table email_delivery, activity_log, task_assignment_request, task_label_link,
           task_label, task, event_member, event, invitation, member, organization,
-          session, account, verification, "user" restart identity cascade
+          session, account, verification, user_profile, "user" restart identity cascade
       `);
     },
     close: () => app.close(),

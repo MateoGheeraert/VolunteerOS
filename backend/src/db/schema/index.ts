@@ -4,3 +4,4 @@ export * from './email-delivery.js';
 export * from './events.js';
 export * from './organization-enums.js';
 export * from './tasks.js';
+export * from './user-profile.js';

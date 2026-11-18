@@ -380,12 +380,6 @@
     "removedTitle": "Geen lid meer",
     "openTasksWarning": "{name} heeft nog {count, plural, one {# onafgewerkte taak} other {# onafgewerkte taken}}. Na het verwijderen staan die weer open:"
   },
-  "settingsTabs": {
-    "label": "Instellingen",
-    "profile": "Profiel",
-    "account": "Account",
-    "organization": "Organisatie"
-  },
   "organizationCategory": {
     "youth_movement": "Jeugdbeweging",
     "sports_club": "Sportclub",
@@ -456,5 +450,81 @@
       "peppolId": "Een Peppol-ID ziet eruit als 0208:0123456789.",
       "country": "Gebruik een landcode van twee letters, bv. BE."
     }
+  },
+  "settings": {
+    "title": "Instellingen",
+    "tabs": {
+      "profile": "Profiel",
+      "account": "Account",
+      "organization": "Organisatie"
+    },
+    "profile": {
+      "title": "Je gegevens",
+      "fields": {
+        "name": "Naam",
+        "phone": "Telefoon",
+        "address": "Adres",
+        "birthDate": "Geboortedatum"
+      },
+      "phoneHint": "Wie samen met jou in een organisatie zit, ziet je nummer en kan je zo bereiken.",
+      "phonePlaceholder": "Bv. 0470 12 34 56",
+      "invalidPhone": "Dat is geen geldig telefoonnummer.",
+      "birthDatePlaceholder": "Nog niet ingevuld",
+      "tooYoung": "Je moet minstens 13 jaar zijn.",
+      "whyTitle": "Waarom vragen we dit?",
+      "addressWhy": "Zo kan VolunteerOS later taken voorstellen dicht bij huis. Alleen beheerders van je organisatie zien je adres.",
+      "birthDateWhy": "Sommige taken hebben een minimumleeftijd, zoals achter de bar. Alleen beheerders van je organisatie zien je geboortedatum.",
+      "nudgeTitle": "Vul je profiel aan",
+      "nudgeBody": "Nog niet ingevuld: {fields}. Alles is optioneel, maar het helpt je organisatie."
+    },
+    "address": {
+      "street": "Straat",
+      "houseNumber": "Nummer",
+      "box": "Bus",
+      "boxShort": "bus",
+      "postalCode": "Postcode",
+      "city": "Gemeente",
+      "country": "Land",
+      "countries": {
+        "BE": "België",
+        "NL": "Nederland",
+        "FR": "Frankrijk",
+        "DE": "Duitsland",
+        "LU": "Luxemburg"
+      },
+      "empty": "Nog niet ingevuld",
+      "edit": "Wijzigen",
+      "clear": "Adres wissen",
+      "postalCodeBe": "Een Belgische postcode heeft vier cijfers."
+    },
+    "account": {
+      "emailTitle": "E-mailadres",
+      "verified": "Bevestigd",
+      "unverified": "Niet bevestigd",
+      "unverifiedBody": "Bevestig je e-mailadres via de link die we je stuurden. Niets gevonden? Kijk bij je spam of vraag een nieuwe link.",
+      "resend": "Stuur de link opnieuw",
+      "verificationSent": "We stuurden een nieuwe link naar {email}.",
+      "alreadyVerified": "Je e-mailadres is al bevestigd.",
+      "newEmail": "Nieuw e-mailadres",
+      "newEmailHint": "We sturen een bevestigingslink naar het nieuwe adres. Je e-mailadres verandert pas als je die link opent.",
+      "changeEmail": "E-mailadres wijzigen",
+      "changeSent": "Open de link die we naar {email} stuurden. Tot dan blijft je huidige e-mailadres gelden.",
+      "sameEmail": "Dit is al je e-mailadres.",
+      "passwordTitle": "Wachtwoord",
+      "currentPassword": "Huidig wachtwoord",
+      "wrongPassword": "Je huidige wachtwoord klopt niet.",
+      "revokeOtherSessions": "Afmelden op andere toestellen",
+      "revokeOtherSessionsHint": "Wie op een ander toestel ingelogd is, moet opnieuw inloggen.",
+      "changePassword": "Wachtwoord wijzigen",
+      "passwordChanged": "Je wachtwoord is gewijzigd."
+    }
+  },
+  "verifyEmail": {
+    "verifying": "Even je e-mailadres bevestigen…",
+    "doneTitle": "E-mailadres bevestigd",
+    "doneBody": "Bedankt! Je e-mailadres is bevestigd.",
+    "invalidTitle": "Deze link werkt niet meer",
+    "invalidBody": "De link is ongeldig, al gebruikt of verlopen. Vraag een nieuwe aan in je accountinstellingen.",
+    "toSettings": "Naar je instellingen"
   }
 }

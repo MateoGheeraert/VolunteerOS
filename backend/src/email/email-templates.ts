@@ -1,6 +1,10 @@
 import { render } from 'react-email';
 import type { EmailTemplate } from './templates/_components/define-template.js';
+import { emailChangeConfirmation } from './templates/email-change-confirmation.js';
+import { emailChanged } from './templates/email-changed.js';
+import { emailVerification } from './templates/email-verification.js';
 import { organizationInvitation } from './templates/organization-invitation.js';
+import { passwordChanged } from './templates/password-changed.js';
 import { passwordReset } from './templates/password-reset.js';
 
 /**
@@ -11,6 +15,10 @@ import { passwordReset } from './templates/password-reset.js';
 export const emailTemplates = {
   'organization-invitation': organizationInvitation,
   'password-reset': passwordReset,
+  'password-changed': passwordChanged,
+  'email-verification': emailVerification,
+  'email-change-confirmation': emailChangeConfirmation,
+  'email-changed': emailChanged,
 };
 
 export type EmailTemplateName = keyof typeof emailTemplates;

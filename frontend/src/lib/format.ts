@@ -85,3 +85,16 @@ export function formatDay(date: string): string {
   // A day has no timezone: format it at UTC midnight in UTC, so it never shifts.
   return dayOnlyFormat.format(new Date(Date.UTC(year!, month! - 1, day!)));
 }
+
+const longDayFormat = new Intl.DateTimeFormat(LOCALE, {
+  timeZone: 'UTC',
+  day: 'numeric',
+  month: 'long',
+  year: 'numeric',
+});
+
+/** A calendar day with its year ("1990-05-17" → "17 mei 1990"), e.g. a birth date. */
+export function formatLongDay(date: string): string {
+  const [year, month, day] = date.split('-').map(Number);
+  return longDayFormat.format(new Date(Date.UTC(year!, month! - 1, day!)));
+}

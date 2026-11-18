@@ -1,12 +1,14 @@
 import { createHash } from 'node:crypto';
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
+import { createAuthMiddleware } from 'better-auth/api';
 import { organization } from 'better-auth/plugins';
 import { asc, eq } from 'drizzle-orm';
 import type { Env } from '../config/env.js';
 import type { Database } from '../db/database.js';
 import * as schema from '../db/schema/index.js';
 import type { EmailService } from '../email/email.service.js';
+import { accountHooks } from './auth.account.js';
 import { organizationActivityHooks } from './auth.activity.js';
 import { organizationAdditionalFields, parseOrganizationProfile } from './organization-profile.js';
 import {
@@ -29,6 +31,8 @@ export interface AuthDependencies {
 
 export function createAuth({ db, env, email }: AuthDependencies) {
   const activityHooks = organizationActivityHooks(db);
+  const account = accountHooks({ db, env, email });
+  const invitationEmailCheck = failInvitationWithoutEmail(db);
   return betterAuth({
     appName: 'VolunteerOS',
     // The browser only ever talks to Next.js, which proxies /api/auth/* to Nest.
@@ -58,8 +62,18 @@ export function createAuth({ db, env, email }: AuthDependencies) {
           idempotencyKey: `password-reset:${createHash('sha256').update(token).digest('hex')}`,
         });
       },
+      onPasswordReset: account.onPasswordReset,
+    },
+    // Verification never blocks signing in (no `requireEmailVerification`): it only shows in
+    // the account settings, and the email is sent again from there.
+    emailVerification: account.emailVerification,
+    user: {
+      // The confirmation link goes to the new address; the email changes once it is opened.
+      // No `sendChangeEmailConfirmation`: that would first ask the old address for approval.
+      changeEmail: { enabled: true },
     },
     databaseHooks: {
+      user: { update: account.userUpdateHooks },
       session: {
         create: {
           // A new session (every login) starts in the user's oldest organization, so returning
@@ -83,9 +97,15 @@ export function createAuth({ db, env, email }: AuthDependencies) {
       // Without this, rate limiting would see every request as coming from Next.js.
       ipAddress: { ipAddressHeaders: ['x-forwarded-for'] },
     },
-    // Better Auth swallows errors from `sendInvitationEmail`; the after-hook turns a failed
-    // invitation email into a failed request.
-    hooks: { before: rejectInvitationResendFlag, after: failInvitationWithoutEmail(db) },
+    hooks: {
+      before: rejectInvitationResendFlag,
+      after: createAuthMiddleware(async (ctx) => {
+        // Better Auth swallows errors from `sendInvitationEmail`; this turns a failed invitation
+        // email into a failed request.
+        await invitationEmailCheck(ctx);
+        await account.afterRequest(ctx);
+      }),
+    },
     plugins: [
       organization({
         invitationExpiresIn: SEVEN_DAYS_IN_SECONDS,

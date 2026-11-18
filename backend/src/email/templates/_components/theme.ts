@@ -25,3 +25,12 @@ export function formatEmailDate(date: Date): string {
     timeZone: EMAIL_TIME_ZONE,
   }).format(date);
 }
+
+/** "25 november 2026 om 14:05" */
+export function formatEmailDateTime(date: Date): string {
+  const time = new Intl.DateTimeFormat(EMAIL_LOCALE, {
+    timeStyle: 'short',
+    timeZone: EMAIL_TIME_ZONE,
+  }).format(date);
+  return `${formatEmailDate(date)} om ${time}`;
+}
