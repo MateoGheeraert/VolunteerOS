@@ -8,6 +8,7 @@ import { ENV, type Env } from './config/env.js';
 import { DatabaseModule } from './db/database.module.js';
 import { EmailModule } from './email/email.module.js';
 import { EventsModule } from './features/events/events.module.js';
+import { TasksModule } from './features/tasks/tasks.module.js';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { EventsModule } from './features/events/events.module.js';
     AuthModule,
     AuthzModule,
     EventsModule,
+    TasksModule,
   ],
   controllers: [HealthController],
 })

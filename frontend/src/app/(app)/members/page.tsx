@@ -96,6 +96,7 @@ async function Members() {
               {canManageMember(me, member, ownerCount) ? (
                 <MemberActions
                   memberId={member.id}
+                  userId={member.user.id}
                   name={member.user.name}
                   role={member.role}
                   isSelf={member.id === me.id}

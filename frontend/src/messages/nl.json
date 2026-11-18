@@ -76,7 +76,8 @@
     "switchOrganization": "Wissel van organisatie",
     "newOrganization": "Nieuwe organisatie",
     "roleUnknown": "Organisator",
-    "openMenu": "Menu"
+    "openMenu": "Menu",
+    "myTasks": "Mijn taken"
   },
   "events": {
     "title": "Evenementen",
@@ -191,6 +192,134 @@
       "retrospectiveTooLong": "Maximaal 5000 tekens."
     }
   },
+  "tasks": {
+    "readOnly": "Dit evenement is gearchiveerd: de taken kunnen niet meer wijzigen.",
+    "new": "Nieuwe taak",
+    "delete": "Verwijderen",
+    "deleteConfirm": "Ja, verwijder taak",
+    "overdue": "te laat",
+    "unassigned": "Niet toegewezen",
+    "you": "Jij",
+    "noAccount": "geen account",
+    "inactive": "Niet meer actief",
+    "request": "Vraag deze taak",
+    "requestPending": "Aangevraagd",
+    "cancelRequest": "Intrekken",
+    "requestedBy": "{name} wil deze taak",
+    "approveRequest": "Geef de taak aan {name}",
+    "declineRequest": "Weiger {name}",
+    "scope": "Welke taken",
+    "scopeAll": "Alle taken",
+    "scopeOpen": "Mijn + vrije taken",
+    "scopeMine": "Mijn taken",
+    "view": "Weergave",
+    "board": "Bord",
+    "list": "Lijst",
+    "allStatuses": "Alle statussen",
+    "allAssignees": "Iedereen",
+    "externalAssignees": "Zonder account",
+    "allPriorities": "Alle prioriteiten",
+    "allLabels": "Alle labels",
+    "withRequests": "Met aanvragen",
+    "noMatches": "Geen taken voor deze filters.",
+    "emptyTitle": "Nog geen taken",
+    "emptyBodyManager": "Zet de voorbereiding op een rij: wat moet er gebeuren, door wie en tegen wanneer.",
+    "emptyBodyMember": "Er zijn nog geen taken voor jou, en ook geen vrije taken om op te nemen.",
+    "requestConflict": "Deze taak is intussen toegewezen, of je vroeg ze al aan.",
+    "unassign": "Toewijzing verwijderen",
+    "requests": "Aanvragen",
+    "requestCount": "{count, plural, one {# aanvraag} other {# aanvragen}}",
+    "noDescription": "Geen beschrijving.",
+    "noDueDate": "Geen deadline",
+    "createdBy": "Aangemaakt door",
+    "event": "Evenement",
+    "allEvents": "Alle evenementen",
+    "previewDescription": "Details en acties voor deze taak.",
+    "gone": "Taak niet meer zichtbaar",
+    "goneBody": "Ze werd verwijderd of is niet meer aan jou toegewezen.",
+    "emptyBodyMine": "Je hebt nog geen taken. Taken die aan jou toegewezen worden, verschijnen hier, over alle evenementen heen.",
+    "unassignTitle": "Toewijzing verwijderen?",
+    "unassignWarning": "{name} is dan niet meer verantwoordelijk voor „{title}”. De taak staat weer open: er moet iemand anders gezocht worden om ze te doen.",
+    "unassignConfirm": "Ja, verwijder toewijzing",
+    "unassignSelf": "Mezelf uitschrijven",
+    "unassignSelfTitle": "Jezelf uitschrijven voor deze taak?",
+    "unassignSelfWarning": "Je bent dan niet meer verantwoordelijk voor „{title}”. De organisatoren moeten iemand anders zoeken om ze te doen.",
+    "unassignSelfConfirm": "Ja, schrijf me uit",
+    "noLabels": "Geen labels",
+    "addDescription": "Klik om een beschrijving toe te voegen…",
+    "deleteTitle": "Taak verwijderen?",
+    "deleteWarning": "„{title}” verdwijnt uit de takenlijst. Dit kan je niet zelf ongedaan maken."
+  },
+  "taskStatus": {
+    "todo": "Te doen",
+    "in_progress": "Bezig",
+    "done": "Klaar"
+  },
+  "taskPriority": {
+    "low": "Laag",
+    "medium": "Normaal",
+    "high": "Hoog"
+  },
+  "labelColor": {
+    "gray": "Grijs",
+    "red": "Rood",
+    "orange": "Oranje",
+    "yellow": "Geel",
+    "green": "Groen",
+    "teal": "Blauwgroen",
+    "blue": "Blauw",
+    "purple": "Paars"
+  },
+  "taskForm": {
+    "createTitle": "Nieuwe taak",
+    "subtitle": "Wat moet er gebeuren, door wie en tegen wanneer?",
+    "title": "Titel",
+    "titlePlaceholder": "Bv. Tapinstallatie reinigen",
+    "description": "Beschrijving",
+    "descriptionPlaceholder": "Extra uitleg (optioneel)",
+    "status": "Status",
+    "priority": "Prioriteit",
+    "dueDate": "Deadline",
+    "dueAfterEvent": "Deze deadline valt na het evenement. Klopt dat?",
+    "assignee": "Toegewezen aan",
+    "nobody": "Niemand",
+    "external": "Iemand zonder account…",
+    "assigneeName": "Naam",
+    "assigneeNamePlaceholder": "Bv. Bakker Jan",
+    "assigneeNameHelp": "Voor iemand die geen account heeft.",
+    "labels": "Labels",
+    "createButton": "Taak aanmaken",
+    "validation": {
+      "titleRequired": "Geef de taak een titel.",
+      "titleTooLong": "De titel is te lang.",
+      "descriptionTooLong": "De beschrijving is te lang.",
+      "dueDateInvalid": "Kies een geldige datum.",
+      "assigneeNameRequired": "Vul een naam in.",
+      "assigneeNameTooLong": "De naam is te lang."
+    }
+  },
+  "taskLabels": {
+    "title": "Labels",
+    "manage": "Labels",
+    "description": "Labels groeperen taken, bv. alles voor de bar. Ze horen bij dit evenement.",
+    "empty": "Nog geen labels.",
+    "name": "Naam",
+    "color": "Kleur",
+    "newLabel": "Nieuw label",
+    "newLabelPlaceholder": "Bv. Bar",
+    "add": "Toevoegen",
+    "delete": "{name} verwijderen",
+    "deleteConfirm": "Ja, verwijder",
+    "validation": {
+      "nameRequired": "Geef het label een naam.",
+      "nameTooLong": "De naam is te lang."
+    },
+    "nameTaken": "Er bestaat al een label met deze naam."
+  },
+  "myTasks": {
+    "title": "Mijn taken",
+    "description": "Al je taken, over alle evenementen heen."
+  },
   "errorPages": {
     "notFoundTitle": "Niet gevonden",
     "notFoundBody": "Deze pagina bestaat niet, of je hebt er geen toegang toe.",
@@ -244,6 +373,7 @@
       "notAllowed": "Je hebt hier geen rechten voor."
     },
     "removedNotice": "Je bent niet langer lid van deze organisatie.",
-    "removedTitle": "Geen lid meer"
+    "removedTitle": "Geen lid meer",
+    "openTasksWarning": "{name} heeft nog {count, plural, one {# onafgewerkte taak} other {# onafgewerkte taken}}. Na het verwijderen staan die weer open:"
   }
 }

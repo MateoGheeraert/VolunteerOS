@@ -10,7 +10,7 @@ type TabKey = 'overview' | 'tasks' | 'volunteers' | 'budget' | 'suppliers' | 'se
 /** `segment` is the child route under /events/[eventId]; null is the overview page. */
 const TABS: { key: TabKey; segment: string | null; soon?: boolean }[] = [
   { key: 'overview', segment: null },
-  { key: 'tasks', segment: 'tasks', soon: true },
+  { key: 'tasks', segment: 'tasks' },
   { key: 'volunteers', segment: 'volunteers', soon: true },
   { key: 'budget', segment: 'budget', soon: true },
   { key: 'suppliers', segment: 'suppliers', soon: true },

@@ -14,6 +14,7 @@ import {
   failInvitationWithoutEmail,
   invitationEmailKey,
   rejectInvitationResendFlag,
+  releaseOpenTasks,
 } from './auth.membership.js';
 
 const SEVEN_DAYS_IN_SECONDS = 7 * 24 * 60 * 60;
@@ -100,6 +101,7 @@ export function createAuth({ db, env, email }: AuthDependencies) {
           afterRemoveMember: async (data) => {
             await activityHooks.afterRemoveMember?.(data);
             await endEventAssignments(db, data.member.organizationId, data.member.userId);
+            await releaseOpenTasks(db, data.member.organizationId, data.member.userId);
           },
         },
         // A re-invite creates a new invitation id, so it sends a new email; a retried request

@@ -335,13 +335,16 @@ Dashboard should display:
 
 ### 7.3 Task Management
 
-Each task contains:
+Each task belongs to one event and contains:
 
 - Title.
-- Description.
-- Assigned organizer.
-- Due date.
+- Description (plain text).
+- Assignee: an organization member, a typed-in name for someone without an account, or nobody.
+- Due date (a calendar day, no time).
 - Status.
+- Priority: low, medium (default) or high.
+- Labels.
+- Creator (kept as history).
 
 Statuses:
 
@@ -351,12 +354,28 @@ Statuses:
 
 Features:
 
-- Create, edit, and delete tasks.
+- Create, edit, and delete (soft delete) tasks.
 - Assign tasks.
 - Mark tasks complete.
-- Filter by status or owner.
-- Show overdue tasks.
-- Display tasks on the event dashboard.
+- A kanban board with one column per status (dragging the whole card changes its status), and a list view.
+- Filter by status, assignee, priority and label; switch between "my tasks" and all tasks.
+- Clicking a task opens it in a side pane where every field except the creator is edited in place ("inline", as in issue trackers): the value turns into its input without the layout moving, and each field saves on its own.
+- "Mijn taken": one page with the user's tasks across all events that aren't archived.
+- Removing an assignee, taking yourself off a task and deleting a task each ask for confirmation, with a warning that someone new has to be found.
+- Show overdue tasks: due before today (Europe/Brussels) and not done, in the red status color.
+- Warn (without blocking) when a due date falls after the event.
+- Every write is in the activity log.
+- Display tasks on the event dashboard (P1, not built yet).
+
+Who does what:
+
+- Organization owners and admins, and the event's managers, see every task of the event and create, edit and delete them. They also maintain the labels and handle assignment requests.
+- Other members see the tasks assigned to them and the unassigned ones. They change the status of their own tasks, can take themselves off a task (it becomes unassigned), and can ask to be assigned an unassigned task. A manager approves or declines; approving one request declines the others, and assigning or deleting the task closes them too.
+- Labels are per event (names unique per event, ignoring case) with a color from a fixed palette, so "Bar" in one event doesn't clutter another.
+- When a member is removed from the organization, the admin first sees how many unfinished tasks they have per event. Their unfinished tasks become unassigned and their open requests are cancelled. Done tasks keep them as assignee, shown as "no longer active". The same note shows on tasks they created.
+- Tasks of an archived event are read-only; a completed event's tasks can still change.
+
+Not in scope yet: notifications, comments, subtasks, copying tasks into a new edition, manual ordering within a column.
 
 Avoid building a complete project-management application.
 
@@ -1120,9 +1139,32 @@ Authentication-related tables are managed by the authentication solution.
 - eventId
 - title
 - description
-- assigneeId
-- dueAt
-- status
+- status (todo, in_progress, done)
+- priority (low, medium, high)
+- dueDate (a calendar day)
+- assigneeUserId (an organization member) or assigneeName (someone without an account), never both
+- createdByUserId
+- createdAt
+- updatedAt
+
+### TaskLabel
+
+- id
+- eventId
+- name (unique per event, ignoring case)
+- color (gray, red, orange, yellow, green, teal, blue, purple)
+
+### TaskLabelLink
+
+- taskId
+- labelId
+
+### TaskAssignmentRequest
+
+- id
+- taskId
+- userId (the member asking)
+- status (pending, approved, declined, cancelled)
 - createdAt
 
 ### Team

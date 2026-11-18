@@ -35,6 +35,11 @@ export class ApiError extends Error {
     );
   }
 
+  /** Nest's 409 for a write to an archived (read-only) event. */
+  get archivedEvent(): boolean {
+    return this.status === 409 && messageOf(this.body) === 'An archived event cannot be changed';
+  }
+
   /** Nest's 403 when the session has no active organization (backend OrgGuard). */
   get needsOrganization(): boolean {
     return this.status === 403 && messageOf(this.body) === 'Select an organization first';
