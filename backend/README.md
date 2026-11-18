@@ -46,7 +46,7 @@ Fill in:
   node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"
   ```
   The frontend needs the same `INTERNAL_API_SECRET`.
-- `RESEND_API_KEY`: optional in development (emails are printed to the console), required in production.
+- `EMAIL_PROVIDER`, `RESEND_API_KEY`, `EMAIL_FROM`: leave empty to print emails to the console. To receive real emails locally, set `EMAIL_PROVIDER=resend` and a `RESEND_API_KEY`. Production always uses Resend. See [Email](#email).
 
 All variables are validated at startup in [src/config/env.ts](src/config/env.ts). The app refuses to start with a missing or invalid one and tells you which.
 
@@ -87,6 +87,8 @@ Run from `backend/`, or from the root with `pnpm --filter @volunteeros/backend <
 | `pnpm db:studio`      | Opens Drizzle Studio on the dev branch.                                     |
 | `pnpm auth:schema`    | Regenerates the Better Auth tables in `src/db/schema/auth.ts`.              |
 | `pnpm openapi:export` | Writes `openapi.json`. Commit it: the frontend client is generated from it. |
+| `pnpm email:dev`      | Previews the email templates at http://localhost:3001.                      |
+| `pnpm email:test`     | Sends every template to `--to <address>` through Resend (see Email).        |
 
 ## Database migrations
 
@@ -118,12 +120,12 @@ src/
 │   ├── database.module.ts  Drizzle connection (@nestjs/drizzle)
 │   ├── database.ts         The `Database`, `Transaction` and `DbExecutor` types
 │   ├── soft-delete.ts      `deletedAt()` column and `notDeleted(table)` filter
-│   ├── schema/             Tables: auth.ts (generated), events.ts, activity-log.ts, index.ts
+│   ├── schema/             Tables: auth.ts (generated), events.ts, activity-log.ts, email-delivery.ts
 │   └── migrations/         Generated SQL, committed
 ├── activity/               recordActivity() and the Actor type (see "Activity log")
 ├── auth/                   Better Auth instance + its activity hooks, AuthGuard, @Public(), @CurrentUser()
 ├── authz/                  Org context, policies, guards, decorators
-├── email/                  EmailService (console / Resend) and templates
+├── email/                  EmailService, providers (console / Resend), React Email templates
 ├── common/                 Health check, internal-secret middleware, date schemas
 ├── openapi-export.ts       Writes openapi.json (`pnpm openapi:export`)
 └── features/
@@ -194,8 +196,42 @@ See [events.schemas.ts](src/features/events/events.schemas.ts).
 Exceptions:
 
 - **Better Auth tables** (`user`, `session`, `account`, `verification`, `member`, `invitation`, `organization`) follow Better Auth, which hard-deletes (removing a member deletes the `member` row). Its organization changes are recorded in the activity log, so the history survives.
+- **Logs** (`activity_log`, `email_delivery`) are append-only: rows are never edited by users or removed.
 - **Organizations can't be deleted** (`disableOrganizationDeletion`): it would cascade into everything they own.
 - **GDPR erasure** (to be built): when a person asks to be forgotten, their personal data must really go. That workflow, and only that one, will anonymize or hard-delete personal data. Until it exists, don't add other hard deletes.
+
+### Email
+
+All email goes through `EmailService.send` ([src/email](src/email)):
+
+```ts
+await email.send({
+  template: 'organization-invitation', // props are type-checked against the template
+  to,
+  props: { inviterName, organizationName, role, acceptUrl, expiresAt },
+  idempotencyKey: `organization-invitation:${invitationId}`,
+  organizationId,
+});
+```
+
+1. Renders the React Email template to HTML and a plain-text version.
+2. Records the delivery in `email_delivery` ([schema](src/db/schema/email-delivery.ts)). **The same idempotency key never sends twice**: an already-sent key returns `already-sent`, a key being sent by a concurrent request returns `in-progress`, and a failed key is tried again on the same row. The key is also passed to Resend.
+3. Hands it to the provider, retrying network errors, 5xx and rate limits up to 3 attempts. Errors that would fail the same way again (validation, auth, quota) are not retried.
+4. Marks the row `sent` (with Resend's message id) or `failed` (with `last_error`), and throws `EmailDeliveryError` when it failed.
+
+Pick an idempotency key as `<template>:<id of what the email is about>`, with an id that changes exactly when a new email is wanted. Never put a secret in it: the password reset key hashes its token.
+
+Sending happens inside the request; there is no job queue yet (decision and trigger to revisit in [docs/info.md](../docs/info.md), "Background Jobs").
+
+**Adding an email:**
+
+1. Create `src/email/templates/<name>.tsx`: a component built from `EmailLayout`, `Paragraph` and `CallToAction` ([\_components](src/email/templates/_components)), and `export const <name> = defineEmailTemplate({ component, subject, previewProps })`. Dutch, informal "je".
+2. Add it to `emailTemplates` in [email-templates.ts](src/email/email-templates.ts).
+3. Call `email.send({ template: '<name>', ... })`. No migration, no other wiring.
+
+`pnpm email:dev` shows every template with its `previewProps`. `pnpm email:test --to you@example.com [--template <name>]` sends them for real (needs `RESEND_API_KEY` and a migrated dev database). With the default sender `onboarding@resend.dev`, Resend only delivers to the address of the Resend account; production needs `EMAIL_FROM` on a verified domain.
+
+In tests, `CapturingEmailProvider` ([test/test-app.ts](test/test-app.ts)) replaces the provider: `t.emails.lastTo(address)` reads what was sent and `t.emails.failNext(n, { retryable })` simulates provider errors.
 
 ### Activity log
 

@@ -10,6 +10,8 @@ const MESSAGES: Record<string, MessageKey> = {
   YOU_ARE_NOT_ALLOWED_TO_UPDATE_THIS_MEMBER: msg('members.errors.notAllowed'),
   YOU_ARE_NOT_ALLOWED_TO_DELETE_THIS_MEMBER: msg('members.errors.notAllowed'),
   YOU_ARE_NOT_ALLOWED_TO_CANCEL_THIS_INVITATION: msg('members.errors.notAllowed'),
+  // Our own code (backend/src/auth/auth.membership.ts): the invitation was cancelled.
+  INVITATION_EMAIL_FAILED: msg('members.errors.emailFailed'),
 };
 
 export function memberErrorMessage(error: { code?: string } | null | undefined): MessageKey {

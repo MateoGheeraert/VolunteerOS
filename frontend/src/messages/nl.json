@@ -239,6 +239,7 @@
     },
     "errors": {
       "alreadyMember": "Deze persoon is al lid van de organisatie.",
+      "emailFailed": "De uitnodiging kon niet verstuurd worden. Probeer het later opnieuw.",
       "lastOwner": "De organisatie heeft altijd een eigenaar nodig.",
       "notAllowed": "Je hebt hier geen rechten voor."
     },

@@ -912,7 +912,16 @@ For:
 - Assignment updates.
 - Future reminders.
 
-Use React Email for templates if helpful.
+Implemented in `backend/src/email` (see "Email" in the backend README):
+
+- Templates are React Email components in Dutch (`nl-BE`, informal "je"), sharing one layout: preheader, wordmark, content card with one call to action and a fallback link, and a footer saying why the recipient got the email. The plain-text version is generated from the HTML.
+- One entry point, `EmailService.send({ template, to, props, idempotencyKey })`. Adding an email means adding a template file and one registry line; delivery, retries and logging are shared.
+- Every send is recorded in `email_delivery` before the provider is called. The same idempotency key never sends twice; the key is also passed to Resend.
+- Temporary provider errors (network, 5xx, rate limits) are tried up to 3 times with a short backoff (0.5 s, 1.5 s), inside the request.
+- `EMAIL_PROVIDER=console` (the development default) prints emails; `resend` sends them and is required in production.
+- `pnpm email:dev` previews the templates; `pnpm email:test --to <address>` sends each one through the real pipeline.
+
+Planned: emails will be sent in the name of the VolunteerOS AI agent once it has a name and persona (sender name and copy are configurable per template).
 
 ### Background Jobs
 
@@ -933,6 +942,10 @@ Required capabilities:
 - Scheduled execution.
 - Error tracking.
 - Reliable email delivery.
+
+**Decision (November 2026): no job system yet.** The only emails are organization invitations and password resets, both sent while the user waits, and nothing runs on a schedule. They are sent inside the request, with quick retries and an idempotency key, and every send is logged in `email_delivery`. If sending fails after the retries, the request fails, so the organizer knows to try again (a failed invitation is canceled, never left pending).
+
+Revisit when the first scheduled or bulk email arrives (reminders, assignment confirmations to many volunteers): pick between a Postgres-backed queue (pg-boss or Graphile Worker; no new infrastructure) and a hosted service (Trigger.dev or Inngest). The worker will call the same `EmailService.send`, so templates and the delivery log stay as they are.
 
 ### AI
 
@@ -1201,13 +1214,21 @@ Statuses:
 
 ### EmailDelivery
 
+Implemented as `email_delivery`: an append-only log, without soft delete.
+
 - id
-- eventId
+- organizationId (nullable: a password reset belongs to no organization)
+- eventId (nullable)
 - recipient
-- template
-- status
+- template (text, so adding an email needs no migration)
+- subject
+- status (pending / sent / failed)
+- idempotencyKey (unique)
 - providerMessageId
+- attempts
+- lastError
 - createdAt
+- updatedAt
 - sentAt
 
 ### ActivityLog
@@ -1698,7 +1719,8 @@ Avoid premature abstraction and overengineering.
 The following decisions are NOT final:
 
 - Exact hosting provider.
-- Exact background job provider.
+- Exact background job provider (deferred until the first scheduled or bulk email; see "Background Jobs").
+- A platform admin role (VolunteerOS staff, above organization owners) with admin features such as an in-app log of every sent email. Until then, the React Email preview server and the `email_delivery` table serve that purpose.
 - Final authentication integration details.
 - Final AI model/provider.
 - Whether budget functionality needs simplification.
