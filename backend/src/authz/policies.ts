@@ -15,12 +15,13 @@ export interface EventAccessSubject {
 
 /**
  * Who may do what with an event the caller's organization owns.
+ * - Every member of the organization reads every event: small committees work together.
  * - Organization admins and owners: everything.
- * - Members: read and manage the events they are assigned to as manager.
+ * - Members: manage the events they are assigned to as manager.
  * - Only admins assign managers.
  */
 export function canAccessEvent({ orgRole, eventRole }: EventAccessSubject, action: EventAction) {
-  if (isOrgAdmin(orgRole)) {
+  if (action === 'read' || isOrgAdmin(orgRole)) {
     return true;
   }
   if (action === 'manageMembers') {
@@ -28,9 +29,6 @@ export function canAccessEvent({ orgRole, eventRole }: EventAccessSubject, actio
   }
   return eventRole === 'manager';
 }
-
-/** Whether the caller may know the event exists. Hidden events answer 404, not 403. */
-export const canSeeEvent = (subject: EventAccessSubject) => canAccessEvent(subject, 'read');
 
 export function toOrgRole(role: string): OrgRole {
   // Better Auth stores multiple roles as a comma-separated string.

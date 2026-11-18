@@ -28,6 +28,29 @@ const invitationSchema = z.object({
   inviterEmail: z.string(),
 });
 
+const orgRoleSchema = z.enum(['owner', 'admin', 'member']);
+
+const activeMemberSchema = z.object({ id: z.string(), userId: z.string(), role: orgRoleSchema });
+
+const memberSchema = z.object({
+  id: z.string(),
+  role: orgRoleSchema,
+  createdAt: z.coerce.date(),
+  user: z.object({ id: z.string(), name: z.string(), email: z.string() }),
+});
+
+const organizationInvitationSchema = z.object({
+  id: z.string(),
+  email: z.string(),
+  role: z.enum(['admin', 'member']),
+  status: z.enum(['pending', 'accepted', 'rejected', 'canceled']),
+  expiresAt: z.coerce.date(),
+});
+
+export type OrgRole = z.infer<typeof orgRoleSchema>;
+export type ActiveMember = z.infer<typeof activeMemberSchema>;
+export type OrganizationMember = z.infer<typeof memberSchema>;
+export type OrganizationInvitation = z.infer<typeof organizationInvitationSchema>;
 export type SessionUser = z.infer<typeof sessionSchema>['user'];
 export type OrganizationSummary = z.infer<typeof organizationSchema>;
 export type InvitationDetails = z.infer<typeof invitationSchema>;
@@ -78,8 +101,38 @@ export async function requireActiveOrganization() {
   const session = await requireSession();
   const organizations = await listOrganizations();
   const organization = organizations.find((org) => org.id === session.activeOrganizationId);
-  if (!organization) redirect('/onboarding');
+  // Still pointing at an organization they no longer belong to: they were removed from it.
+  if (!organization) redirect(session.activeOrganizationId ? '/removed' : '/onboarding');
   return { ...session, organization, organizations };
+}
+
+/** The caller's membership of the active organization. Deduplicated per request. */
+export const getActiveMember = cache(async (): Promise<ActiveMember> => {
+  await requireActiveOrganization();
+  const member = await authGet('/organization/get-active-member', activeMemberSchema);
+  if (!member) redirect('/removed');
+  return member;
+});
+
+/** Everyone in the active organization; every member may see this. */
+export async function listMembers(): Promise<OrganizationMember[]> {
+  const data = await authGet(
+    '/organization/list-members',
+    z.object({ members: z.array(memberSchema) }),
+  );
+  return data?.members ?? [];
+}
+
+/**
+ * Invitations still waiting for an answer, expired ones included (they can be resent).
+ * Only admins may list invitations: Better Auth answers 403 to anyone else.
+ */
+export async function listPendingInvitations(): Promise<OrganizationInvitation[]> {
+  const invitations = await authGet(
+    '/organization/list-invitations',
+    z.array(organizationInvitationSchema),
+  );
+  return (invitations ?? []).filter((invitation) => invitation.status === 'pending');
 }
 
 /** Only the invited (signed-in) user can read an invitation; anything else gives null. */

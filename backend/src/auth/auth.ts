@@ -8,6 +8,11 @@ import * as schema from '../db/schema/index.js';
 import type { EmailService } from '../email/email.service.js';
 import { organizationInvitationEmail, passwordResetEmail } from '../email/templates.js';
 import { organizationActivityHooks } from './auth.activity.js';
+import {
+  assertAssignableRole,
+  endEventAssignments,
+  rejectInvitationResendFlag,
+} from './auth.membership.js';
 
 const SEVEN_DAYS_IN_SECONDS = 7 * 24 * 60 * 60;
 const ONE_HOUR_IN_SECONDS = 60 * 60;
@@ -19,6 +24,7 @@ export interface AuthDependencies {
 }
 
 export function createAuth({ db, env, email }: AuthDependencies) {
+  const activityHooks = organizationActivityHooks(db);
   return betterAuth({
     appName: 'VolunteerOS',
     // The browser only ever talks to Next.js, which proxies /api/auth/* to Nest.
@@ -69,6 +75,7 @@ export function createAuth({ db, env, email }: AuthDependencies) {
       // Without this, rate limiting would see every request as coming from Next.js.
       ipAddress: { ipAddressHeaders: ['x-forwarded-for'] },
     },
+    hooks: { before: rejectInvitationResendFlag },
     plugins: [
       organization({
         invitationExpiresIn: SEVEN_DAYS_IN_SECONDS,
@@ -76,7 +83,17 @@ export function createAuth({ db, env, email }: AuthDependencies) {
         // Nothing is ever permanently deleted, and deleting an organization would cascade into
         // its events and history. Re-enable only with a soft-delete design for organizations.
         disableOrganizationDeletion: true,
-        organizationHooks: organizationActivityHooks(db),
+        // Better Auth itself enforces who may do what: only owners and admins invite, change
+        // roles and remove members; only owners touch other owners; the last owner stays.
+        organizationHooks: {
+          ...activityHooks,
+          beforeCreateInvitation: async ({ invitation }) => assertAssignableRole(invitation.role),
+          beforeUpdateMemberRole: async ({ newRole }) => assertAssignableRole(newRole),
+          afterRemoveMember: async (data) => {
+            await activityHooks.afterRemoveMember?.(data);
+            await endEventAssignments(db, data.member.organizationId, data.member.userId);
+          },
+        },
         sendInvitationEmail: async ({ id, email: to, organization: org, inviter }) => {
           await email.send(
             organizationInvitationEmail({

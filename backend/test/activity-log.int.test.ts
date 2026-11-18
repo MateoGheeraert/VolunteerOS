@@ -187,13 +187,15 @@ describe('events', () => {
     // Assigning again with the same role changes nothing, so it isn't logged.
     await admin.post(`/api/events/${created.id}/members`, { userId: user.id });
     expect((await admin.delete(`/api/events/${created.id}/members/${user.id}`)).status).toBe(204);
-    expect((await mo.get(`/api/events/${created.id}`)).status).toBe(404);
+    // Unassigned: still readable, as every event is to every member, but no longer editable.
+    expect((await mo.get(`/api/events/${created.id}`)).status).toBe(200);
+    expect((await mo.patch(`/api/events/${created.id}`, { name: 'Mo' })).status).toBe(403);
     expect((await admin.delete(`/api/events/${created.id}/members/${user.id}`)).status).toBe(404);
 
     expect(
       (await admin.post(`/api/events/${created.id}/members`, { userId: user.id })).status,
     ).toBe(204);
-    expect((await mo.get(`/api/events/${created.id}`)).status).toBe(200);
+    expect((await mo.patch(`/api/events/${created.id}`, { name: 'Mo' })).status).toBe(200);
 
     const members = await admin.get(`/api/events/${created.id}/members`);
     expect(members.body.map((m: { userId: string }) => m.userId).sort()).toEqual(

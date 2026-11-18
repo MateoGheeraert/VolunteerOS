@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectDrizzle } from '@nestjs/drizzle';
 import type { CreateEventInput, UpdateEventInput } from './events.schemas.js';
-import { and, asc, eq, exists, ne, type SQL } from 'drizzle-orm';
+import { and, asc, eq, ne } from 'drizzle-orm';
 import type { Database, DbExecutor } from '../../db/database.js';
 import {
   event,
@@ -13,12 +13,6 @@ import {
   type EventRow,
 } from '../../db/schema/index.js';
 import { notDeleted } from '../../db/soft-delete.js';
-
-/** Who is looking: organization admins see every event, other members the ones assigned to them. */
-export interface EventViewer {
-  userId: string;
-  seesAllEvents: boolean;
-}
 
 export type EditionRef = Pick<EventRow, 'id' | 'name' | 'startsAt'>;
 const editionRefColumns = { id: event.id, name: event.name, startsAt: event.startsAt };
@@ -42,41 +36,19 @@ export class EventsRepository {
       .orderBy(asc(event.startsAt));
   }
 
-  listAssignedTo(organizationId: string, userId: string): Promise<EventRow[]> {
-    return this.db
-      .select()
-      .from(event)
-      .where(
-        and(eq(event.organizationId, organizationId), notDeleted(event), this.assignedTo(userId)),
-      )
-      .orderBy(asc(event.startsAt));
-  }
-
-  /**
-   * A live event of the organization, for checking an edition link. With a `viewer`, only an
-   * event they may see: a hidden event behaves as if it doesn't exist.
-   */
-  async findEdition(
-    organizationId: string,
-    eventId: string,
-    viewer?: EventViewer,
-  ): Promise<EventRow | undefined> {
+  /** A live event of the organization, for checking an edition link. */
+  async findEdition(organizationId: string, eventId: string): Promise<EventRow | undefined> {
     const [row] = await this.db
       .select()
       .from(event)
       .where(
-        and(
-          eq(event.id, eventId),
-          eq(event.organizationId, organizationId),
-          notDeleted(event),
-          viewer && this.visibleTo(viewer),
-        ),
+        and(eq(event.id, eventId), eq(event.organizationId, organizationId), notDeleted(event)),
       )
       .limit(1);
     return row;
   }
 
-  /** The live event that continues `eventId`, whoever may see it (there is at most one). */
+  /** The live event that continues `eventId` (there is at most one). */
   async findSuccessor(
     organizationId: string,
     eventId: string,
@@ -97,17 +69,12 @@ export class EventsRepository {
     return row;
   }
 
-  /** The editions just before and after `current` that the viewer may see. */
+  /** The live editions just before and after `current`. */
   async findNeighbourEditions(
     organizationId: string,
     current: EventRow,
-    viewer: EventViewer,
   ): Promise<{ previous: EditionRef | null; next: EditionRef | null }> {
-    const visible = and(
-      eq(event.organizationId, organizationId),
-      notDeleted(event),
-      this.visibleTo(viewer),
-    );
+    const visible = and(eq(event.organizationId, organizationId), notDeleted(event));
     const [previous, next] = await Promise.all([
       current.previousEditionId
         ? this.db
@@ -123,26 +90,6 @@ export class EventsRepository {
         .limit(1),
     ]);
     return { previous: previous[0] ?? null, next: next[0] ?? null };
-  }
-
-  private visibleTo(viewer: EventViewer): SQL | undefined {
-    return viewer.seesAllEvents ? undefined : this.assignedTo(viewer.userId);
-  }
-
-  /** The event has a live manager assignment for the user. */
-  private assignedTo(userId: string): SQL {
-    return exists(
-      this.db
-        .select()
-        .from(eventMember)
-        .where(
-          and(
-            eq(eventMember.eventId, event.id),
-            eq(eventMember.userId, userId),
-            notDeleted(eventMember),
-          ),
-        ),
-    );
   }
 
   async insert(tx: DbExecutor, organizationId: string, input: CreateEventInput): Promise<EventRow> {

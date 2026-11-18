@@ -28,6 +28,13 @@ export class ApiError extends Error {
     return [...fields];
   }
 
+  /** Nest's 403 when the caller was removed from their active organization (backend OrgGuard). */
+  get lostMembership(): boolean {
+    return (
+      this.status === 403 && messageOf(this.body) === 'Not a member of the active organization'
+    );
+  }
+
   /** Nest's 403 when the session has no active organization (backend OrgGuard). */
   get needsOrganization(): boolean {
     return this.status === 403 && messageOf(this.body) === 'Select an organization first';

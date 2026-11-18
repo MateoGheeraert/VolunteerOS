@@ -200,5 +200,49 @@
     "errorBody": "Probeer het opnieuw. Blijft het misgaan? Laat het ons weten.",
     "retry": "Opnieuw proberen",
     "home": "Naar mijn evenementen"
+  },
+  "members": {
+    "title": "Leden",
+    "description": "Wie mee organiseert in {organization}. Elk lid ziet alle evenementen.",
+    "roles": {
+      "owner": "Eigenaar",
+      "admin": "Beheerder",
+      "member": "Lid"
+    },
+    "you": "jij",
+    "joined": "Lid sinds {date}",
+    "roleOf": "Rol van {name}",
+    "roleChanged": "{name} is nu {role}.",
+    "selfDemoteWarning": "Je verliest zelf je beheerrechten.",
+    "confirmRole": "Ja, wijzig mijn rol",
+    "remove": "Verwijderen",
+    "removeConfirm": "Ja, verwijder {name}",
+    "removed": "{name} is verwijderd uit de organisatie.",
+    "invite": {
+      "title": "Iemand uitnodigen",
+      "body": "De uitnodiging is 7 dagen geldig.",
+      "email": "E-mailadres",
+      "emailPlaceholder": "naam@voorbeeld.be",
+      "role": "Rol",
+      "button": "Uitnodigen",
+      "sent": "Uitnodiging verstuurd naar {email}."
+    },
+    "invitations": {
+      "title": "Openstaande uitnodigingen",
+      "empty": "Er staan geen uitnodigingen open.",
+      "expiresOn": "Verloopt op {date}",
+      "expired": "Verlopen",
+      "resend": "Opnieuw versturen",
+      "resent": "Nieuwe uitnodiging verstuurd naar {email}.",
+      "revoke": "Intrekken",
+      "revoked": "Uitnodiging voor {email} ingetrokken."
+    },
+    "errors": {
+      "alreadyMember": "Deze persoon is al lid van de organisatie.",
+      "lastOwner": "De organisatie heeft altijd een eigenaar nodig.",
+      "notAllowed": "Je hebt hier geen rechten voor."
+    },
+    "removedNotice": "Je bent niet langer lid van deze organisatie.",
+    "removedTitle": "Geen lid meer"
   }
 }

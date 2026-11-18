@@ -17,10 +17,11 @@ describe('canAccessEvent', () => {
     expect(canAccessEvent(subject, 'manageMembers')).toBe(false);
   });
 
-  it('gives an unassigned member no access at all', () => {
-    for (const action of actions) {
-      expect(canAccessEvent({ orgRole: 'member', eventRole: null }, action)).toBe(false);
-    }
+  it('lets an unassigned member read, but not manage', () => {
+    const subject = { orgRole: 'member', eventRole: null } as const;
+    expect(canAccessEvent(subject, 'read')).toBe(true);
+    expect(canAccessEvent(subject, 'manage')).toBe(false);
+    expect(canAccessEvent(subject, 'manageMembers')).toBe(false);
   });
 });
 

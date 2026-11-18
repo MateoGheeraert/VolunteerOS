@@ -31,7 +31,7 @@ interface NavItem {
 const NAV: NavItem[] = [
   { key: 'events', href: '/events', icon: CalendarDays },
   { key: 'suppliers', href: '/suppliers', icon: ShoppingBag, soon: true },
-  { key: 'members', href: '/members', icon: Users, soon: true },
+  { key: 'members', href: '/members', icon: Users },
   { key: 'settings', href: '/settings', icon: Settings, soon: true },
 ];
 

@@ -17,9 +17,8 @@ import { recordActivity } from '../../activity/activity-log.js';
 import type { Database } from '../../db/database.js';
 import type { EventRow } from '../../db/schema/index.js';
 import type { OrgContext } from '../../authz/org-context.js';
-import { isOrgAdmin } from '../../authz/policies.js';
 import { canArchive, canTransition, isReadOnly } from './event-status.js';
-import { EventsRepository, type EditionRef, type EventViewer } from './events.repository.js';
+import { EventsRepository, type EditionRef } from './events.repository.js';
 
 /**
  * Event fields whose values the activity log keeps. `description` and `retrospective` are free
@@ -51,19 +50,13 @@ export class EventsService {
   ) {}
 
   async list(org: OrgContext): Promise<EventDto[]> {
-    const rows = isOrgAdmin(org.role)
-      ? await this.events.listForOrganization(org.organizationId)
-      : await this.events.listAssignedTo(org.organizationId, org.userId);
+    const rows = await this.events.listForOrganization(org.organizationId);
     return rows.map(toEventDto);
   }
 
-  /** The event with the editions before and after it that the caller may see. */
+  /** The event with the editions before and after it. */
   async get(org: OrgContext, current: EventRow): Promise<EventDetailDto> {
-    const { previous, next } = await this.events.findNeighbourEditions(
-      org.organizationId,
-      current,
-      viewerOf(org),
-    );
+    const { previous, next } = await this.events.findNeighbourEditions(org.organizationId, current);
     return {
       ...toEventDto(current),
       previousEdition: previous && toEditionRefDto(previous),
@@ -136,7 +129,7 @@ export class EventsService {
 
   /**
    * Checks the event may continue `previousEditionId`: a live, earlier event of the organization
-   * that the caller may see, and that no other event continues yet. Messages start with the field
+   * that no other event continues yet. Messages start with the field
    * so the form can mark it.
    */
   private async assertCanContinue(
@@ -145,11 +138,7 @@ export class EventsService {
     startsAt: Date,
     eventId?: string,
   ): Promise<void> {
-    const previous = await this.events.findEdition(
-      org.organizationId,
-      previousEditionId,
-      viewerOf(org),
-    );
+    const previous = await this.events.findEdition(org.organizationId, previousEditionId);
     if (!previous) {
       throw new BadRequestException('previousEditionId: event not found');
     }
@@ -285,11 +274,6 @@ function rethrowEditionTaken(error: unknown): never {
   }
   throw error;
 }
-
-const viewerOf = (org: OrgContext): EventViewer => ({
-  userId: org.userId,
-  seesAllEvents: isOrgAdmin(org.role),
-});
 
 const toEditionRefDto = (ref: EditionRef) => ({
   id: ref.id,
