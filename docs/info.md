@@ -324,7 +324,7 @@ Requirements:
 
 #### Personal settings (implemented)
 
-"As an organizer, I want to change my name, email and password (and later delete my account), so that I control my own data."
+"As an organizer, I want to change my name, email and password, so that I control my own data." (Deleting the account: see below.)
 
 `/settings` has three tabs: **Profiel** (`/settings/profile`), **Account** (`/settings/account`) and **Organisatie** (`/settings/organization`, the active organization's settings). The user menu links to it.
 
@@ -339,7 +339,30 @@ Requirements:
   - Changing the password needs the current one and signs out other devices unless the user unticks that. A security notice is emailed (also after a password reset).
 - **Who sees the profile**: the user sees all of their own. Anyone sharing an organization with them sees their phone; only owners and admins of a shared organization also see the address and birth date. Without a shared organization: nothing (404). Enforced in the backend (`GET /api/users/:userId/profile`).
 - **Audit trail**: every change (profile fields, name, email change requested and confirmed, email verified, password changed or reset) is an account-level entry in the activity log, by field name only (see ActivityLog in section 13). Sign-ins and sign-outs are not logged. There is no screen for it yet.
-- Not in this story: deleting the account (next story) and avatars.
+- Not in this story: avatars.
+
+#### Organization roles
+
+- Roles: `owner`, `admin` (together: Organization Admin) and `member`. Invitations hand out `admin` or `member` only.
+- An **owner** can make any member owner via the role select on `/members` ("Eigenaar" is only offered to owners). An organization may have several owners; the promoting owner stays owner. It takes a confirmation click, like taking away your own rights.
+- Enforced by Better Auth: only owners make someone owner or change/remove another owner; admins can't touch owners; the last owner can't step down or be removed.
+
+#### Deleting the account (implemented)
+
+"As an organizer, I want to delete my account, so that I control my own data."
+
+A danger section **Account verwijderen** at the bottom of `/settings/account`. Confirmed with the current password in a dialog; effective immediately, no grace period, no undo.
+
+- **Blocked** while the user is the **only owner** of an organization that has other members (another admin is not enough). The section names each such organization with a link that switches to it and opens its Members page, where they make someone else owner first. The button stays disabled; the backend checks again (409).
+- **Organizations where the user is the only member** go with the account: the section lists them with their event counts first. They are soft-deleted (`organization.deleted_at`, slug freed as `deleted-<id>`), their pending invitations are cancelled, and they are hidden everywhere (organization list and switcher, the active organization picked at sign-in, every organization-scoped API, new invitations and joining). Logged as `organization_deleted` in that organization's log. Deleting an organization by itself is still not possible.
+- **Nothing is hard-deleted.** The `user` row stays, because tasks and the activity log refer to it, but is anonymized: name "Verwijderde gebruiker", email `deleted-<userId>@invalid` (so the real address can sign up again), no image, unverified, `deleted_at` set. The profile, sessions (every device is signed out), credentials and pending tokens are deleted. Better Auth never creates a session for a deleted user and sends it no password reset.
+- **Memberships** end the same way as removing a member: event assignments end, unfinished tasks are released and open requests cancelled. Each organization's log shows `member_left` with the user as actor. Tasks they created or finished show "Verwijderde gebruiker" (no longer active).
+- **Other copies of personal data** are scrubbed in the same transaction:
+  - invitations addressed to the user: pending ones are cancelled, and every one gets the placeholder address;
+  - the email delivery log: the recipient of every email to the address (and of the security notices keyed by the user's id, which also reach earlier addresses), and the address inside provider errors; the inviter's name in the subjects of invitations they sent becomes "Verwijderde gebruiker".
+  - Known limit: a confirmation email for an email change that was never completed is keyed only by a token hash, so it can't be linked to the user and keeps the address it went to.
+- Afterwards a "your account was deleted" email goes to the original address (listing deleted organizations); its delivery row is scrubbed right after sending. The browser signs out and lands on `/account-deleted`.
+- The account-level activity log gets `account_deleted` (no values). API: `GET /api/me/deletion-check`, `DELETE /api/me` (password in the body; 400 wrong password, 409 blocked).
 
 ### 7.2 Event Management
 

@@ -100,6 +100,7 @@ async function Members() {
                   name={member.user.name}
                   role={member.role}
                   isSelf={member.id === me.id}
+                  actorRole={me.role}
                 />
               ) : (
                 <Badge variant={member.role === 'member' ? 'outline' : 'brand'}>

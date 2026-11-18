@@ -1,7 +1,9 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { DeleteAccount } from '@/features/settings/delete-account';
 import { EmailSettings } from '@/features/settings/email-settings';
+import { getDeletionCheck } from '@/server/account/queries';
 import { PasswordForm } from '@/features/settings/password-form';
 import { getMyProfile } from '@/server/profile/queries';
 
@@ -14,8 +16,15 @@ export default function AccountPage() {
         <Email />
       </Suspense>
       <PasswordForm />
+      <Suspense fallback={<Skeleton className="h-48 rounded-3xl bg-card" />}>
+        <Deletion />
+      </Suspense>
     </div>
   );
+}
+
+async function Deletion() {
+  return <DeleteAccount check={await getDeletionCheck()} />;
 }
 
 async function Email() {

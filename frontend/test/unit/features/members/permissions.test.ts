@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { canManageMember, isExpired } from '@/features/members/permissions';
+import { canManageMember, isExpired, roleChangeOptions } from '@/features/members/permissions';
 
 describe('canManageMember', () => {
   it('gives regular members no controls at all', () => {
@@ -17,6 +17,13 @@ describe('canManageMember', () => {
   it('lets an owner manage another owner, never the last one', () => {
     expect(canManageMember({ role: 'owner' }, { role: 'owner' }, 2)).toBe(true);
     expect(canManageMember({ role: 'owner' }, { role: 'owner' }, 1)).toBe(false);
+  });
+});
+
+describe('roleChangeOptions', () => {
+  it('offers owner to owners only', () => {
+    expect(roleChangeOptions({ role: 'owner' })).toEqual(['owner', 'admin', 'member']);
+    expect(roleChangeOptions({ role: 'admin' })).toEqual(['admin', 'member']);
   });
 });
 

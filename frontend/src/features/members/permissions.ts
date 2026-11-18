@@ -1,8 +1,16 @@
 import type { OrgRole } from '@/server/auth';
 
-/** Roles an admin can hand out. Must match ASSIGNABLE_ORG_ROLES in backend/src/auth/auth.membership.ts. */
+/** Roles an invitation hands out. Must match ASSIGNABLE_ORG_ROLES in backend/src/auth/auth.membership.ts. */
 export const ASSIGNABLE_ROLES = ['admin', 'member'] as const;
 export type AssignableRole = (typeof ASSIGNABLE_ROLES)[number];
+
+/**
+ * The roles `actor` may change a member's role to. Only an owner makes someone else owner (they
+ * stay owner themselves); an organization may have several owners.
+ */
+export function roleChangeOptions(actor: { role: OrgRole }): readonly OrgRole[] {
+  return actor.role === 'owner' ? ['owner', ...ASSIGNABLE_ROLES] : ASSIGNABLE_ROLES;
+}
 
 export const isOrgAdmin = (role: OrgRole) => role === 'owner' || role === 'admin';
 
@@ -10,7 +18,7 @@ export const isOrgAdmin = (role: OrgRole) => role === 'owner' || role === 'admin
  * Whether the UI offers role and remove controls for `target`. Mirrors what the backend (Better
  * Auth) enforces, so the controls shown are the ones that work:
  * - only owners and admins manage members; admins are peers, also towards themselves;
- * - only an owner touches another owner;
+ * - only an owner touches another owner, or makes someone owner;
  * - the last owner is never demoted or removed.
  */
 export function canManageMember(

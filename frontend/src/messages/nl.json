@@ -348,6 +348,9 @@
     "roleChanged": "{name} is nu {role}.",
     "selfDemoteWarning": "Je verliest zelf je beheerrechten.",
     "confirmRole": "Ja, wijzig mijn rol",
+    "selfOwnerDemoteWarning": "Je bent dan geen eigenaar meer.",
+    "ownerPromoteWarning": "{name} krijgt alle rechten, ook over de andere eigenaars. Je blijft zelf eigenaar.",
+    "confirmOwner": "Ja, maak {name} eigenaar",
     "remove": "Verwijderen",
     "removeConfirm": "Ja, verwijder {name}",
     "removed": "{name} is verwijderd uit de organisatie.",
@@ -517,7 +520,27 @@
       "revokeOtherSessionsHint": "Wie op een ander toestel ingelogd is, moet opnieuw inloggen.",
       "changePassword": "Wachtwoord wijzigen",
       "passwordChanged": "Je wachtwoord is gewijzigd."
+    },
+    "delete": {
+      "title": "Account verwijderen",
+      "body": "Je persoonsgegevens worden meteen gewist en je kan je niet meer aanmelden. Taken en geschiedenis in je organisaties tonen je voortaan als ‘Verwijderde gebruiker’. Dit kan je niet ongedaan maken.",
+      "blocked": "Je bent de enige eigenaar van {count, plural, one {deze organisatie} other {deze organisaties}}. Maak eerst een ander lid eigenaar, dan kan je je account verwijderen.",
+      "toMembers": "Leden van {organization}",
+      "organizationsDeleted": "Je bent het enige lid van {count, plural, one {deze organisatie} other {deze organisaties}}. Ze {count, plural, one {wordt} other {worden}} samen met je account verwijderd, met alle evenementen erin:",
+      "eventCount": "{count, plural, =0 {geen evenementen} one {# evenement} other {# evenementen}}",
+      "button": "Account verwijderen",
+      "dialogTitle": "Je account definitief verwijderen?",
+      "dialogBody": "Bevestig met je wachtwoord. Je wordt meteen afgemeld en krijgt een bevestiging per e-mail.",
+      "password": "Wachtwoord",
+      "confirm": "Ja, verwijder mijn account",
+      "blockedNow": "Je account kan nu niet verwijderd worden: je bent ergens de enige eigenaar. Laad de pagina opnieuw."
     }
+  },
+  "accountDeleted": {
+    "title": "Je account is verwijderd",
+    "body": "Je persoonsgegevens zijn gewist. We stuurden een bevestiging naar je e-mailadres. Bedankt dat je VolunteerOS gebruikte!",
+    "signup": "Nieuw account aanmaken",
+    "login": "Naar aanmelden"
   },
   "verifyEmail": {
     "verifying": "Even je e-mailadres bevestigen…",

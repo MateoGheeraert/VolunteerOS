@@ -9,7 +9,8 @@ import { InjectDrizzle } from '@nestjs/drizzle';
 import { and, eq } from 'drizzle-orm';
 import { userActor } from '../activity/actor.js';
 import type { Database } from '../db/database.js';
-import { member } from '../db/schema/index.js';
+import { member, organization } from '../db/schema/index.js';
+import { notDeleted } from '../db/soft-delete.js';
 import type { OrgScopedRequest } from './org-context.js';
 import { isOrgAdmin, toOrgRole } from './policies.js';
 import { REQUIRE_ORG_ADMIN } from './authz.constants.js';
@@ -35,7 +36,15 @@ export class OrgGuard implements CanActivate {
     const [membership] = await this.db
       .select({ role: member.role })
       .from(member)
-      .where(and(eq(member.organizationId, organizationId), eq(member.userId, request.user.id)))
+      .innerJoin(organization, eq(organization.id, member.organizationId))
+      .where(
+        and(
+          eq(member.organizationId, organizationId),
+          eq(member.userId, request.user.id),
+          // A deleted organization (its last member deleted their account) is gone for everyone.
+          notDeleted(organization),
+        ),
+      )
       .limit(1);
     if (!membership) {
       throw new ForbiddenException('Not a member of the active organization');

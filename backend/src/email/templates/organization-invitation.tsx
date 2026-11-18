@@ -48,10 +48,16 @@ export default function OrganizationInvitationEmail({
   );
 }
 
+/**
+ * What follows the inviter's name in the subject. When the inviter deletes their account, the
+ * delivery log's subject keeps only what comes from here on (see features/account).
+ */
+export const INVITATION_SUBJECT_AFTER_INVITER = ' nodigt je uit voor ';
+
 export const organizationInvitation = defineEmailTemplate<OrganizationInvitationProps>({
   component: OrganizationInvitationEmail,
   subject: ({ inviterName, organizationName }) =>
-    `${inviterName} nodigt je uit voor ${organizationName} op VolunteerOS`,
+    `${inviterName}${INVITATION_SUBJECT_AFTER_INVITER}${organizationName} op VolunteerOS`,
   previewProps: {
     inviterName: 'Sofie Peeters',
     organizationName: 'Jeugdhuis De Kroon',

@@ -810,6 +810,47 @@
         },
         "tags": ["profile"]
       }
+    },
+    "/api/me/deletion-check": {
+      "get": {
+        "operationId": "AccountController_check",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeletionCheck"
+                }
+              }
+            }
+          }
+        },
+        "tags": ["account"]
+      }
+    },
+    "/api/me": {
+      "delete": {
+        "operationId": "AccountController_remove",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeleteAccount"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": ["account"]
+      }
     }
   },
   "info": {
@@ -1897,6 +1938,70 @@
         },
         "required": ["userId", "name"],
         "additionalProperties": false
+      },
+      "DeletionCheck": {
+        "type": "object",
+        "properties": {
+          "canDelete": {
+            "type": "boolean"
+          },
+          "blockingOrganizations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DeletionBlockingOrganization"
+            }
+          },
+          "organizationsToDelete": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DeletionDeletedOrganization"
+            }
+          }
+        },
+        "required": ["canDelete", "blockingOrganizations", "organizationsToDelete"],
+        "additionalProperties": false
+      },
+      "DeletionBlockingOrganization": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": ["id", "name"],
+        "additionalProperties": false
+      },
+      "DeletionDeletedOrganization": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "eventCount": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": ["id", "name", "eventCount"],
+        "additionalProperties": false
+      },
+      "DeleteAccount": {
+        "type": "object",
+        "properties": {
+          "password": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "required": ["password"]
       }
     }
   }

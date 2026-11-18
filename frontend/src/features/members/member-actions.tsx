@@ -12,12 +12,12 @@ import { authClient } from '@/lib/auth-client';
 import type { OrgRole } from '@/server/auth';
 import { getOpenTaskCounts } from '@/server/tasks/actions';
 import { memberErrorMessage } from './member-errors';
-import { ASSIGNABLE_ROLES, type AssignableRole } from './permissions';
+import { roleChangeOptions } from './permissions';
 
 /**
- * Role picker and remove button for one member. Removing takes two clicks, and so does taking
- * away your own admin rights: both are hard to undo yourself. Before removing, it warns about the
- * member's unfinished tasks, which become unassigned.
+ * Role picker and remove button for one member. Removing takes two clicks, and so do taking away
+ * your own rights and making someone owner: all are hard to undo yourself. Before removing, it
+ * warns about the member's unfinished tasks, which become unassigned.
  */
 export function MemberActions({
   memberId,
@@ -25,25 +25,29 @@ export function MemberActions({
   name,
   role,
   isSelf,
+  actorRole,
 }: {
   memberId: string;
   userId: string;
   name: string;
   role: OrgRole;
   isSelf: boolean;
+  /** The role of whoever is looking: only owners can make someone owner. */
+  actorRole: OrgRole;
 }) {
   const t = useTranslations();
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [confirmingRemove, setConfirmingRemove] = useState(false);
-  const [pendingSelfRole, setPendingSelfRole] = useState<AssignableRole | null>(null);
+  const [pendingRole, setPendingRole] = useState<OrgRole | null>(null);
   const [openTasks, setOpenTasks] = useState<OpenTaskCount[]>([]);
+  const options = roleChangeOptions({ role: actorRole });
 
-  async function changeRole(newRole: AssignableRole) {
+  async function changeRole(newRole: OrgRole) {
     setBusy(true);
     const { error } = await authClient.organization.updateMemberRole({ memberId, role: newRole });
     setBusy(false);
-    setPendingSelfRole(null);
+    setPendingRole(null);
     if (error) {
       toast.error(t(memberErrorMessage(error)));
       return;
@@ -66,30 +70,36 @@ export function MemberActions({
   }
 
   function onRoleSelected(value: string) {
-    const newRole = value as AssignableRole;
+    const newRole = value as OrgRole;
     if (newRole === role) return;
-    if (isSelf && newRole === 'member') {
-      setPendingSelfRole(newRole);
+    // Hard to undo: giving yourself fewer rights, or someone else full control.
+    if ((isSelf && (newRole === 'member' || role === 'owner')) || newRole === 'owner') {
+      setPendingRole(newRole);
       return;
     }
     void changeRole(newRole);
   }
 
-  if (pendingSelfRole) {
+  if (pendingRole) {
+    const promoting = pendingRole === 'owner';
     return (
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-sm font-semibold text-status-warn">
-          {t('members.selfDemoteWarning')}
+          {promoting
+            ? t('members.ownerPromoteWarning', { name })
+            : role === 'owner'
+              ? t('members.selfOwnerDemoteWarning')
+              : t('members.selfDemoteWarning')}
         </span>
         <Button
           size="sm"
           variant="destructive"
-          onClick={() => void changeRole(pendingSelfRole)}
+          onClick={() => void changeRole(pendingRole)}
           disabled={busy}
         >
-          {t('members.confirmRole')}
+          {promoting ? t('members.confirmOwner', { name }) : t('members.confirmRole')}
         </Button>
-        <Button size="sm" variant="ghost" onClick={() => setPendingSelfRole(null)} disabled={busy}>
+        <Button size="sm" variant="ghost" onClick={() => setPendingRole(null)} disabled={busy}>
           {t('common.cancel')}
         </Button>
       </div>
@@ -147,12 +157,12 @@ export function MemberActions({
           disabled={busy}
           onChange={(event) => onRoleSelected(event.target.value)}
         >
-          {role === 'owner' && (
+          {role === 'owner' && !options.includes('owner') && (
             <option value="owner" disabled>
               {t('members.roles.owner')}
             </option>
           )}
-          {ASSIGNABLE_ROLES.map((option) => (
+          {options.map((option) => (
             <option key={option} value={option}>
               {t(`members.roles.${option}`)}
             </option>
