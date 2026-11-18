@@ -54,6 +54,9 @@
     "subtitle": "Bijvoorbeeld je jeugdbeweging, studentenclub of feestcomité. Je kan later collega-organisatoren uitnodigen.",
     "name": "Naam van je organisatie",
     "namePlaceholder": "KLJ Merkem",
+    "category": "Soort organisatie",
+    "pickCategory": "Kies een soort",
+    "categoryRequired": "Kies wat voor organisatie het is.",
     "button": "Verder"
   },
   "invitation": {
@@ -75,6 +78,7 @@
     "organization": "Organisatie",
     "switchOrganization": "Wissel van organisatie",
     "newOrganization": "Nieuwe organisatie",
+    "organizationSettings": "Organisatiegegevens",
     "roleUnknown": "Organisator",
     "openMenu": "Menu",
     "myTasks": "Mijn taken"
@@ -375,5 +379,82 @@
     "removedNotice": "Je bent niet langer lid van deze organisatie.",
     "removedTitle": "Geen lid meer",
     "openTasksWarning": "{name} heeft nog {count, plural, one {# onafgewerkte taak} other {# onafgewerkte taken}}. Na het verwijderen staan die weer open:"
+  },
+  "settingsTabs": {
+    "label": "Instellingen",
+    "profile": "Profiel",
+    "account": "Account",
+    "organization": "Organisatie"
+  },
+  "organizationCategory": {
+    "youth_movement": "Jeugdbeweging",
+    "sports_club": "Sportclub",
+    "culture": "Cultuur",
+    "school": "School/oudercomité",
+    "neighbourhood": "Buurtcomité",
+    "charity": "Goed doel",
+    "student_association": "Studentenvereniging",
+    "religious": "Levensbeschouwelijk",
+    "other": "Andere"
+  },
+  "organizationLegalForm": {
+    "de_facto_association": "Feitelijke vereniging",
+    "npo": "vzw",
+    "international_npo": "ivzw",
+    "foundation": "Stichting",
+    "company": "Vennootschap",
+    "other": "Andere"
+  },
+  "organizationSettings": {
+    "description": "De gegevens van {organization}. Klik op een waarde om ze aan te passen.",
+    "readOnly": "Alleen beheerders kunnen deze gegevens aanpassen.",
+    "notFilledIn": "Niet ingevuld",
+    "add": "Toevoegen",
+    "sections": {
+      "general": "Algemeen",
+      "legal": "Juridisch",
+      "insurance": "Verzekering",
+      "address": "Maatschappelijke zetel"
+    },
+    "fields": {
+      "name": "Naam",
+      "category": "Soort organisatie",
+      "description": "Beschrijving",
+      "website": "Website",
+      "foundingYear": "Opgericht in",
+      "legalForm": "Rechtsvorm",
+      "enterpriseNumber": "Ondernemingsnummer",
+      "peppolId": "Peppol-ID",
+      "insurerName": "Verzekeraar",
+      "insurancePolicyNumber": "Polisnummer",
+      "street": "Straat",
+      "houseNumber": "Huisnummer",
+      "box": "Bus",
+      "postalCode": "Postcode",
+      "city": "Gemeente",
+      "country": "Land"
+    },
+    "hints": {
+      "enterpriseNumber": "Een feitelijke vereniging heeft er meestal geen.",
+      "peppolId": "Voor e-facturen. Wordt ingevuld vanuit je ondernemingsnummer.",
+      "insurance": "De burgerlijke aansprakelijkheidsverzekering voor je vrijwilligers.",
+      "country": "Landcode, bv. BE of NL."
+    },
+    "placeholders": {
+      "description": "Wat doet je organisatie?",
+      "website": "www.kljmerkem.be",
+      "enterpriseNumber": "0123.456.789",
+      "peppolId": "0208:0123456789",
+      "insurerName": "KBC, Ethias, …"
+    },
+    "validation": {
+      "tooLong": "Dit is te lang.",
+      "website": "Vul een geldig webadres in, bv. www.kljmerkem.be.",
+      "foundingYear": "Vul een jaartal in, bv. 1953.",
+      "foundingYearFuture": "Het oprichtingsjaar kan niet in de toekomst liggen.",
+      "enterpriseNumber": "Dit is geen geldig ondernemingsnummer. Controleer de cijfers.",
+      "peppolId": "Een Peppol-ID ziet eruit als 0208:0123456789.",
+      "country": "Gebruik een landcode van twee letters, bv. BE."
+    }
   }
 }

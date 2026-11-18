@@ -8,6 +8,7 @@ import type { Database } from '../db/database.js';
 import * as schema from '../db/schema/index.js';
 import type { EmailService } from '../email/email.service.js';
 import { organizationActivityHooks } from './auth.activity.js';
+import { organizationAdditionalFields, parseOrganizationProfile } from './organization-profile.js';
 import {
   assertAssignableRole,
   endEventAssignments,
@@ -92,10 +93,20 @@ export function createAuth({ db, env, email }: AuthDependencies) {
         // Nothing is ever permanently deleted, and deleting an organization would cascade into
         // its events and history. Re-enable only with a soft-delete design for organizations.
         disableOrganizationDeletion: true,
+        schema: { organization: { additionalFields: organizationAdditionalFields } },
         // Better Auth itself enforces who may do what: only owners and admins invite, change
-        // roles and remove members; only owners touch other owners; the last owner stays.
+        // roles and remove members, and update the organization; only owners touch other owners;
+        // the last owner stays.
         organizationHooks: {
           ...activityHooks,
+          beforeCreateOrganization: async ({ organization: org }) => ({
+            data: parseOrganizationProfile(org, { action: 'create' }),
+          }),
+          beforeUpdateOrganization: async (data) => {
+            const profile = parseOrganizationProfile(data.organization, { action: 'update' });
+            await activityHooks.beforeUpdateOrganization?.(data);
+            return { data: profile };
+          },
           beforeCreateInvitation: async ({ invitation }) => assertAssignableRole(invitation.role),
           beforeUpdateMemberRole: async ({ newRole }) => assertAssignableRole(newRole),
           afterRemoveMember: async (data) => {

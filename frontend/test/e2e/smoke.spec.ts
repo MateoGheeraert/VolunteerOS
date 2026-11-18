@@ -16,6 +16,7 @@ test('an organizer signs up, creates an organization and an event', async ({ pag
 
   await expect(page).toHaveURL(/\/onboarding/);
   await page.getByLabel('Naam van je organisatie').fill('Smoke Test Chiro');
+  await page.getByLabel('Soort organisatie').selectOption('youth_movement');
   await page.getByRole('button', { name: 'Verder' }).click();
 
   await expect(page.getByRole('heading', { name: 'Nog geen evenementen' })).toBeVisible();

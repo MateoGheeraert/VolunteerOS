@@ -155,9 +155,14 @@ export class TestClient {
   }
 
   /** Creates an organization (the caller becomes owner) and makes it the active one. */
-  async createOrganization(name: string) {
+  async createOrganization(name: string, profile: Record<string, unknown> = {}) {
     const slug = `${name.toLowerCase().replace(/\W+/g, '-')}-${Math.random().toString(36).slice(2, 8)}`;
-    const res = await this.post('/api/auth/organization/create', { name, slug });
+    const res = await this.post('/api/auth/organization/create', {
+      name,
+      slug,
+      category: 'youth_movement',
+      ...profile,
+    });
     if (res.status !== 200) throw new Error(`create org failed: ${res.status} ${res.text}`);
     await this.setActiveOrganization(res.body.id);
     return res.body as { id: string };

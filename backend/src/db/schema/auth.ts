@@ -1,5 +1,17 @@
 import { relations } from "drizzle-orm";
-import { pgTable, text, timestamp, boolean, index } from "drizzle-orm/pg-core";
+import {
+  pgTable,
+  text,
+  timestamp,
+  boolean,
+  integer,
+  index,
+} from "drizzle-orm/pg-core";
+// Hand-added after `pnpm auth:schema`: the generator writes enums as text columns.
+import {
+  organizationCategoryEnum,
+  organizationLegalFormEnum,
+} from "./organization-enums.js";
 
 export const user = pgTable("user", {
   id: text("id").primaryKey(),
@@ -81,6 +93,21 @@ export const organization = pgTable("organization", {
   logo: text("logo"),
   createdAt: timestamp("created_at").notNull(),
   metadata: text("metadata"),
+  category: organizationCategoryEnum("category").notNull(),
+  legalForm: organizationLegalFormEnum("legal_form"),
+  description: text("description"),
+  website: text("website"),
+  foundingYear: integer("founding_year"),
+  enterpriseNumber: text("enterprise_number"),
+  peppolId: text("peppol_id"),
+  insurerName: text("insurer_name"),
+  insurancePolicyNumber: text("insurance_policy_number"),
+  street: text("street"),
+  houseNumber: text("house_number"),
+  box: text("box"),
+  postalCode: text("postal_code"),
+  city: text("city"),
+  country: text("country").default("BE").notNull(),
 });
 
 export const member = pgTable(
