@@ -159,6 +159,23 @@ Contains:
 
 One user can eventually belong to multiple organizations.
 
+#### Organization profile
+
+Creating an organization (onboarding) asks only for its **name** and **category**. Everything else is optional and filled in later under Settings → Organisatie.
+
+| Field | Notes |
+| --- | --- |
+| Name | Required. Renaming never changes the internal slug. |
+| Category | Required, fixed list: youth movement (Jeugdbeweging), sports club (Sportclub), culture (Cultuur), school / parents' committee (School/oudercomité), neighbourhood committee (Buurtcomité), charity (Goed doel), student association (Studentenvereniging), religious / philosophical (Levensbeschouwelijk), other (Andere). |
+| Legal form | De facto association (feitelijke vereniging), vzw, ivzw, foundation (stichting), company (vennootschap), other. |
+| Description, website, founding year | Website must be an http(s) URL (a bare domain gets `https://`); founding year is not in the future. |
+| Enterprise number | Belgian ondernemingsnummer, stored as 10 digits, shown as `0123.456.789`, checked with mod 97. Many youth movements (de facto associations) have none. |
+| Peppol ID | `scheme:identifier`. Prefilled as `0208:<enterprise number>` when an enterprise number is entered and no Peppol ID is set; editable. Not used yet (future invoicing). |
+| Insurance | Insurer and policy number of the volunteers' liability insurance (Belgian volunteer law). |
+| Registered address | Street, house number, box, postal code, city, country (ISO-2, default BE). Same shape as personal addresses. |
+
+Owners and admins edit the profile; members see it read-only. Every change is written to the activity log with the old and new values (the profile describes the organization, not a person).
+
 ### Event
 
 An event is the central operational entity.

@@ -6,12 +6,19 @@ import { recordActivity, type ActivityInput } from '../activity/activity-log.js'
 import { SYSTEM_ACTOR, userActor, type Actor } from '../activity/actor.js';
 import type { Database } from '../db/database.js';
 import { organization } from '../db/schema/index.js';
+import { ORGANIZATION_PROFILE_FIELDS } from './organization-profile.js';
 
 type OrganizationRow = typeof organization.$inferSelect;
 
 // Fields whose values the log keeps. Everything else is stored by name only: notably the
 // invitee's email (personal data, possibly of someone without an account) and the logo.
-const ORGANIZATION_LOGGED_VALUES = ['name', 'slug'] as const;
+// The organization's profile describes the organization, not a person, so all of it is logged,
+// its description included.
+const ORGANIZATION_LOGGED_VALUES = [
+  'name',
+  'slug',
+  ...ORGANIZATION_PROFILE_FIELDS,
+] as const satisfies readonly (keyof OrganizationRow)[];
 const MEMBER_LOGGED_VALUES = ['userId', 'role'] as const;
 const INVITATION_LOGGED_VALUES = ['role', 'status', 'expiresAt', 'inviterId'] as const;
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { Check, ChevronsUpDown, Plus } from 'lucide-react';
+import { Check, ChevronsUpDown, Plus, Settings } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -55,6 +55,12 @@ export function OrganizationSwitcher({
           </DropdownMenuItem>
         ))}
         <DropdownMenuSeparator />
+        <DropdownMenuItem asChild>
+          <Link href="/settings/organization">
+            <Settings aria-hidden />
+            {t('nav.organizationSettings')}
+          </Link>
+        </DropdownMenuItem>
         <DropdownMenuItem asChild>
           <Link href="/onboarding">
             <Plus aria-hidden />
