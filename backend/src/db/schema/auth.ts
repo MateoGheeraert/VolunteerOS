@@ -24,6 +24,7 @@ export const user = pgTable("user", {
     .defaultNow()
     .$onUpdate(() => /* @__PURE__ */ new Date())
     .notNull(),
+  deletedAt: timestamp("deleted_at"),
 });
 
 export const session = pgTable(
@@ -108,6 +109,7 @@ export const organization = pgTable("organization", {
   postalCode: text("postal_code"),
   city: text("city"),
   country: text("country").default("BE").notNull(),
+  deletedAt: timestamp("deleted_at"),
 });
 
 export const member = pgTable(

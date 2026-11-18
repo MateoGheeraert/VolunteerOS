@@ -1,5 +1,6 @@
 import { render } from 'react-email';
 import type { EmailTemplate } from './templates/_components/define-template.js';
+import { accountDeleted } from './templates/account-deleted.js';
 import { emailChangeConfirmation } from './templates/email-change-confirmation.js';
 import { emailChanged } from './templates/email-changed.js';
 import { emailVerification } from './templates/email-verification.js';
@@ -19,6 +20,7 @@ export const emailTemplates = {
   'email-verification': emailVerification,
   'email-change-confirmation': emailChangeConfirmation,
   'email-changed': emailChanged,
+  'account-deleted': accountDeleted,
 };
 
 export type EmailTemplateName = keyof typeof emailTemplates;

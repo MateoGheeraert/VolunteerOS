@@ -110,13 +110,42 @@ describe('invitations', () => {
 });
 
 describe('roles', () => {
-  it('only hands out admin and member', async () => {
+  it('changes roles between admin and member, never to an unknown or combined role', async () => {
     const { user } = await t.inviteMember(owner, orgId, 'Mo Member', 'mo@example.com');
     const memberId = await memberIdOf(user.id);
 
     expect((await setRole(owner, memberId, 'admin')).status).toBe(200);
     expect((await setRole(owner, memberId, 'member')).status).toBe(200);
-    expect((await setRole(owner, memberId, 'owner')).status).toBe(400);
+    expect((await setRole(owner, memberId, 'owner,admin')).status).toBe(400);
+  });
+
+  it('lets an owner make someone else owner, and stay owner too', async () => {
+    const { user } = await t.inviteMember(owner, orgId, 'Mo Member', 'mo@example.com');
+    const memberId = await memberIdOf(user.id);
+
+    expect((await setRole(owner, memberId, 'owner')).status).toBe(200);
+    const roles = await t.db
+      .select({ userId: member.userId, role: member.role })
+      .from(member)
+      .where(eq(member.organizationId, orgId));
+    expect(roles).toEqual(
+      expect.arrayContaining([
+        { userId: ownerId, role: 'owner' },
+        { userId: user.id, role: 'owner' },
+      ]),
+    );
+    // With two owners, one may step down.
+    expect((await setRole(owner, await memberIdOf(ownerId), 'admin')).status).toBe(200);
+  });
+
+  it('never lets a non-owner make someone owner', async () => {
+    const ann = await joinAsAdmin('Ann Admin', 'ann@example.com');
+    const { client: mo, user } = await t.inviteMember(owner, orgId, 'Mo Member', 'mo@example.com');
+    const moMemberId = await memberIdOf(user.id);
+
+    expect((await setRole(ann.client, moMemberId, 'owner')).status).toBe(403);
+    expect((await setRole(ann.client, ann.memberId, 'owner')).status).toBe(403);
+    expect((await setRole(mo, moMemberId, 'owner')).status).toBeGreaterThanOrEqual(400);
   });
 
   it('lets admins demote and remove other admins, and themselves', async () => {
@@ -139,6 +168,16 @@ describe('roles', () => {
 
     expect((await setRole(owner, ownerMemberId, 'admin')).status).toBe(400);
     expect((await remove(owner, ownerMemberId)).status).toBe(400);
+  });
+
+  it('keeps a second owner out of reach of admins', async () => {
+    const ann = await joinAsAdmin('Ann Admin', 'ann@example.com');
+    const { user } = await t.inviteMember(owner, orgId, 'Mo Member', 'mo@example.com');
+    const moMemberId = await memberIdOf(user.id);
+    expect((await setRole(owner, moMemberId, 'owner')).status).toBe(200);
+
+    expect((await setRole(ann.client, moMemberId, 'admin')).status).toBe(403);
+    expect((await remove(ann.client, moMemberId)).status).toBe(400);
   });
 });
 

@@ -59,3 +59,8 @@ export const changePasswordSchema = z.object({
   newPassword: z.string().min(MIN_PASSWORD_LENGTH, msg('auth.validation.passwordLength')),
   revokeOtherSessions: z.boolean(),
 });
+
+export const deleteAccountSchema = z.object({
+  password: z.string().min(1, required).max(256),
+});
+export type DeleteAccountForm = z.infer<typeof deleteAccountSchema>;

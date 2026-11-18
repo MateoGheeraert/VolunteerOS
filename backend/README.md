@@ -200,7 +200,7 @@ See [events.schemas.ts](src/features/events/events.schemas.ts).
 
 Exceptions:
 
-- **Better Auth tables** (`user`, `session`, `account`, `verification`, `member`, `invitation`, `organization`) follow Better Auth, which hard-deletes (removing a member deletes the `member` row). Its organization changes are recorded in the activity log, so the history survives.
+- **Better Auth tables** (`user`, `session`, `account`, `verification`, `member`, `invitation`, `organization`) follow Better Auth, which hard-deletes (removing a member deletes the `member` row). Its organization changes are recorded in the activity log, so the history survives. Two of them do have `deleted_at` (Better Auth additional fields, never returned): a deleted account keeps its anonymized `user` row, and an organization whose last member deleted their account is soft-deleted (see [src/features/account](src/features/account) and [src/auth/auth.deletion.ts](src/auth/auth.deletion.ts)).
 - **Logs** (`activity_log`, `email_delivery`) are append-only: rows are never edited by users or removed.
 - **Organizations can't be deleted** (`disableOrganizationDeletion`): it would cascade into everything they own.
 - **GDPR erasure** (to be built): when a person asks to be forgotten, their personal data must really go. That workflow, and only that one, will anonymize or hard-delete personal data. Until it exists, don't add other hard deletes.

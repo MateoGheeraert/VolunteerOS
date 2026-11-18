@@ -2,7 +2,8 @@ import { Logger } from '@nestjs/common';
 import { APIError, createAuthMiddleware } from 'better-auth/api';
 import { and, eq, inArray, ne } from 'drizzle-orm';
 import { recordActivity } from '../activity/activity-log.js';
-import type { Database } from '../db/database.js';
+import type { Actor } from '../activity/actor.js';
+import type { Database, DbExecutor } from '../db/database.js';
 import {
   emailDelivery,
   event,
@@ -17,16 +18,29 @@ import type { AuthHookContext } from './auth.account.js';
 import { currentActor } from './auth.activity.js';
 
 /**
- * The roles an admin can hand out, by invitation or role change. `owner` belongs to whoever
- * created the organization; transferring it is not supported yet.
+ * The roles an invitation can hand out. `owner` is never given by invitation: an owner promotes
+ * an existing member instead (see ROLE_CHANGE_ORG_ROLES).
  */
 export const ASSIGNABLE_ORG_ROLES = ['admin', 'member'] as const satisfies readonly OrgRole[];
 
-export function assertAssignableRole(role: string): void {
-  if (!(ASSIGNABLE_ORG_ROLES as readonly string[]).includes(role)) {
+/**
+ * The roles a member's role can be changed to. Better Auth itself guards `owner`: only an owner
+ * may make someone owner or change another owner's role, and the last owner can't step down.
+ * An organization may have several owners; promoting someone else keeps you owner.
+ */
+export const ROLE_CHANGE_ORG_ROLES = [
+  'owner',
+  ...ASSIGNABLE_ORG_ROLES,
+] as const satisfies readonly OrgRole[];
+
+export function assertAssignableRole(
+  role: string,
+  allowed: readonly OrgRole[] = ASSIGNABLE_ORG_ROLES,
+): void {
+  if (!(allowed as readonly string[]).includes(role)) {
     throw new APIError('BAD_REQUEST', {
       code: 'ROLE_NOT_ASSIGNABLE',
-      message: `Role must be one of: ${ASSIGNABLE_ORG_ROLES.join(', ')}`,
+      message: `Role must be one of: ${allowed.join(', ')}`,
     });
   }
 }
@@ -92,6 +106,23 @@ export function invitationEmailKey(invitationId: string): string {
 }
 
 /**
+ * What follows every end of a membership, whether an admin removed the member (Better Auth's
+ * `afterRemoveMember`) or the member deleted their account (features/account, inside its
+ * transaction): their event assignments end and their open tasks are released.
+ *
+ * `actor` defaults to the signed-in user of the current Better Auth request.
+ */
+export async function endMembership(
+  db: DbExecutor,
+  organizationId: string,
+  userId: string,
+  actor: Actor = currentActor(),
+): Promise<void> {
+  await endEventAssignments(db, organizationId, userId, actor);
+  await releaseOpenTasks(db, organizationId, userId, actor);
+}
+
+/**
  * Ends a removed member's event assignments, so no stale manager rows outlive their membership.
  *
  * Runs after Better Auth removed the member, outside its write. Unlike activity logging, a
@@ -99,9 +130,10 @@ export function invitationEmailKey(invitationId: string): string {
  * Removing the member again is not possible, but an admin can unassign them per event.
  */
 export async function endEventAssignments(
-  db: Database,
+  db: DbExecutor,
   organizationId: string,
   userId: string,
+  actor: Actor = currentActor(),
 ): Promise<void> {
   try {
     await db.transaction(async (tx) => {
@@ -123,7 +155,7 @@ export async function endEventAssignments(
       for (const assignment of ended) {
         await recordActivity(
           tx,
-          { organizationId, actor: currentActor() },
+          { organizationId, actor },
           {
             action: 'member_removed',
             entityType: 'event_member',
@@ -150,11 +182,12 @@ export async function endEventAssignments(
  * Runs after Better Auth removed the member, like endEventAssignments, and fails the same way.
  */
 export async function releaseOpenTasks(
-  db: Database,
+  db: DbExecutor,
   organizationId: string,
   userId: string,
+  actor: Actor = currentActor(),
 ): Promise<void> {
-  const scope = () => ({ organizationId, actor: currentActor() });
+  const scope = () => ({ organizationId, actor });
   try {
     await db.transaction(async (tx) => {
       // Archived events are read-only, their tasks included: those keep their assignee.
