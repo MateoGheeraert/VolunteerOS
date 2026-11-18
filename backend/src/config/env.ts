@@ -12,8 +12,12 @@ const envSchema = z.object({
   BETTER_AUTH_SECRET: z.string().min(32),
   /** Shared secret that only the Next.js server knows; every request to Nest must carry it. */
   INTERNAL_API_SECRET: z.string().min(32),
+  /** Where emails go: `console` prints them, `resend` sends them. Default: resend in production. */
+  EMAIL_PROVIDER: z.enum(['console', 'resend']).optional(),
   RESEND_API_KEY: z.string().min(1).optional(),
-  EMAIL_FROM: z.string().default('VolunteerOS <noreply@volunteeros.local>'),
+  // Resend's shared test sender only delivers to the Resend account's own address. Use an address
+  // on a verified domain in production.
+  EMAIL_FROM: z.string().default('VolunteerOS <onboarding@resend.dev>'),
 });
 
 export type Env = z.infer<typeof envSchema>;

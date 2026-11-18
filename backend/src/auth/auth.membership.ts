@@ -3,7 +3,7 @@ import { APIError, createAuthMiddleware } from 'better-auth/api';
 import { and, eq, inArray } from 'drizzle-orm';
 import { recordActivity } from '../activity/activity-log.js';
 import type { Database } from '../db/database.js';
-import { event, eventMember } from '../db/schema/index.js';
+import { emailDelivery, event, eventMember, invitation } from '../db/schema/index.js';
 import { notDeleted } from '../db/soft-delete.js';
 import type { OrgRole } from '../authz/policies.js';
 import { currentActor } from './auth.activity.js';
@@ -36,6 +36,52 @@ export const rejectInvitationResendFlag = createAuthMiddleware(async (ctx) => {
     });
   }
 });
+
+/**
+ * Fails `invite-member` when the invitation email was not sent, and cancels the invitation.
+ *
+ * Better Auth stores the invitation, then calls `sendInvitationEmail` and only logs what it
+ * throws, so the request would succeed with an invitation nobody received. This after-hook
+ * checks the delivery log instead: anything but `sent` (a failed send, or one that threw before
+ * it was logged) cancels the invitation and answers 502, so the organizer knows to try again.
+ */
+export function failInvitationWithoutEmail(db: Database) {
+  return createAuthMiddleware(async (ctx) => {
+    if (ctx.path !== '/organization/invite-member') return;
+    const returned: unknown = ctx.context.returned;
+    if (!returned || returned instanceof Error || typeof returned !== 'object') return;
+    if (!('id' in returned) || typeof returned.id !== 'string') return;
+    const invitationId = returned.id;
+
+    const [delivery] = await db
+      .select({ status: emailDelivery.status })
+      .from(emailDelivery)
+      .where(eq(emailDelivery.idempotencyKey, invitationEmailKey(invitationId)));
+    if (delivery?.status === 'sent') return;
+
+    const [cancelled] = await db
+      .update(invitation)
+      .set({ status: 'canceled' })
+      .where(eq(invitation.id, invitationId))
+      .returning();
+    if (cancelled) {
+      await recordActivity(
+        db,
+        { organizationId: cancelled.organizationId, actor: currentActor() },
+        { action: 'cancelled', entityType: 'invitation', entity: cancelled },
+      );
+    }
+    throw new APIError('BAD_GATEWAY', {
+      code: 'INVITATION_EMAIL_FAILED',
+      message: 'The invitation email could not be sent; the invitation was cancelled',
+    });
+  });
+}
+
+/** The idempotency key of an invitation's email: one email per invitation id. */
+export function invitationEmailKey(invitationId: string): string {
+  return `organization-invitation:${invitationId}`;
+}
 
 /**
  * Ends a removed member's event assignments, so no stale manager rows outlive their membership.

@@ -22,6 +22,13 @@
       "when": 1794954063923,
       "tag": "0002_event-editions",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1795008034815,
+      "tag": "0003_email-delivery",
+      "breakpoints": true
     }
   ]
 }

@@ -2,7 +2,13 @@ import swc from 'unplugin-swc';
 import { defineConfig } from 'vitest/config';
 
 // SWC instead of esbuild: Nest needs decorator metadata, which esbuild doesn't emit.
-const plugins = [swc.vite({ module: { type: 'es6' } })];
+// The automatic JSX runtime renders the React Email templates (src/email/templates).
+const plugins = [
+  swc.vite({
+    module: { type: 'es6' },
+    jsc: { transform: { react: { runtime: 'automatic' } } },
+  }),
+];
 
 export default defineConfig({
   test: {

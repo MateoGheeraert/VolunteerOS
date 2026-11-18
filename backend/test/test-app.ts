@@ -7,26 +7,54 @@ import request from 'supertest';
 import { AppModule } from '../src/app.module.js';
 import { configureApp } from '../src/app.setup.js';
 import type { Database } from '../src/db/database.js';
-import { EmailService, type EmailMessage } from '../src/email/email.service.js';
+import {
+  EmailProvider,
+  EmailProviderError,
+  type OutgoingEmail,
+  type ProviderResult,
+} from '../src/email/email-provider.js';
+import { EMAIL_RETRY_DELAYS_MS } from '../src/email/email.service.js';
 import { TEST_APP_URL, TEST_INTERNAL_SECRET } from './env.js';
 
-/** Captures emails instead of sending them, so tests can read invitation links. */
-export class CapturingEmailService extends EmailService {
-  readonly sent: EmailMessage[] = [];
+/**
+ * Captures emails instead of sending them, so tests can read invitation links. `failNext` makes
+ * the next provider calls fail, to exercise retries.
+ */
+export class CapturingEmailProvider extends EmailProvider {
+  readonly sent: OutgoingEmail[] = [];
+  /** Every provider call, including failed ones. */
+  calls = 0;
+  private failures: EmailProviderError[] = [];
 
-  async send(message: EmailMessage): Promise<void> {
-    this.sent.push(message);
+  async send(email: OutgoingEmail): Promise<ProviderResult> {
+    this.calls++;
+    const failure = this.failures.shift();
+    if (failure) throw failure;
+    this.sent.push(email);
+    return { providerMessageId: `test-message-${this.sent.length}` };
   }
 
-  lastTo(email: string): EmailMessage | undefined {
+  failNext(times: number, { retryable }: { retryable: boolean }) {
+    for (let i = 0; i < times; i++) {
+      this.failures.push(new EmailProviderError('simulated provider failure', retryable));
+    }
+  }
+
+  lastTo(email: string): OutgoingEmail | undefined {
     return this.sent.findLast((message) => message.to === email);
+  }
+
+  reset() {
+    this.sent.length = 0;
+    this.calls = 0;
+    this.failures = [];
   }
 }
 
 export interface TestApp {
   app: INestApplication;
   db: Database;
-  emails: CapturingEmailService;
+  emails: CapturingEmailProvider;
   /** A cookie-keeping client that acts like the Next.js server: it sends the internal secret. */
   client: () => TestClient;
   /** The admin invites `email` as a member; the invitee signs up, accepts and activates the org. */
@@ -41,10 +69,12 @@ export interface TestApp {
 }
 
 export async function createTestApp(): Promise<TestApp> {
-  const emails = new CapturingEmailService();
+  const emails = new CapturingEmailProvider();
   const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
-    .overrideProvider(EmailService)
+    .overrideProvider(EmailProvider)
     .useValue(emails)
+    .overrideProvider(EMAIL_RETRY_DELAYS_MS)
+    .useValue([0, 0])
     .compile();
 
   const app = moduleRef.createNestApplication<NestExpressApplication>({
@@ -81,9 +111,9 @@ export async function createTestApp(): Promise<TestApp> {
       return { client: invitee, user, invitationId };
     },
     reset: async () => {
-      emails.sent.length = 0;
+      emails.reset();
       await db.execute(sql`
-        truncate table activity_log, event_member, event, invitation, member, organization,
+        truncate table email_delivery, activity_log, event_member, event, invitation, member, organization,
           session, account, verification, "user" restart identity cascade
       `);
     },
