@@ -85,6 +85,7 @@ Run from `backend/`, or from the root with `pnpm --filter @volunteeros/backend <
 | `pnpm db:generate`    | Writes a SQL migration from schema changes.                                 |
 | `pnpm db:migrate`     | Applies pending migrations to `DATABASE_URL_UNPOOLED`.                      |
 | `pnpm db:studio`      | Opens Drizzle Studio on the dev branch.                                     |
+| `pnpm db:seed`        | Resets the seed organization and test users (see "Seed data").              |
 | `pnpm auth:schema`    | Regenerates the Better Auth tables in `src/db/schema/auth.ts`.              |
 | `pnpm openapi:export` | Writes `openapi.json`. Commit it: the frontend client is generated from it. |
 | `pnpm email:dev`      | Previews the email templates at http://localhost:3001.                      |
@@ -107,6 +108,19 @@ Rules:
 - The integration tests apply all migrations to a fresh Docker Postgres at the start of every run, so a broken migration fails the tests.
 
 Neon branches make risky migrations cheap to rehearse: branch from `production`, run `pnpm db:migrate` against the new branch, and check the result before migrating production.
+
+## Seed data
+
+`pnpm db:seed` fills the dev database (`DATABASE_URL_UNPOOLED`, else `DATABASE_URL`) with a known state to test features against. It refuses to run when `NODE_ENV` is `production`.
+
+| Who    | Email                        | Password    | Role   |
+| ------ | ---------------------------- | ----------- | ------ |
+| Owner  | `mateogheeraert04@gmail.com` | `Hallo1234` | owner  |
+| Member | `lid@volunteeros.test`       | `Hallo1234` | member |
+
+Both belong to the organization "Chiro Sint-Jan (seed)", which has the event "Kerstmarkt &lt;year&gt;" a few weeks from today (labels, tasks in every status, an overdue task, a task for someone without an account and a pending assignment request) and its previous edition.
+
+Run it again at any time: existing users keep their other data but get their password, name and verification reset, and lose their sessions (sign in again). The seed organization is deleted with everything in it and recreated. The passwords are shorter than `minPasswordLength` because the script hashes them directly; signing in doesn't check the length.
 
 ## How the code is structured
 
