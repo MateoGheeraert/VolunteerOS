@@ -8,12 +8,13 @@ import { Reflector } from '@nestjs/core';
 import { z } from 'zod';
 import type { EventRow } from '../db/schema/index.js';
 import { REQUIRE_EVENT_ACCESS } from './authz.constants.js';
-import { EventAccessService } from './event-access.service.js';
+import { EventAccessService, type EventAccess } from './event-access.service.js';
 import type { OrgScopedRequest } from './org-context.js';
 import type { EventAction } from './policies.js';
 
 export interface EventScopedRequest extends OrgScopedRequest {
   event: EventRow;
+  eventAccess: EventAccess;
 }
 
 /** Checks @RequireEventAccess() against the :eventId route param. Runs after OrgGuard. */
@@ -37,7 +38,8 @@ export class EventAccessGuard implements CanActivate {
     if (!eventId.success) {
       throw new NotFoundException('Event not found');
     }
-    request.event = await this.eventAccess.assertCan(request.org, action, eventId.data);
+    request.eventAccess = await this.eventAccess.assertCan(request.org, action, eventId.data);
+    request.event = request.eventAccess.event;
     return true;
   }
 }

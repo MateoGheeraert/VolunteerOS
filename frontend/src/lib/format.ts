@@ -71,3 +71,17 @@ export function formatCents(cents: number): string {
   if (!Number.isInteger(cents)) throw new Error(`Amount must be whole cents: ${cents}`);
   return euro.format(cents / 100);
 }
+
+const dayOnlyFormat = new Intl.DateTimeFormat(LOCALE, {
+  timeZone: 'UTC',
+  weekday: 'short',
+  day: 'numeric',
+  month: 'short',
+});
+
+/** A calendar day without time ("2026-12-01" → "di 1 dec"), e.g. a task's due date. */
+export function formatDay(date: string): string {
+  const [year, month, day] = date.split('-').map(Number);
+  // A day has no timezone: format it at UTC midnight in UTC, so it never shifts.
+  return dayOnlyFormat.format(new Date(Date.UTC(year!, month! - 1, day!)));
+}

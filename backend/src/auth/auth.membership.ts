@@ -1,9 +1,16 @@
 import { Logger } from '@nestjs/common';
 import { APIError, createAuthMiddleware } from 'better-auth/api';
-import { and, eq, inArray } from 'drizzle-orm';
+import { and, eq, inArray, ne } from 'drizzle-orm';
 import { recordActivity } from '../activity/activity-log.js';
 import type { Database } from '../db/database.js';
-import { emailDelivery, event, eventMember, invitation } from '../db/schema/index.js';
+import {
+  emailDelivery,
+  event,
+  eventMember,
+  invitation,
+  task,
+  taskAssignmentRequest,
+} from '../db/schema/index.js';
 import { notDeleted } from '../db/soft-delete.js';
 import type { OrgRole } from '../authz/policies.js';
 import { currentActor } from './auth.activity.js';
@@ -128,6 +135,92 @@ export async function endEventAssignments(
   } catch (error) {
     new Logger('Membership').error(
       `Could not end event assignments of ${userId} in ${organizationId}`,
+      error instanceof Error ? error.stack : String(error),
+    );
+    throw error;
+  }
+}
+
+/**
+ * Releases a removed member's unfinished tasks in the organization, so they show up as
+ * unassigned again, and cancels their open requests. Done tasks keep them as assignee: that's
+ * history, and the task shows they are no longer active. Archived events aren't touched.
+ *
+ * Runs after Better Auth removed the member, like endEventAssignments, and fails the same way.
+ */
+export async function releaseOpenTasks(
+  db: Database,
+  organizationId: string,
+  userId: string,
+): Promise<void> {
+  const scope = () => ({ organizationId, actor: currentActor() });
+  try {
+    await db.transaction(async (tx) => {
+      // Archived events are read-only, their tasks included: those keep their assignee.
+      const organizationEvents = tx
+        .select({ id: event.id })
+        .from(event)
+        .where(
+          and(
+            eq(event.organizationId, organizationId),
+            notDeleted(event),
+            ne(event.status, 'archived'),
+          ),
+        );
+      const released = await tx
+        .update(task)
+        .set({ assigneeUserId: null })
+        .where(
+          and(
+            eq(task.assigneeUserId, userId),
+            ne(task.status, 'done'),
+            notDeleted(task),
+            inArray(task.eventId, organizationEvents),
+          ),
+        )
+        .returning();
+      for (const row of released) {
+        await recordActivity(tx, scope(), {
+          action: 'updated',
+          entityType: 'task',
+          entity: row,
+          before: { ...row, assigneeUserId: userId },
+          eventId: row.eventId,
+          values: ['assigneeUserId'],
+        });
+      }
+
+      const requests = await tx
+        .select({ request: taskAssignmentRequest, eventId: task.eventId })
+        .from(taskAssignmentRequest)
+        .innerJoin(task, eq(task.id, taskAssignmentRequest.taskId))
+        .where(
+          and(
+            eq(taskAssignmentRequest.userId, userId),
+            eq(taskAssignmentRequest.status, 'pending'),
+            notDeleted(taskAssignmentRequest),
+            inArray(task.eventId, organizationEvents),
+          ),
+        );
+      for (const { request, eventId } of requests) {
+        const [cancelled] = await tx
+          .update(taskAssignmentRequest)
+          .set({ status: 'cancelled' })
+          .where(eq(taskAssignmentRequest.id, request.id))
+          .returning();
+        await recordActivity(tx, scope(), {
+          action: 'cancelled',
+          entityType: 'task_assignment_request',
+          entity: cancelled!,
+          before: request,
+          eventId,
+          values: ['taskId', 'userId', 'status'],
+        });
+      }
+    });
+  } catch (error) {
+    new Logger('Membership').error(
+      `Could not release open tasks of ${userId} in ${organizationId}`,
       error instanceof Error ? error.stack : String(error),
     );
     throw error;

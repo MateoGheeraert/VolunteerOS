@@ -120,7 +120,7 @@ src/
 │   ├── database.module.ts  Drizzle connection (@nestjs/drizzle)
 │   ├── database.ts         The `Database`, `Transaction` and `DbExecutor` types
 │   ├── soft-delete.ts      `deletedAt()` column and `notDeleted(table)` filter
-│   ├── schema/             Tables: auth.ts (generated), events.ts, activity-log.ts, email-delivery.ts
+│   ├── schema/             Tables: auth.ts (generated), events.ts, tasks.ts, activity-log.ts, email-delivery.ts
 │   └── migrations/         Generated SQL, committed
 ├── activity/               recordActivity() and the Actor type (see "Activity log")
 ├── auth/                   Better Auth instance + its activity hooks, AuthGuard, @Public(), @CurrentUser()
@@ -129,7 +129,8 @@ src/
 ├── common/                 Health check, internal-secret middleware, date schemas
 ├── openapi-export.ts       Writes openapi.json (`pnpm openapi:export`)
 └── features/
-    └── events/             schemas → controller → service → repository (+ unit tests)
+    ├── events/             schemas → controller → service → repository (+ unit tests)
+    └── tasks/              an event's tasks, labels and assignment requests
 test/                       Integration tests and helpers
 openapi.json                The API contract: generated, committed, checked by CI
 ```
@@ -157,13 +158,14 @@ Next.js server ──► internal-secret middleware ─┬─► /api/auth/*  Be
 
 The rules live in one file of plain functions: [src/authz/policies.ts](src/authz/policies.ts).
 
-| Organization role                     | Events                                                                                     |
-| ------------------------------------- | ------------------------------------------------------------------------------------------ |
-| `owner`, `admin` (Organization Admin) | Everything in the organization, including assigning managers                               |
-| `member` (organizer)                  | Creates events; reads and manages the ones they're assigned to as manager (`event_member`) |
+| Organization role                     | Events                                                                 | Tasks of an event                                                                                                             |
+| ------------------------------------- | ---------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `owner`, `admin` (Organization Admin) | Everything in the organization, including assigning managers           | Everything                                                                                                                    |
+| `member` (organizer)                  | Reads every event; creates events; manages the ones they're manager of | On events they manage: everything. Elsewhere: sees own + unassigned, changes own status, gives back, asks for unassigned ones |
 
-- Events of another organization, and events a member isn't assigned to, answer **404**, so their existence doesn't leak.
-- A visible event with a forbidden action (a manager assigning managers) answers **403**.
+- Events of another organization answer **404**, so their existence doesn't leak. So do tasks a member may not see (assigned to someone else).
+- A visible event or task with a forbidden action (a manager assigning managers, a member editing a task's title) answers **403**.
+- `@RequireEventAccess()` also loads what the caller may do with the event (`@CurrentEventAccess()`: their event role and `canManage`), for routes such as tasks where members and managers share an endpoint.
 - **Tenant isolation is in the data layer too**: every repository method takes the `organizationId` it works in. Never query a tenant's table without it.
 
 ### API schemas come from the tables

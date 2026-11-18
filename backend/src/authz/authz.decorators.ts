@@ -34,3 +34,9 @@ export const CurrentEvent = createParamDecorator(
   (_data: unknown, ctx: ExecutionContext) =>
     ctx.switchToHttp().getRequest<EventScopedRequest>().event,
 );
+
+/** The event @RequireEventAccess() loaded, with the caller's role on it and whether they manage it. */
+export const CurrentEventAccess = createParamDecorator(
+  (_data: unknown, ctx: ExecutionContext) =>
+    ctx.switchToHttp().getRequest<EventScopedRequest>().eventAccess,
+);

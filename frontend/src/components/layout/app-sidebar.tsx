@@ -1,6 +1,13 @@
 'use client';
 
-import { CalendarDays, Settings, ShoppingBag, Users, type LucideIcon } from 'lucide-react';
+import {
+  CalendarDays,
+  ListChecks,
+  Settings,
+  ShoppingBag,
+  Users,
+  type LucideIcon,
+} from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -21,7 +28,7 @@ import {
 import { BrandLogo } from './brand-logo';
 
 interface NavItem {
-  key: 'events' | 'suppliers' | 'members' | 'settings';
+  key: 'events' | 'myTasks' | 'suppliers' | 'members' | 'settings';
   href: string;
   icon: LucideIcon;
   /** Shown but not clickable until the feature exists. */
@@ -30,6 +37,7 @@ interface NavItem {
 
 const NAV: NavItem[] = [
   { key: 'events', href: '/events', icon: CalendarDays },
+  { key: 'myTasks', href: '/tasks', icon: ListChecks },
   { key: 'suppliers', href: '/suppliers', icon: ShoppingBag, soon: true },
   { key: 'members', href: '/members', icon: Users },
   { key: 'settings', href: '/settings', icon: Settings, soon: true },
