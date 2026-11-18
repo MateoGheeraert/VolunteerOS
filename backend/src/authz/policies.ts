@@ -30,6 +30,17 @@ export function canAccessEvent({ orgRole, eventRole }: EventAccessSubject, actio
   return eventRole === 'manager';
 }
 
+/**
+ * What the caller sees of another user's personal profile, given the caller's roles in the
+ * organizations both belong to (none: nothing, not even that the user exists).
+ * - Phone: anyone sharing an organization, so committee members can reach each other.
+ * - Address and birth date (`personal`): only owners and admins of a shared organization.
+ */
+export function profileVisibility(sharedRoles: OrgRole[]): { personal: boolean } | null {
+  if (sharedRoles.length === 0) return null;
+  return { personal: sharedRoles.some(isOrgAdmin) };
+}
+
 export function toOrgRole(role: string): OrgRole {
   // Better Auth stores multiple roles as a comma-separated string.
   const roles = role.split(',').map((r) => r.trim());

@@ -6,6 +6,8 @@ import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/s
 import { Skeleton } from '@/components/ui/skeleton';
 import { UserMenu } from '@/features/auth/user-menu';
 import { OrganizationSwitcher } from '@/features/organizations/organization-switcher';
+import { missingProfileFields } from '@/features/settings/profile-rules';
+import { getMyProfile } from '@/server/profile/queries';
 
 /**
  * The organizer app. The chrome is static; the session-dependent parts stream in behind Suspense.
@@ -47,5 +49,6 @@ async function ActiveOrganization() {
 
 async function CurrentUser() {
   const { user } = await requireActiveOrganization();
-  return <UserMenu user={user} />;
+  const profile = await getMyProfile();
+  return <UserMenu user={user} profileIncomplete={missingProfileFields(profile).length > 0} />;
 }

@@ -22,6 +22,9 @@ beforeEach(async () => {
   owner = t.client();
   await owner.signUp('Olga Owner', 'olga@example.com');
   orgId = (await owner.createOrganization('KLJ Merkem')).id;
+  // Start from an empty outbox: signing up sent a verification email.
+  t.emails.reset();
+  await t.db.delete(emailDelivery);
 });
 
 const invite = (email: string, role = 'member') =>
