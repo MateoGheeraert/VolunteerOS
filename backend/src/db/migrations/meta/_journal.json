@@ -50,6 +50,13 @@
       "when": 1795022851059,
       "tag": "0006_account-profile",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1795030718647,
+      "tag": "0007_volunteer-planning",
+      "breakpoints": true
     }
   ]
 }

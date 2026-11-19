@@ -17,6 +17,7 @@ import { recordActivity } from '../../activity/activity-log.js';
 import type { Database } from '../../db/database.js';
 import type { EventRow } from '../../db/schema/index.js';
 import type { OrgContext } from '../../authz/org-context.js';
+import { shiftWindow, shiftsOutside } from '../planning/planning-rules.js';
 import { canArchive, canTransition, isReadOnly } from './event-status.js';
 import { EventsRepository, type EditionRef } from './events.repository.js';
 
@@ -30,6 +31,8 @@ const EVENT_LOGGED_VALUES = [
   'location',
   'startsAt',
   'endsAt',
+  'setupStartsAt',
+  'teardownEndsAt',
   'status',
   'previousEditionId',
   'expectedAttendance',
@@ -108,6 +111,22 @@ export class EventsService {
     const endsAt = input.endsAt ?? current.endsAt;
     if (endsAt <= startsAt) {
       throw new BadRequestException('endsAt must be after startsAt');
+    }
+    const setupStartsAt =
+      input.setupStartsAt !== undefined ? input.setupStartsAt : current.setupStartsAt;
+    const teardownEndsAt =
+      input.teardownEndsAt !== undefined ? input.teardownEndsAt : current.teardownEndsAt;
+    if (setupStartsAt && setupStartsAt >= startsAt) {
+      throw new BadRequestException('setupStartsAt: must be before startsAt');
+    }
+    if (teardownEndsAt && teardownEndsAt <= endsAt) {
+      throw new BadRequestException('teardownEndsAt: must be after endsAt');
+    }
+    // Shifts never fall outside the event: move them before making the event smaller.
+    const window = shiftWindow({ startsAt, endsAt, setupStartsAt, teardownEndsAt });
+    const outside = shiftsOutside(await this.events.listShiftTimes(current.id), window);
+    if (outside.length > 0) {
+      throw new ConflictException(`shifts outside: ${outside.length}`);
     }
     await this.assertEditionOrder(org, current, startsAt, input.previousEditionId);
     const updated = await this.db
@@ -291,11 +310,19 @@ export function toEventDto(row: EventRow): EventDto {
     location: row.location,
     startsAt: row.startsAt.toISOString(),
     endsAt: row.endsAt.toISOString(),
+    setupStartsAt: row.setupStartsAt?.toISOString() ?? null,
+    teardownEndsAt: row.teardownEndsAt?.toISOString() ?? null,
     status: row.status,
     previousEditionId: row.previousEditionId,
     expectedAttendance: row.expectedAttendance,
     actualAttendance: row.actualAttendance,
     retrospective: row.retrospective,
+    volunteerCommitment: row.volunteerCommitment,
+    shiftsPerVolunteer: row.shiftsPerVolunteer,
+    publicSlug: row.publicSlug,
+    registrationOpen: row.registrationOpen,
+    registrationDeadline: row.registrationDeadline?.toISOString() ?? null,
+    schedulePublishedAt: row.schedulePublishedAt?.toISOString() ?? null,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };

@@ -7,6 +7,8 @@ import {
   event,
   eventMember,
   member,
+  shift,
+  team,
   user,
   type EventMemberRole,
   type EventMemberRow,
@@ -92,6 +94,15 @@ export class EventsRepository {
     return { previous: previous[0] ?? null, next: next[0] ?? null };
   }
 
+  /** When the event's live shifts happen, to check a changed event still holds them. */
+  listShiftTimes(eventId: string): Promise<{ startsAt: Date; endsAt: Date }[]> {
+    return this.db
+      .select({ startsAt: shift.startsAt, endsAt: shift.endsAt })
+      .from(shift)
+      .innerJoin(team, eq(team.id, shift.teamId))
+      .where(and(eq(shift.eventId, eventId), notDeleted(shift), notDeleted(team)));
+  }
+
   async insert(tx: DbExecutor, organizationId: string, input: CreateEventInput): Promise<EventRow> {
     const [created] = await tx
       .insert(event)
@@ -103,6 +114,8 @@ export class EventsRepository {
         location: input.location ?? null,
         startsAt: input.startsAt,
         endsAt: input.endsAt,
+        setupStartsAt: input.setupStartsAt ?? null,
+        teardownEndsAt: input.teardownEndsAt ?? null,
         previousEditionId: input.previousEditionId ?? null,
         expectedAttendance: input.expectedAttendance ?? null,
         actualAttendance: input.actualAttendance ?? null,

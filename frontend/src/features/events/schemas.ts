@@ -26,6 +26,16 @@ const DATE = /^\d{4}-\d{2}-\d{2}$/;
 /** An optional head count: empty, or a whole number up to 7 digits. */
 const ATTENDANCE = /^\d{0,7}$/;
 
+/** An optional moment: both empty, or a valid date and time. */
+const optionalDate = z.union([
+  z.literal(''),
+  z.string().regex(DATE, msg('eventForm.validation.dateRequired')),
+]);
+const optionalTime = z.union([
+  z.literal(''),
+  z.string().regex(TIME, msg('eventForm.validation.timeInvalid')),
+]);
+
 const attendance = z
   .string()
   .trim()
@@ -48,6 +58,12 @@ export const eventFormSchema = z
     startTime: z.string().regex(TIME, msg('eventForm.validation.timeInvalid')),
     endDate: z.string().regex(DATE, msg('eventForm.validation.dateRequired')),
     endTime: z.string().regex(TIME, msg('eventForm.validation.timeInvalid')),
+    /** Optional build-up before the event: both '' when there is none. */
+    setupDate: optionalDate,
+    setupTime: optionalTime,
+    /** Optional teardown after the event. */
+    teardownDate: optionalDate,
+    teardownTime: optionalTime,
     /** '' when the event is a first edition. */
     previousEditionId: z.union([z.literal(''), z.uuid()]),
     expectedAttendance: attendance,
@@ -65,12 +81,40 @@ export const eventFormSchema = z
   .refine((value) => value.endDate !== value.date || value.startTime !== value.endTime, {
     message: msg('eventForm.validation.endEqualsStart'),
     path: ['endTime'],
-  });
+  })
+  .refine((value) => (value.setupDate === '') === (value.setupTime === ''), {
+    message: msg('eventForm.validation.dateAndTime'),
+    path: ['setupTime'],
+  })
+  .refine((value) => (value.teardownDate === '') === (value.teardownTime === ''), {
+    message: msg('eventForm.validation.dateAndTime'),
+    path: ['teardownTime'],
+  })
+  // ISO date + time strings compare correctly as strings.
+  .refine(
+    (value) =>
+      !value.setupDate ||
+      !value.setupTime ||
+      `${value.setupDate}T${value.setupTime}` < `${value.date}T${value.startTime}`,
+    { message: msg('eventForm.validation.setupBeforeStart'), path: ['setupTime'] },
+  )
+  .refine(
+    (value) =>
+      !value.teardownDate ||
+      !value.teardownTime ||
+      `${value.teardownDate}T${value.teardownTime}` > `${effectiveEndDate(value)}T${value.endTime}`,
+    { message: msg('eventForm.validation.teardownAfterEnd'), path: ['teardownTime'] },
+  );
 
 export type EventFormValues = z.infer<typeof eventFormSchema>;
 
 /** Which form field a Nest validation error on an API field belongs to. */
-export const eventApiFields = { startsAt: 'startTime', endsAt: 'endTime' };
+export const eventApiFields = {
+  startsAt: 'startTime',
+  endsAt: 'endTime',
+  setupStartsAt: 'setupTime',
+  teardownEndsAt: 'teardownTime',
+};
 
 /** Status changes the backend allows (backend/src/features/events/event-status.ts). */
 export type ChangeableStatus = Exclude<Event['status'], 'archived'>;
@@ -89,9 +133,12 @@ function nextDay(date: string): string {
  * start time means it runs past midnight (a bar until 02:00), so the end falls on the next day.
  * With a later end date the times are taken as they are (Fri 18:00 → Sun 23:00).
  */
-function effectiveEndDate(
-  values: Pick<EventFormValues, 'date' | 'endDate' | 'startTime' | 'endTime'>,
-) {
+function effectiveEndDate(values: {
+  date: string;
+  endDate: string;
+  startTime: string;
+  endTime: string;
+}): string {
   const pastMidnight = values.endDate === values.date && values.endTime < values.startTime;
   return pastMidnight ? nextDay(values.date) : values.endDate;
 }
@@ -113,6 +160,14 @@ export function toEventBody(values: EventFormValues): CreateEvent {
     location: values.location || null,
     startsAt: brusselsToUtcIso(values.date, values.startTime),
     endsAt: brusselsToUtcIso(effectiveEndDate(values), values.endTime),
+    setupStartsAt:
+      values.setupDate && values.setupTime
+        ? brusselsToUtcIso(values.setupDate, values.setupTime)
+        : null,
+    teardownEndsAt:
+      values.teardownDate && values.teardownTime
+        ? brusselsToUtcIso(values.teardownDate, values.teardownTime)
+        : null,
     previousEditionId: values.previousEditionId || null,
     expectedAttendance: toCount(values.expectedAttendance),
     actualAttendance: toCount(values.actualAttendance),
@@ -133,6 +188,8 @@ export function toEventFormValues(
     | 'location'
     | 'startsAt'
     | 'endsAt'
+    | 'setupStartsAt'
+    | 'teardownEndsAt'
     | 'previousEditionId'
     | 'expectedAttendance'
     | 'actualAttendance'
@@ -142,6 +199,8 @@ export function toEventFormValues(
   const start = utcIsoToBrussels(event.startsAt);
   const end = utcIsoToBrussels(event.endsAt);
   const pastMidnight = end.date === nextDay(start.date) && end.time < start.time;
+  const setup = event.setupStartsAt ? utcIsoToBrussels(event.setupStartsAt) : null;
+  const teardown = event.teardownEndsAt ? utcIsoToBrussels(event.teardownEndsAt) : null;
   return {
     name: event.name,
     eventType: event.eventType,
@@ -151,6 +210,10 @@ export function toEventFormValues(
     startTime: start.time,
     endDate: pastMidnight ? start.date : end.date,
     endTime: end.time,
+    setupDate: setup?.date ?? '',
+    setupTime: setup?.time ?? '',
+    teardownDate: teardown?.date ?? '',
+    teardownTime: teardown?.time ?? '',
     previousEditionId: event.previousEditionId ?? '',
     expectedAttendance: event.expectedAttendance?.toString() ?? '',
     actualAttendance: event.actualAttendance?.toString() ?? '',

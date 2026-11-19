@@ -13,6 +13,7 @@ import {
   eventFormSchema,
   toEventBody,
 } from '@/features/events/schemas';
+import { msg } from '@/i18n/keys';
 import { actionClient } from '../action-client';
 
 const eventId = z.uuid();
@@ -28,7 +29,11 @@ export const createEvent = actionClient
 
 /** Bind the event id: `updateEvent.bind(null, eventId)`. */
 export const updateEvent = actionClient
-  .metadata({ name: 'updateEvent', apiFields: eventApiFields })
+  .metadata({
+    name: 'updateEvent',
+    apiFields: eventApiFields,
+    conflictMessage: msg('eventForm.shiftsOutside'),
+  })
   .bindArgsSchemas([eventId])
   .inputSchema(eventFormSchema)
   .action(async ({ parsedInput, bindArgsParsedInputs: [id] }) => {

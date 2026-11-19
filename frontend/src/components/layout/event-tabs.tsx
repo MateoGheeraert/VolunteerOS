@@ -5,13 +5,13 @@ import Link from 'next/link';
 import { useSelectedLayoutSegment } from 'next/navigation';
 import { cn } from '@/lib/utils';
 
-type TabKey = 'overview' | 'tasks' | 'volunteers' | 'budget' | 'suppliers' | 'settings';
+type TabKey = 'overview' | 'tasks' | 'planning' | 'budget' | 'suppliers' | 'settings';
 
 /** `segment` is the child route under /events/[eventId]; null is the overview page. */
 const TABS: { key: TabKey; segment: string | null; soon?: boolean }[] = [
   { key: 'overview', segment: null },
   { key: 'tasks', segment: 'tasks' },
-  { key: 'volunteers', segment: 'volunteers', soon: true },
+  { key: 'planning', segment: 'planning' },
   { key: 'budget', segment: 'budget', soon: true },
   { key: 'suppliers', segment: 'suppliers', soon: true },
   { key: 'settings', segment: 'settings' },

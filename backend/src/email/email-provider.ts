@@ -7,6 +7,8 @@ export interface OutgoingEmail {
   subject: string;
   html: string;
   text: string;
+  /** Where replies go, when not to the sender (e.g. the organizer who published a schedule). */
+  replyTo?: string;
   /** The provider deduplicates on this key, so a retry after a lost response can't send twice. */
   idempotencyKey: string;
 }
