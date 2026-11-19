@@ -22,6 +22,18 @@
   --brand-ink-muted: #5b7376;
   --brand-line: #e6e1d8;
 
+  /*
+   * Mila, the AI assistant (picture: public/mila_pf.png). Everything the AI says or suggests is
+   * purple, so organizers can tell her proposals from their own data at a glance. Use the
+   * components in src/components/mila rather than these colors directly where you can.
+   */
+  --mila: #7b3fbf; /* her cardigan: buttons and icons; white text passes WCAG AA */
+  --mila-bright: #9b5de5; /* focus rings, the "thinking" pulse */
+  --mila-tint: #f4ecfd; /* light surfaces: her panel, question bubbles */
+  --mila-tint-strong: #d9c2f6; /* her lavender background: borders, avatar ring, card accent */
+  --mila-ink: #3d1f63; /* text on her tints */
+  --mila-spark: #f5c84b; /* the yellow spark next to her: "new" markers, used sparingly */
+
   /* Status colors are separate from the brand on purpose: a teal badge is never a status. */
   --status-ok: #2e9e5b;
   --status-ok-bg: #e2f4e9;
@@ -110,6 +122,13 @@
   --color-brand-tint-strong: var(--brand-tint-strong);
   --color-brand-accent: var(--brand-accent);
   --color-brand-accent-ink: var(--brand-accent-ink);
+  /* Mila, the AI assistant: bg-mila, text-mila-ink, border-mila-tint-strong, ring-mila-bright, … */
+  --color-mila: var(--mila);
+  --color-mila-bright: var(--mila-bright);
+  --color-mila-tint: var(--mila-tint);
+  --color-mila-tint-strong: var(--mila-tint-strong);
+  --color-mila-ink: var(--mila-ink);
+  --color-mila-spark: var(--mila-spark);
   --color-status-ok: var(--status-ok);
   --color-status-ok-bg: var(--status-ok-bg);
   --color-status-warn: var(--status-warn);
@@ -125,6 +144,18 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+/*
+ * Mila's gradients, for anything that is her action or her surface: bg-mila-gradient (strong,
+ * white text) and bg-mila-gradient-soft (light, mila-ink text). Hover states are on the Button
+ * variants `mila` and `mila-soft`.
+ */
+@utility bg-mila-gradient {
+  background-image: linear-gradient(135deg, var(--mila) 0%, var(--mila-bright) 100%);
+}
+@utility bg-mila-gradient-soft {
+  background-image: linear-gradient(135deg, var(--mila-tint) 0%, var(--mila-tint-strong) 100%);
 }
 
 @layer base {
