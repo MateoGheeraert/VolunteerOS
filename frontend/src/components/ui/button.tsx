@@ -20,6 +20,10 @@ const buttonVariants = cva(
         link: 'text-primary underline-offset-4 hover:underline',
         // Warm coral, used sparingly: the main call to action on public pages.
         accent: 'bg-brand-accent text-brand-accent-ink hover:bg-brand-accent/85',
+        // Mila (the AI assistant): accepting or asking for what she suggests.
+        mila: 'bg-mila-gradient text-white shadow-sm shadow-mila/25 hover:brightness-110 focus-visible:ring-mila-bright/50',
+        'mila-soft':
+          'bg-mila-gradient-soft text-mila-ink hover:brightness-95 focus-visible:ring-mila-bright/50',
       },
       size: {
         // 44px: comfortable touch targets for volunteers on phones.
