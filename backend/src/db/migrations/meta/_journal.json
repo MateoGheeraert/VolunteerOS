@@ -57,6 +57,27 @@
       "when": 1795030718647,
       "tag": "0007_volunteer-planning",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1795097516044,
+      "tag": "0008_ai-agent",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1795098969148,
+      "tag": "0009_ai-run-unfinished",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1795103811417,
+      "tag": "0010_ai-task-drafting",
+      "breakpoints": true
     }
   ]
 }

@@ -12,5 +12,8 @@ Object.assign(process.env, {
   APP_URL: TEST_APP_URL,
   BETTER_AUTH_SECRET: 'test-better-auth-secret-test-better-auth-secret',
   INTERNAL_API_SECRET: TEST_INTERNAL_SECRET,
+  // Nothing processes jobs in tests; AI is off (no API key), so no test ever calls a model.
+  JOB_WORKERS: 'off',
 });
 delete process.env.RESEND_API_KEY;
+delete process.env.OPENAI_API_KEY;

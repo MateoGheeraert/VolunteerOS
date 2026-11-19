@@ -16,7 +16,24 @@ export type ActivityChanges = Record<string, FieldChange>;
 export interface ActivityScope {
   organizationId: string | null;
   actor: Actor;
+  /** Where the change came from when the actor didn't type it by hand (see `withSource`). */
+  source?: ActivitySource;
 }
+
+/**
+ * A change a person made through the AI: accepting one of its suggestions (`ai_suggestion`), or
+ * confirming tasks it drafted from their own list (`ai_run`, the drafting run).
+ */
+export interface ActivitySource {
+  type: 'ai_suggestion' | 'ai_run';
+  id: string;
+}
+
+/** The same scope, with every change it records marked as coming from `source`. */
+export const withSource = <Scope extends ActivityScope>(
+  scope: Scope,
+  source: ActivitySource,
+): Scope => ({ ...scope, source });
 
 /** A user changing their own account (profile, email, password): no organization. */
 export const accountScope = (userId: string): ActivityScope => ({
@@ -82,6 +99,8 @@ export async function recordActivity<Row extends { id: string }>(
     actorType: actor.type,
     actorId: actor.type === 'system' ? null : actor.id,
     onBehalfOfUserId: actor.type === 'ai' ? actor.onBehalfOfUserId : null,
+    sourceType: scope.source?.type ?? null,
+    sourceId: scope.source?.id ?? null,
     action: input.action,
     entityType: input.entityType,
     entityId: input.entity.id,

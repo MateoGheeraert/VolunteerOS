@@ -11,5 +11,6 @@ import { TasksService } from './tasks.service.js';
 @Module({
   controllers: [TasksController, TaskLabelsController, MyTasksController, MemberTasksController],
   providers: [TasksService, TasksRepository],
+  exports: [TasksService],
 })
 export class TasksModule {}

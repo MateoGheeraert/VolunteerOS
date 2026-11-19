@@ -97,33 +97,46 @@ export class TasksService {
   }
 
   async create(org: OrgContext, access: EventAccess, input: CreateTaskInput): Promise<TaskDto> {
+    const created = await this.db.transaction((tx) =>
+      this.createInTransaction(tx, org, access, input),
+    );
+    return this.view(org, access, created.id);
+  }
+
+  /**
+   * Creates the task inside the caller's transaction, e.g. when accepting an AI suggestion, which
+   * is marked accepted in the same one. Returns the row: the view can only be read after commit.
+   */
+  async createInTransaction(
+    tx: Transaction,
+    org: OrgContext,
+    access: EventAccess,
+    input: CreateTaskInput,
+  ): Promise<TaskRow> {
     const eventId = access.event.id;
     assertWritable(access.event);
     if (input.assigneeUserId) await this.assertMember(org, input.assigneeUserId);
     const labelIds = await this.assertLabels(eventId, input.labelIds ?? []);
 
-    const created = await this.db.transaction(async (tx) => {
-      const row = await this.tasks.insertTask(tx, eventId, org.userId, {
-        title: input.title,
-        description: input.description || null,
-        status: input.status ?? 'todo',
-        priority: input.priority ?? 'medium',
-        dueDate: input.dueDate ?? null,
-        assigneeUserId: input.assigneeUserId ?? null,
-        assigneeName: input.assigneeName ?? null,
-      });
-      await this.tasks.setLabels(tx, row.id, labelIds);
-      await recordActivity(tx, org, {
-        action: 'created',
-        entityType: 'task',
-        entity: { ...row, labelIds },
-        before: null,
-        eventId,
-        values: TASK_LOGGED_VALUES,
-      });
-      return row;
+    const row = await this.tasks.insertTask(tx, eventId, org.userId, {
+      title: input.title,
+      description: input.description || null,
+      status: input.status ?? 'todo',
+      priority: input.priority ?? 'medium',
+      dueDate: input.dueDate ?? null,
+      assigneeUserId: input.assigneeUserId ?? null,
+      assigneeName: input.assigneeName ?? null,
     });
-    return this.view(org, access, created.id);
+    await this.tasks.setLabels(tx, row.id, labelIds);
+    await recordActivity(tx, org, {
+      action: 'created',
+      entityType: 'task',
+      entity: { ...row, labelIds },
+      before: null,
+      eventId,
+      values: TASK_LOGGED_VALUES,
+    });
+    return row;
   }
 
   /** Managers change anything; the assignee changes the status or gives the task back. */

@@ -14,7 +14,8 @@ import type {
   UpdateEventInput,
 } from './events.schemas.js';
 import { recordActivity } from '../../activity/activity-log.js';
-import type { Database } from '../../db/database.js';
+import { AiRunsService } from '../../ai/runs/ai-runs.service.js';
+import type { Database, Transaction } from '../../db/database.js';
 import type { EventRow } from '../../db/schema/index.js';
 import type { OrgContext } from '../../authz/org-context.js';
 import { shiftWindow, shiftsOutside } from '../planning/planning-rules.js';
@@ -50,6 +51,7 @@ export class EventsService {
   constructor(
     @InjectDrizzle() private readonly db: Database,
     private readonly events: EventsRepository,
+    private readonly aiRuns: AiRunsService,
   ) {}
 
   async list(org: OrgContext): Promise<EventDto[]> {
@@ -67,7 +69,10 @@ export class EventsService {
     };
   }
 
-  /** Creates the event and assigns its creator as manager. */
+  /**
+   * Creates the event, assigns its creator as manager, and queues an AI run for task suggestions,
+   * all in one transaction.
+   */
   async create(org: OrgContext, input: CreateEventInput): Promise<EventDto> {
     if (input.previousEditionId) {
       await this.assertCanContinue(org, input.previousEditionId, input.startsAt);
@@ -92,14 +97,32 @@ export class EventsService {
           eventId: row.id,
           values: MEMBER_LOGGED_VALUES,
         });
+        await this.aiRuns.enqueue(
+          {
+            organizationId: org.organizationId,
+            eventId: row.id,
+            feature: 'task_suggestions',
+            trigger: 'event_created',
+            requestedByUserId: org.userId,
+          },
+          tx,
+        );
         return row;
       })
       .catch(rethrowEditionTaken);
     return toEventDto(created);
   }
 
-  /** `current` has already been authorized for 'manage' by the route. */
-  async update(org: OrgContext, current: EventRow, input: UpdateEventInput): Promise<EventDto> {
+  /**
+   * `current` has already been authorized for 'manage' by the route. With `tx`, the change runs
+   * inside the caller's transaction (accepting an AI suggestion marks it in the same one).
+   */
+  async update(
+    org: OrgContext,
+    current: EventRow,
+    input: UpdateEventInput,
+    tx?: Transaction,
+  ): Promise<EventDto> {
     if (isReadOnly(current.status)) {
       throw new ConflictException('An archived event cannot be changed');
     }
@@ -129,7 +152,8 @@ export class EventsService {
       throw new ConflictException(`shifts outside: ${outside.length}`);
     }
     await this.assertEditionOrder(org, current, startsAt, input.previousEditionId);
-    const updated = await this.db
+    // Inside the caller's transaction this opens a savepoint.
+    const updated = await (tx ?? this.db)
       .transaction(async (tx) => {
         const row = await this.events.update(tx, org.organizationId, current.id, input);
         await recordActivity(tx, org, {

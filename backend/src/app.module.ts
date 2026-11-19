@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { LoggerModule } from 'nestjs-pino';
+import { AiModule } from './ai/ai.module.js';
 import { AuthModule } from './auth/auth.module.js';
 import { AuthzModule } from './authz/authz.module.js';
 import { HealthController } from './common/health.controller.js';
@@ -8,6 +9,7 @@ import { ENV, type Env } from './config/env.js';
 import { DatabaseModule } from './db/database.module.js';
 import { EmailModule } from './email/email.module.js';
 import { EventsModule } from './features/events/events.module.js';
+import { JobsModule } from './jobs/jobs.module.js';
 import { PlanningModule } from './features/planning/planning.module.js';
 import { ProfileModule } from './features/profile/profile.module.js';
 import { TasksModule } from './features/tasks/tasks.module.js';
@@ -32,6 +34,7 @@ import { TasksModule } from './features/tasks/tasks.module.js';
       }),
     }),
     DatabaseModule,
+    JobsModule,
     EmailModule,
     AuthModule,
     AuthzModule,
@@ -39,6 +42,7 @@ import { TasksModule } from './features/tasks/tasks.module.js';
     TasksModule,
     PlanningModule,
     ProfileModule,
+    AiModule,
   ],
   controllers: [HealthController],
 })
