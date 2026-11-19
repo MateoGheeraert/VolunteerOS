@@ -134,7 +134,7 @@ src/
 │   ├── database.module.ts  Drizzle connection (@nestjs/drizzle)
 │   ├── database.ts         The `Database`, `Transaction` and `DbExecutor` types
 │   ├── soft-delete.ts      `deletedAt()` column and `notDeleted(table)` filter
-│   ├── schema/             Tables: auth.ts (generated), events.ts, tasks.ts, user-profile.ts, activity-log.ts, email-delivery.ts
+│   ├── schema/             Tables: auth.ts (generated), events.ts, tasks.ts, planning.ts, user-profile.ts, activity-log.ts, email-delivery.ts
 │   └── migrations/         Generated SQL, committed
 ├── activity/               recordActivity() and the Actor type (see "Activity log")
 ├── auth/                   Better Auth instance + its hooks (organization activity, account emails and
@@ -146,6 +146,8 @@ src/
 └── features/
     ├── events/             schemas → controller → service → repository (+ unit tests)
     ├── tasks/              an event's tasks, labels and assignment requests
+    ├── planning/           teams, shifts, volunteers, assignments, the public sign-up page
+    │                       (/api/public/events/:slug, no session) and sending the schedule
     └── profile/            a user's own name and personal profile (/api/me/profile), and what
                             others may see of it (/api/users/:userId/profile); not org-scoped
 test/                       Integration tests and helpers

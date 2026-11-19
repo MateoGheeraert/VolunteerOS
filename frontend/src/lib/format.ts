@@ -7,8 +7,6 @@ import { TZDate } from '@date-fns/tz';
 export const TIME_ZONE = 'Europe/Brussels';
 export const LOCALE = 'nl-BE';
 
-const pad = (value: number) => String(value).padStart(2, '0');
-
 /** "2026-12-19" + "14:00" in Brussels → ISO 8601 UTC string for the API. */
 export function brusselsToUtcIso(date: string, time: string): string {
   const [year, month, day] = date.split('-').map(Number);
@@ -20,12 +18,27 @@ export function brusselsToUtcIso(date: string, time: string): string {
   return new Date(local.getTime()).toISOString();
 }
 
-/** ISO string from the API → the Brussels date ("2026-12-19") and time ("14:00") for a form. */
+const partsFormat = new Intl.DateTimeFormat('en-CA', {
+  timeZone: TIME_ZONE,
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
+  hourCycle: 'h23',
+});
+
+/**
+ * ISO string from the API → the Brussels date ("2026-12-19") and time ("14:00") for a form.
+ * Pure (no "now"), so client components may call it while Next.js prerenders them.
+ */
 export function utcIsoToBrussels(iso: string): { date: string; time: string } {
-  const local = new TZDate(iso, TIME_ZONE);
+  const parts = Object.fromEntries(
+    partsFormat.formatToParts(new Date(iso)).map((part) => [part.type, part.value]),
+  );
   return {
-    date: `${local.getFullYear()}-${pad(local.getMonth() + 1)}-${pad(local.getDate())}`,
-    time: `${pad(local.getHours())}:${pad(local.getMinutes())}`,
+    date: `${parts.year}-${parts.month}-${parts.day}`,
+    time: `${parts.hour}:${parts.minute}`,
   };
 }
 
@@ -98,3 +111,29 @@ export function formatLongDay(date: string): string {
   const [year, month, day] = date.split('-').map(Number);
   return longDayFormat.format(new Date(Date.UTC(year!, month! - 1, day!)));
 }
+
+/** "18:00–21:00", with "+1" when the shift ends on the next Brussels day ("22:00–02:00 +1"). */
+export function formatShiftTime(startsAt: string, endsAt: string): string {
+  const start = utcIsoToBrussels(startsAt);
+  const end = utcIsoToBrussels(endsAt);
+  const days = Math.round(
+    (Date.parse(`${end.date}T00:00:00Z`) - Date.parse(`${start.date}T00:00:00Z`)) / 86_400_000,
+  );
+  return `${start.time}–${end.time}${days > 0 ? ` +${days}` : ''}`;
+}
+
+/** A Brussels calendar day as a short label ("2026-12-12" → "za 12 dec"). */
+export const formatShortDay = (date: string): string => formatDay(date);
+
+const dateTimeFormat = new Intl.DateTimeFormat(LOCALE, {
+  timeZone: TIME_ZONE,
+  weekday: 'long',
+  day: 'numeric',
+  month: 'long',
+  hour: '2-digit',
+  minute: '2-digit',
+  hourCycle: 'h23',
+});
+
+/** "zaterdag 12 december om 18:00", in Brussels. */
+export const formatDateTime = (iso: string): string => dateTimeFormat.format(new Date(iso));

@@ -6,6 +6,10 @@ import { emailVerification } from './templates/email-verification.js';
 import { organizationInvitation } from './templates/organization-invitation.js';
 import { passwordChanged } from './templates/password-changed.js';
 import { passwordReset } from './templates/password-reset.js';
+import { volunteerNotNeeded } from './templates/volunteer-not-needed.js';
+import { volunteerRegistration } from './templates/volunteer-registration.js';
+import { volunteerSchedule } from './templates/volunteer-schedule.js';
+import { volunteerUnscheduled } from './templates/volunteer-unscheduled.js';
 
 /**
  * Every email the app can send. To add one: create `templates/<name>.tsx` with
@@ -19,6 +23,10 @@ export const emailTemplates = {
   'email-verification': emailVerification,
   'email-change-confirmation': emailChangeConfirmation,
   'email-changed': emailChanged,
+  'volunteer-registration': volunteerRegistration,
+  'volunteer-schedule': volunteerSchedule,
+  'volunteer-not-needed': volunteerNotNeeded,
+  'volunteer-unscheduled': volunteerUnscheduled,
 };
 
 export type EmailTemplateName = keyof typeof emailTemplates;

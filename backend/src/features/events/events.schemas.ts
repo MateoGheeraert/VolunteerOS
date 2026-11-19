@@ -13,12 +13,28 @@ const endsAfterStart = (value: { startsAt?: Date; endsAt?: Date }) =>
   !value.startsAt || !value.endsAt || value.endsAt > value.startsAt;
 const endsAfterStartIssue = { message: 'endsAt must be after startsAt', path: ['endsAt'] };
 
+/** Setup happens before the event starts, teardown after it ends. */
+const setupBeforeStart = (value: { startsAt?: Date; setupStartsAt?: Date | null }) =>
+  !value.startsAt || !value.setupStartsAt || value.setupStartsAt < value.startsAt;
+const setupBeforeStartIssue = {
+  message: 'setupStartsAt: must be before startsAt',
+  path: ['setupStartsAt'],
+};
+const teardownAfterEnd = (value: { endsAt?: Date; teardownEndsAt?: Date | null }) =>
+  !value.endsAt || !value.teardownEndsAt || value.teardownEndsAt > value.endsAt;
+const teardownAfterEndIssue = {
+  message: 'teardownEndsAt: must be after endsAt',
+  path: ['teardownEndsAt'],
+};
+
 const eventInput = createInsertSchema(event, {
   name: (schema) => schema.trim().min(1).max(200),
   description: (schema) => schema.trim().max(5000),
   location: (schema) => schema.trim().max(500),
   startsAt: dateTimeInput,
   endsAt: dateTimeInput,
+  setupStartsAt: dateTimeInput.nullable().optional(),
+  teardownEndsAt: dateTimeInput.nullable().optional(),
   expectedAttendance: (schema) => schema.min(0),
   actualAttendance: (schema) => schema.min(0),
   retrospective: (schema) => schema.trim().max(5000),
@@ -32,6 +48,8 @@ const editableFields = {
   location: true,
   startsAt: true,
   endsAt: true,
+  setupStartsAt: true,
+  teardownEndsAt: true,
   previousEditionId: true,
   expectedAttendance: true,
   actualAttendance: true,
@@ -41,6 +59,8 @@ const editableFields = {
 export const createEventSchema = eventInput
   .pick(editableFields)
   .refine(endsAfterStart, endsAfterStartIssue)
+  .refine(setupBeforeStart, setupBeforeStartIssue)
+  .refine(teardownAfterEnd, teardownAfterEndIssue)
   .meta({ id: 'CreateEvent' });
 export type CreateEventInput = z.infer<typeof createEventSchema>;
 
@@ -52,12 +72,18 @@ export const updateEventSchema = eventInput
   })
   .partial()
   .refine(endsAfterStart, endsAfterStartIssue)
+  .refine(setupBeforeStart, setupBeforeStartIssue)
+  .refine(teardownAfterEnd, teardownAfterEndIssue)
   .meta({ id: 'UpdateEvent' });
 export type UpdateEventInput = z.infer<typeof updateEventSchema>;
 
 export const eventSchema = createSelectSchema(event, {
   startsAt: dateTimeOutput,
   endsAt: dateTimeOutput,
+  setupStartsAt: dateTimeOutput.nullable(),
+  teardownEndsAt: dateTimeOutput.nullable(),
+  registrationDeadline: dateTimeOutput.nullable(),
+  schedulePublishedAt: dateTimeOutput.nullable(),
   createdAt: dateTimeOutput,
   updatedAt: dateTimeOutput,
 })

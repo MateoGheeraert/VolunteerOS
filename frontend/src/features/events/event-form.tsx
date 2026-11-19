@@ -46,6 +46,10 @@ const EMPTY: Partial<EventFormValues> = {
   startTime: '',
   endDate: '',
   endTime: '',
+  setupDate: '',
+  setupTime: '',
+  teardownDate: '',
+  teardownTime: '',
   previousEditionId: '',
   expectedAttendance: '',
   actualAttendance: '',
@@ -248,6 +252,76 @@ export function EventForm({
           </div>
           <FieldDescription className="-mt-2">{t('eventForm.endsNextDay')}</FieldDescription>
 
+          <FieldSet className="gap-4 rounded-2xl bg-muted/50 p-4">
+            <div className="flex flex-col gap-1">
+              <FieldLegend className="mb-0 text-base">{t('eventForm.setupTitle')}</FieldLegend>
+              <FieldDescription>{t('eventForm.setupBody')}</FieldDescription>
+            </div>
+            <div className="grid gap-5 sm:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
+              <Controller
+                control={form.control}
+                name="setupDate"
+                render={({ field }) => (
+                  <DateField
+                    id="setupDate"
+                    label={t('eventForm.setupStarts')}
+                    placeholder={t('eventForm.none')}
+                    value={field.value}
+                    onChange={field.onChange}
+                    onClear={() => {
+                      field.onChange('');
+                      form.setValue('setupTime', '', { shouldDirty: true });
+                    }}
+                    error={errors.setupDate}
+                    disabled={readOnly}
+                  />
+                )}
+              />
+              <Field data-invalid={!!errors.setupTime}>
+                <FieldLabel htmlFor="setupTime">{t('eventForm.time')}</FieldLabel>
+                <Input
+                  id="setupTime"
+                  type="time"
+                  step={300}
+                  aria-invalid={!!errors.setupTime}
+                  {...form.register('setupTime')}
+                />
+                <FormFieldError error={errors.setupTime} />
+              </Field>
+              <Controller
+                control={form.control}
+                name="teardownDate"
+                render={({ field }) => (
+                  <DateField
+                    id="teardownDate"
+                    label={t('eventForm.teardownEnds')}
+                    placeholder={t('eventForm.none')}
+                    value={field.value}
+                    onChange={field.onChange}
+                    onClear={() => {
+                      field.onChange('');
+                      form.setValue('teardownTime', '', { shouldDirty: true });
+                    }}
+                    error={errors.teardownDate}
+                    disabled={readOnly}
+                    fromDate={date}
+                  />
+                )}
+              />
+              <Field data-invalid={!!errors.teardownTime}>
+                <FieldLabel htmlFor="teardownTime">{t('eventForm.time')}</FieldLabel>
+                <Input
+                  id="teardownTime"
+                  type="time"
+                  step={300}
+                  aria-invalid={!!errors.teardownTime}
+                  {...form.register('teardownTime')}
+                />
+                <FormFieldError error={errors.teardownTime} />
+              </Field>
+            </div>
+          </FieldSet>
+
           <Field data-invalid={!!errors.location}>
             <FieldLabel htmlFor="location">{t('eventForm.location')}</FieldLabel>
             <Input
@@ -360,6 +434,7 @@ function DateField({
   error,
   disabled,
   fromDate,
+  onClear,
 }: {
   id: string;
   label: string;
@@ -369,7 +444,10 @@ function DateField({
   error?: FieldError;
   disabled: boolean;
   fromDate?: string;
+  /** Shows a "clear" link while there is a value: for optional dates. */
+  onClear?: () => void;
 }) {
+  const t = useTranslations();
   const [open, setOpen] = useState(false);
   const earliest = fromDate ? toPickerDate(fromDate) : undefined;
   return (
@@ -408,6 +486,15 @@ function DateField({
           />
         </PopoverContent>
       </Popover>
+      {onClear && value && !disabled && (
+        <button
+          type="button"
+          onClick={onClear}
+          className="w-fit text-sm font-bold text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+        >
+          {t('eventForm.clear')}
+        </button>
+      )}
       <FormFieldError error={error} />
     </Field>
   );

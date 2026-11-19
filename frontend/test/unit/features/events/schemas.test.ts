@@ -17,6 +17,10 @@ const valid: EventFormValues = {
   startTime: '14:00',
   endDate: '2026-12-19',
   endTime: '23:00',
+  setupDate: '',
+  setupTime: '',
+  teardownDate: '',
+  teardownTime: '',
   previousEditionId: '',
   expectedAttendance: '',
   actualAttendance: '',
@@ -75,6 +79,35 @@ describe('eventFormSchema', () => {
     const id = '0b6a7c1e-2f43-4d8a-9c55-3e1f2a7b9d10';
     expect(schema.safeParse({ ...valid, previousEditionId: id }).success).toBe(true);
     expect(schema.safeParse({ ...valid, previousEditionId: 'nope' }).success).toBe(false);
+  });
+});
+
+describe('setup and teardown', () => {
+  it('are optional, but need both a date and a time', () => {
+    expect(schema.safeParse({ ...valid, setupDate: '2026-12-19' }).success).toBe(false);
+    expect(
+      schema.safeParse({ ...valid, setupDate: '2026-12-19', setupTime: '09:00' }).success,
+    ).toBe(true);
+  });
+
+  it('must fall before the start and after the end (past midnight included)', () => {
+    expect(
+      schema.safeParse({ ...valid, setupDate: '2026-12-19', setupTime: '15:00' }).success,
+    ).toBe(false);
+    const night = { ...valid, startTime: '20:00', endTime: '02:00' };
+    expect(
+      schema.safeParse({ ...night, teardownDate: '2026-12-20', teardownTime: '01:00' }).success,
+    ).toBe(false);
+    expect(
+      schema.safeParse({ ...night, teardownDate: '2026-12-20', teardownTime: '04:00' }).success,
+    ).toBe(true);
+  });
+
+  it('are sent as UTC, or null when empty', () => {
+    expect(toEventBody(valid)).toMatchObject({ setupStartsAt: null, teardownEndsAt: null });
+    expect(
+      toEventBody({ ...valid, setupDate: '2026-12-19', setupTime: '09:00' }).setupStartsAt,
+    ).toBe('2026-12-19T08:00:00.000Z');
   });
 });
 

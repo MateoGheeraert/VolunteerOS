@@ -17,6 +17,13 @@ import { startTransition, useOptimistic, useRef, useState, type ReactNode } from
 import { toast } from 'sonner';
 import { IconBlob } from '@/components/layout/icon-blob';
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { NativeSelect } from '@/components/ui/native-select';
 import {
   Sheet,
@@ -155,23 +162,27 @@ function Tasks({ tasks }: { tasks: ShownTask[] }) {
         </ul>
       )}
 
-      <Sheet open={pane !== null} onOpenChange={(isOpen) => !isOpen && setPane(null)}>
+      {/* Creating opens a modal; the side sheet is for viewing and editing a task. */}
+      <Dialog open={pane?.kind === 'create'} onOpenChange={(isOpen) => !isOpen && setPane(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t('taskForm.createTitle')}</DialogTitle>
+            <DialogDescription>{t('taskForm.subtitle')}</DialogDescription>
+          </DialogHeader>
+          {event && (
+            <TaskForm event={event} onDone={() => setPane(null)} onCancel={() => setPane(null)} />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Sheet
+        open={pane !== null && pane.kind !== 'create'}
+        onOpenChange={(isOpen) => !isOpen && setPane(null)}
+      >
         <SheetContent
           className="w-full overflow-y-auto sm:max-w-lg"
           onEscapeKeyDown={keepOpenWhileInlineEditing}
         >
-          {pane?.kind === 'create' && event && (
-            <>
-              <PaneHeader title={t('taskForm.createTitle')} description={t('taskForm.subtitle')} />
-              <div className="px-4 pb-6">
-                <TaskForm
-                  event={event}
-                  onDone={() => setPane(null)}
-                  onCancel={() => setPane(null)}
-                />
-              </div>
-            </>
-          )}
           {paneTask && (
             <>
               {/* The title is edited in the pane itself; the sheet still needs a name. */}

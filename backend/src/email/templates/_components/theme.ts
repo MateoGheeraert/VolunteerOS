@@ -34,3 +34,29 @@ export function formatEmailDateTime(date: Date): string {
   }).format(date);
   return `${formatEmailDate(date)} om ${time}`;
 }
+
+const shiftDay = new Intl.DateTimeFormat(EMAIL_LOCALE, {
+  weekday: 'long',
+  day: 'numeric',
+  month: 'long',
+  timeZone: EMAIL_TIME_ZONE,
+});
+const shiftTime = new Intl.DateTimeFormat(EMAIL_LOCALE, {
+  hour: '2-digit',
+  minute: '2-digit',
+  hourCycle: 'h23',
+  timeZone: EMAIL_TIME_ZONE,
+});
+
+/**
+ * "zaterdag 12 december · 18:00–21:00", or with both days for a shift past midnight
+ * ("zaterdag 12 december 22:00 – zondag 13 december 02:00").
+ */
+export function formatEmailShift(startsAt: Date, endsAt: Date): string {
+  const startDay = shiftDay.format(startsAt);
+  const endDay = shiftDay.format(endsAt);
+  if (startDay === endDay) {
+    return `${startDay} · ${shiftTime.format(startsAt)}–${shiftTime.format(endsAt)}`;
+  }
+  return `${startDay} ${shiftTime.format(startsAt)} – ${endDay} ${shiftTime.format(endsAt)}`;
+}

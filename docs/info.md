@@ -448,6 +448,16 @@ Features:
 - Identify unfilled positions.
 - Prevent overbooking.
 
+Decided November 2026 (teams, shifts and the planning board):
+
+- **Teams belong to one event.** Created inline with suggestion chips (Bar, Kassa, Opbouw, …); only the name is required. A team can have a default meeting point that pre-fills its new shifts. Deleting a team deletes its shifts and their assignments (asks first when confirmed people would go) and clears it as anyone's preferred team. Copying teams from a previous edition comes later (or from the AI agent).
+- **Shifts fall within the event.** An event may have an optional setup start (before it starts) and teardown end (after it ends); shifts may fall anywhere in that window, past midnight included. Changing the event so existing shifts fall outside is refused until they are moved. A shift can be duplicated.
+- **Capacity is a target, not a hard limit.** Placing someone on a full shift, or on a shift they didn't mark as available, shows a warning and needs a confirmation. Only placing a volunteer on two overlapping shifts is refused. Editing a shift so assignments no longer fit is allowed; the board flags them (amber).
+- **Coverage** shows per shift and per team ("3 van 5"): red while unfilled, green when full, amber above capacity.
+- **Assignments are proposed, then confirmed.** Dragging creates a proposal; organizers confirm one by one or all at once. The AI agent will only ever create proposals.
+- **Board:** the Planning tab of an event, a lane per team with its shifts, day tabs for multi-day events, and on the right the volunteers (search, filter by preferred team, those who still need shifts first). Dragging a volunteer highlights the shifts they marked and their preferred team.
+- **Who:** everyone in the organization sees the board; org owners, admins and the event's managers change it.
+
 ### 7.5 Public Volunteer Registration
 
 Volunteers must not need accounts.
@@ -478,6 +488,16 @@ Volunteers provide availability and preferences.
 The organizer or scheduling engine proposes assignments.
 
 The organizer approves assignments before publishing.
+
+Decided November 2026: **the pilot only has managed allocation.** Self-service booking comes later, if pilots ask for it.
+
+- **Public page** `/e/[publicSlug]`: the slug is the event name plus a random suffix (`kerstmarkt-2026-x7k2`), created the first time registration is opened and never changed. It accepts sign-ups only while the event is published, registration is open and the deadline (optional) hasn't passed; otherwise it shows the event with a "closed" message.
+- **What the volunteer fills in:** name, email, optional phone, the shifts they can do (ticked per team; a wish, not a booking), an optional preferred team, notes, and a required privacy consent. The event asks either a number of shifts per volunteer (the form requires at least that many ticks, or "available the whole event") or the whole event.
+- **The page never shows other volunteers or fill levels.**
+- **Volunteers are stored per organization** (unique email, ignoring case), applications per event. Signing up again with the same email updates the application. Anyone who knows an address can overwrite that sign-up; the acknowledgement email sent on every submit tells the real owner. Secure edit links (`/v/[token]`) come later.
+- **Spam:** a hidden honeypot field and 5 sign-ups per 10 minutes per IP address and event (in memory, per backend instance). No CAPTCHA.
+- **Added by hand:** organizers add people who didn't use the link; email is optional for them.
+- **Publishing the schedule** emails each volunteer their confirmed shifts (team, day, time, meeting point), with the publishing organizer as reply-to. Proposed assignments are never sent. Optionally, volunteers without a shift get a thank-you. After the first publish the board shows how many volunteers have unpublished changes; publishing again only emails those (an update, or "you're no longer scheduled"). People without an email address are listed with their shifts for the organizer to contact. One email per volunteer, so a failure for one doesn't stop the rest; failures are tried again on the next publish.
 
 Features:
 
@@ -513,10 +533,13 @@ Scheduling considers:
 
 Hard constraints:
 
-- No overlapping confirmed assignments.
-- No assignments outside confirmed availability.
-- No exceeding shift capacity.
+- No overlapping assignments for one volunteer.
 - No invalid event or team assignments.
+
+Warnings an organizer may confirm (decided November 2026; earlier drafts made these hard):
+
+- Assignments outside the volunteer's marked availability.
+- Exceeding shift capacity.
 
 Soft constraints:
 
@@ -875,10 +898,10 @@ Decided November 2026:
 - **Route protection:** middleware only checks that the session cookie exists (redirect to `/login`). The `(app)` layout checks the real session server-side and sends users without an active organization to `/onboarding`. Nest still enforces all authorization.
 - **i18n:** `next-intl`, `nl-BE` only, no locale prefix in URLs, every string in `messages/nl.json`. Dates and money use `Intl` (`nl-BE`, EUR). 24h time.
 - **Timezone:** every event is in `Europe/Brussels` for the MVP. Forms convert Brussels time to UTC. No timezone setting.
-- **Event form:** one date plus a start and end time. An end time before the start time means the event runs past midnight (end on the next day). Multi-day events (a festival weekend) can't be entered yet; add an end date when a pilot needs it.
+- **Event form:** a start date and time and an end date and time. On a single-day event an end time before the start time means it runs past midnight (end on the next day); a later end date makes a multi-day event. Optional setup start and teardown end widen the window shifts may fall in.
 - **Active organization on login:** every new Better Auth session starts in the user's oldest organization (a `session.create.before` hook in `backend/src/auth/auth.ts`), so returning organizers land on their events.
 - **Auth flows in the first slice:** signup → `/onboarding` (organization name only; slug generated from the name with a numeric suffix if taken, never shown) → `/events`. `/invitations/[id]`: log in or sign up first, then Accept/Decline; accepting sets that organization as active. Password reset (`/forgot-password`, `/reset-password`) is included and needs Better Auth's `sendResetPassword` on the backend. Organizer email verification is deferred until just before the pilot.
-- **Layout:** organizer app uses the shadcn `Sidebar` (organization level: Events, Suppliers, Members, Settings, org switcher, user menu). It collapses to a sheet on mobile. Inside an event, the sections (Overview, Tasks, Volunteers, Budget, Suppliers, Settings) are tabs under the event header. Public volunteer pages (`/e/[publicSlug]`, later `/v/[token]`) use their own minimal mobile-first layout.
+- **Layout:** organizer app uses the shadcn `Sidebar` (organization level: Events, Suppliers, Members, Settings, org switcher, user menu). It collapses to a sheet on mobile. Inside an event, the sections (Overview, Tasks, Planning, Budget, Suppliers, Settings) are tabs under the event header. Public volunteer pages (`/e/[publicSlug]`, later `/v/[token]`) use their own minimal mobile-first layout.
 - **Folder layout:**
 
   ```text
@@ -1222,13 +1245,14 @@ Implemented as `user_profile`: personal details, one row per user (`userId` is t
 - eventId
 - name
 - description
+- defaultMeetingPoint
 
 ### Shift
 
 - id
 - eventId
 - teamId
-- location
+- meetingPoint
 - startsAt
 - endsAt
 - capacity
@@ -1238,7 +1262,8 @@ Implemented as `user_profile`: personal details, one row per user (`userId` is t
 - id
 - organizationId
 - name
-- email
+- email (optional for people added by hand; unique per organization when set)
+- phone
 - createdAt
 
 Volunteers do not need authenticated user accounts.
@@ -1248,13 +1273,14 @@ Volunteers do not need authenticated user accounts.
 - id
 - eventId
 - volunteerId
-- availability
-- preferences
+- source (public link or added by hand)
+- availableShiftIds (the shifts the volunteer can do)
+- wholeEvent (available for the whole event)
+- preferredTeamId
 - notes
-- status
+- consentedAt
+- notifiedSchedule (the confirmed shifts last emailed, to know who changed)
 - createdAt
-
-Availability and preferences may initially be modeled using structured JSON or related tables.
 
 ### Assignment
 
@@ -1262,14 +1288,15 @@ Availability and preferences may initially be modeled using structured JSON or r
 - applicationId
 - shiftId
 - status
-- assignedBy
+- assignedByUserId
 - createdAt
 
 Statuses:
 
 - Proposed.
 - Confirmed.
-- Cancelled.
+
+Unassigning soft-deletes the assignment.
 
 ### Supplier
 
@@ -1600,6 +1627,7 @@ Friendly and community-like, deliberately not the default shadcn / Linear / Noti
 - **Status colors are separate from the brand colors:** green `#2E9E5B` = done or filled, amber `#B7791F` = due soon or partly filled, red `#C2453D` = overdue or unfilled (each with a light background tint).
 - **Type:** Nunito everywhere (via `next/font`), headings at weight 800.
 - **Shape:** `1rem` radius on cards and dialogs, pill-shaped buttons, tabs and badges, soft shadows instead of hard borders, 44px buttons and inputs, generous padding. One primary action per screen. Tables only where they really pay off.
+- **Creating vs. viewing (decided November 2026):** creating something new (a shift, a task, a volunteer added by hand) always opens a centered modal (`components/ui/dialog.tsx`). The side sheet (`Sheet`) is only for looking at and editing something that already exists. Never use the side sheet as a create form.
 - **Icons:** Lucide, placed in soft colored circles for empty states, dashboard cards and section headers. No custom illustrations in the MVP.
 - **Public volunteer pages:** same tokens, lighter feel. A colored header with soft circles and the form on a rounded sheet, large touch targets, a coral submit button.
 - Reference prototype: https://claude.ai/artifact/VNcfaPKRXKhxBER4zfvJ6a (variant A).
@@ -1815,7 +1843,6 @@ The following decisions are NOT final:
 - Final authentication integration details.
 - Final AI model/provider.
 - Whether budget functionality needs simplification.
-- Whether both volunteer registration modes are necessary for the first pilot.
 - Exact scheduling algorithm.
 - Exact organization pricing.
 - Event template design.

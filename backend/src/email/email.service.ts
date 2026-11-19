@@ -28,6 +28,8 @@ export interface SendEmailInput<Name extends EmailTemplateName> {
   idempotencyKey: string;
   organizationId?: string | null;
   eventId?: string | null;
+  /** Where replies go; the sender address otherwise. */
+  replyTo?: string;
 }
 
 export interface SendEmailResult {
@@ -89,6 +91,7 @@ export class EmailService {
           subject: rendered.subject,
           html: rendered.html,
           text: rendered.text,
+          ...(input.replyTo && { replyTo: input.replyTo }),
           idempotencyKey: input.idempotencyKey,
         });
         await this.db

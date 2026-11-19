@@ -49,6 +49,7 @@ export function toActionError(
       return { message: msg('errorPages.forbiddenBody') };
     }
     if (error.archivedEvent) return { message: msg('events.readOnly') };
+    if (error.status === 429) return { message: msg('common.tooManyRequests') };
     if (error.status === 409) {
       return { message: metadata.conflictMessage ?? msg('common.conflict') };
     }

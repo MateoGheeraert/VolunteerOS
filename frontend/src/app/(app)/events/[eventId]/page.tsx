@@ -1,5 +1,15 @@
-import { CalendarClock, Lightbulb, ListChecks, MapPin, Tag, Text, Users } from 'lucide-react';
+import {
+  CalendarClock,
+  History,
+  Lightbulb,
+  ListChecks,
+  MapPin,
+  Tag,
+  Text,
+  Users,
+} from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
+import Link from 'next/link';
 import { Suspense, type ReactNode } from 'react';
 import { IconBlob } from '@/components/layout/icon-blob';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -62,6 +72,18 @@ async function EventOverview({ params }: Pick<PageProps<'/events/[eventId]'>, 'p
               <span className="text-muted-foreground">{t('eventOverview.noDescription')}</span>
             )}
           </Detail>
+          {(event.previousEdition || event.nextEdition) && (
+            <Detail icon={<IconBlob icon={History} />} label={t('events.editions')}>
+              <span className="flex flex-col gap-0.5">
+                {event.previousEdition && (
+                  <EditionLink label={t('events.continues')} edition={event.previousEdition} />
+                )}
+                {event.nextEdition && (
+                  <EditionLink label={t('events.continuedBy')} edition={event.nextEdition} />
+                )}
+              </span>
+            </Detail>
+          )}
           {event.retrospective && (
             <Detail icon={<IconBlob icon={Lightbulb} />} label={t('eventOverview.retrospective')}>
               <span className="whitespace-pre-line">{event.retrospective}</span>
@@ -76,6 +98,17 @@ async function EventOverview({ params }: Pick<PageProps<'/events/[eventId]'>, 'p
         <p className="text-muted-foreground">{t('eventOverview.nextStepsBody')}</p>
       </section>
     </div>
+  );
+}
+
+function EditionLink({ label, edition }: { label: string; edition: { id: string; name: string } }) {
+  return (
+    <span>
+      <span className="font-normal text-muted-foreground">{label}: </span>
+      <Link href={`/events/${edition.id}`} className="underline-offset-4 hover:underline">
+        {edition.name}
+      </Link>
+    </span>
   );
 }
 
