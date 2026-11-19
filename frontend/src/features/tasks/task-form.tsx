@@ -1,7 +1,7 @@
 'use client';
 
 import { Plus, TriangleAlert } from 'lucide-react';
-import { useAction } from 'next-safe-action/hooks';
+import { useAction, type SingleInputActionFn } from 'next-safe-action/hooks';
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -16,6 +16,7 @@ import { NativeSelect } from '@/components/ui/native-select';
 import { Textarea } from '@/components/ui/textarea';
 import { useActionForm } from '@/hooks/use-action-form';
 import { cn } from '@/lib/utils';
+import type { ActionError } from '@/server/action-client';
 import { createTask, createTaskLabel } from '@/server/tasks/actions';
 import {
   EMPTY_TASK,
@@ -23,33 +24,44 @@ import {
   TASK_PRIORITIES,
   TASK_STATUSES,
   taskFormSchema,
+  type TaskFormValues,
 } from './schemas';
 import { LabelChip, labelColorClasses } from './task-badges';
 import { isDueAfterEvent } from './task-rules';
 import { useTasksContext } from './tasks-context';
 
+/** A server action that saves the form: creating a task, or accepting an AI suggestion as one. */
+type TaskFormAction = SingleInputActionFn<ActionError, typeof taskFormSchema, unknown, unknown>;
+
 /**
  * Creates a task of the event. Only managers get here. Existing tasks are edited field by field
- * in the task pane (inline), not with this form.
+ * in the task pane (inline), not with this form. Accepting an AI task suggestion uses it too, with
+ * the suggestion filled in and its own `action`.
  */
 export function TaskForm({
   event,
   onDone,
   onCancel,
+  action,
+  defaultValues = EMPTY_TASK,
+  submitLabel,
 }: {
   event: { id: string; endsAt: string };
   onDone: () => void;
   onCancel: () => void;
+  action?: TaskFormAction;
+  defaultValues?: TaskFormValues;
+  submitLabel?: string;
 }) {
   const t = useTranslations();
   const router = useRouter();
   const { members, labels } = useTasksContext();
 
   const { form, onSubmit, formError, pending } = useActionForm(
-    createTask.bind(null, event.id),
+    action ?? createTask.bind(null, event.id),
     taskFormSchema,
     {
-      defaultValues: EMPTY_TASK,
+      defaultValues,
       onSuccess: () => {
         router.refresh();
         onDone();
@@ -175,7 +187,7 @@ export function TaskForm({
       <FormError message={formError} />
       <div className="flex flex-wrap gap-2">
         <Button type="submit" disabled={pending}>
-          {t('taskForm.createButton')}
+          {submitLabel ?? t('taskForm.createButton')}
         </Button>
         <Button type="button" variant="ghost" onClick={onCancel}>
           {t('common.cancel')}
