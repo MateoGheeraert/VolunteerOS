@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "ai_run_unfinished_uidx" ON "ai_run" USING btree ("event_id","feature") WHERE "ai_run"."status" in ('queued', 'running');

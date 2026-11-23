@@ -3,6 +3,7 @@ import { getTranslations } from 'next-intl/server';
 import { Suspense } from 'react';
 import { FormError } from '@/components/form-error';
 import { Skeleton } from '@/components/ui/skeleton';
+import { EventAiPanel } from '@/features/ai/event-ai-panel';
 import { isOrgAdmin } from '@/features/members/permissions';
 import { todayInBrussels } from '@/features/tasks/task-rules';
 import { TasksView } from '@/features/tasks/tasks-view';
@@ -41,6 +42,11 @@ async function EventTasks({ params }: Pick<PageProps<'/events/[eventId]/tasks'>,
   return (
     <div className="flex flex-col gap-4">
       {readOnly && <FormError message={t('tasks.readOnly')} />}
+      {canManage && !readOnly && (
+        <Suspense fallback={null}>
+          <EventAiPanel eventId={event.id} variant="bar" />
+        </Suspense>
+      )}
       <TasksView
         tasks={tasks}
         mode="event"

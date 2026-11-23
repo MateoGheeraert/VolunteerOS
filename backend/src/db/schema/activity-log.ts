@@ -36,6 +36,12 @@ export const activityLog = pgTable(
     actorId: text('actor_id'),
     /** The user whose command an AI agent was carrying out. */
     onBehalfOfUserId: text('on_behalf_of_user_id'),
+    /**
+     * Where a person's change came from, when not typed by hand: `ai_suggestion` and its id when
+     * they accepted an AI suggestion. The actor is still the person who decided.
+     */
+    sourceType: text('source_type'),
+    sourceId: text('source_id'),
     action: text('action').notNull(),
     entityType: text('entity_type').notNull(),
     entityId: text('entity_id').notNull(),
@@ -51,6 +57,7 @@ export const activityLog = pgTable(
       'activity_log_on_behalf_of_ai',
       sql`${t.onBehalfOfUserId} is null or ${t.actorType} = 'ai'`,
     ),
+    check('activity_log_source_pair', sql`(${t.sourceType} is null) = (${t.sourceId} is null)`),
   ],
 );
 

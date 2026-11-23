@@ -141,8 +141,6 @@
     "attendanceActual": "{actual} bezoekers",
     "noAttendance": "Nog niet ingevuld.",
     "retrospective": "Wat leerden we?",
-    "nextStepsTitle": "Volgende stappen",
-    "nextStepsBody": "Taken, shiften, vrijwilligers en budget komen hier zodra die onderdelen klaar zijn.",
     "publish": "Publiceren",
     "unpublish": "Terug naar concept",
     "complete": "Markeer als afgelopen",
@@ -469,7 +467,8 @@
     "tabs": {
       "profile": "Profiel",
       "account": "Account",
-      "organization": "Organisatie"
+      "organization": "Organisatie",
+      "ai": "Mila"
     },
     "profile": {
       "title": "Je gegevens",
@@ -797,6 +796,93 @@
       "consentRequired": "Vink dit aan om je in te schrijven.",
       "wholeEventRequired": "Dit evenement vraagt dat je het hele evenement kan.",
       "pickShifts": "Duid genoeg shiften aan, of vink aan dat je het hele evenement kan."
+    }
+  },
+  "ai": {
+    "subtitle": "Ik help je met je taken: ik zoek wat er nog ontbreekt, of maak taken van jouw lijstje.",
+    "disabled": "Mila is nu niet beschikbaar. Alles werkt gewoon zonder haar.",
+    "thinking": "{name} zoekt wat er nog ontbreekt…",
+    "failed": "Mila kon nu geen voorstellen maken. Probeer het later opnieuw.",
+    "empty": "Alles lijkt gedekt. Vraag me gerust opnieuw te zoeken, of geef me je eigen lijstje.",
+    "unavailable": "Mila is nu niet beschikbaar.",
+    "alreadyHandled": "Iemand anders heeft dit voorstel al behandeld.",
+    "taskSuggestionsTitle": "{count, plural, one {# voorgestelde taak} other {# voorgestelde taken}}",
+    "addSelected": "{count, plural, =0 {Aangevinkte toevoegen} one {# taak toevoegen} other {# taken toevoegen}}",
+    "editAndAdd": "Bekijken en toevoegen",
+    "notNeeded": "Niet nodig",
+    "dueBy": "Klaar tegen {date}",
+    "basedOn": "Gebaseerd op:",
+    "citationType": {
+      "event": "evenement",
+      "task": "taak",
+      "memory": "onthouden"
+    },
+    "answerPlaceholder": "Of typ je antwoord",
+    "send": "Versturen",
+    "skip": "Overslaan",
+    "fillIn": "Invullen: {field}",
+    "eventField": {
+      "description": "beschrijving",
+      "location": "locatie",
+      "expectedAttendance": "verwachte bezoekers"
+    },
+    "useValue": "Overnemen",
+    "acceptTitle": "Voorgestelde taak toevoegen",
+    "acceptSubtitle": "Pas aan wat je wil en voeg de taak toe.",
+    "addTask": "Taak toevoegen",
+    "validation": {
+      "answerRequired": "Typ een antwoord.",
+      "answerTooLong": "Dat antwoord is te lang.",
+      "valueRequired": "Vul een waarde in.",
+      "listRequired": "Schrijf eerst wat er moet gebeuren.",
+      "listTooLong": "Dat is te lang voor één keer. Splits je lijstje op."
+    },
+    "memory": {
+      "title": "Wat {name} onthoudt",
+      "intro": "Feiten die Mila bijhoudt om betere voorstellen te doen. Klopt iets niet? Verwijder het, dan gebruikt ze het niet meer.",
+      "empty": "Mila heeft nog niets onthouden.",
+      "organization": "Hele organisatie",
+      "fromLastYear": "van vorige editie",
+      "source": {
+        "organizer_answer": "Jouw antwoord",
+        "inference": "Afgeleid"
+      },
+      "delete": "Verwijderen",
+      "deleted": "Verwijderd."
+    },
+    "usage": {
+      "title": "Wat {name} deze maand kostte",
+      "body": "€{spent} van €{cap} gebruikt."
+    },
+    "suggestedBy": "Voorstel van {name}",
+    "findMissing": "Zoek ontbrekende taken",
+    "helpCreate": "Help me taken maken",
+    "bar": {
+      "idle": "Hoi! Zal ik je helpen met je taken?",
+      "thinking": "{name} zoekt wat er nog ontbreekt…",
+      "suggestions": "{name} vond {count, plural, one {# taak} other {# taken}} die nog ontbreken",
+      "detail": "Ik vergelijk met vorig jaar en met gelijkaardige evenementen, of maak taken van jouw lijstje.",
+      "open": "Bekijk {count, plural, one {voorstel} other {# voorstellen}}"
+    },
+    "sheet": {
+      "title": "Voorstellen van {name}",
+      "subtitle": "Vink aan wat je wil toevoegen, of bekijk een taak eerst. Jij beslist."
+    },
+    "drafts": {
+      "title": "Help me taken maken",
+      "subtitle": "Schrijf of plak wat er moet gebeuren, zoals je het zelf zou noteren. Ik maak er taken van met deadline en wie het doet; jij kijkt ze na.",
+      "placeholder": "Bv.\n- tent huren tegen 1 december\n- glühwein bestellen\n- Jan doet de kassa\n- affiches maken, dringend!",
+      "read": "{name}, maak er taken van",
+      "reading": "{name} leest je lijstje…",
+      "found": "Ik vond {count, plural, one {# taak} other {# taken}} in je lijstje.",
+      "check": "Pas aan wat niet klopt en vink uit wat je niet wil. Er wordt niets aangemaakt tot je bevestigt.",
+      "nothingFound": "Ik vond geen taken in je tekst. Probeer het met een lijstje van wat er moet gebeuren.",
+      "duplicate": "Bestaat al: {title}",
+      "keep": "{title} aanmaken",
+      "nobody": "Niemand",
+      "back": "Terug naar mijn lijstje",
+      "create": "{count, plural, =0 {Maak taken aan} one {Maak # taak aan} other {Maak # taken aan}}",
+      "created": "{count, plural, one {# taak} other {# taken}} aangemaakt."
     }
   }
 }

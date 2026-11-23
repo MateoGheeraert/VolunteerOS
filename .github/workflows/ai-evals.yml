@@ -1,0 +1,43 @@
+name: AI evals
+
+# Live model calls cost money, so this only runs on pull requests that change the AI code:
+# prompts, output schemas, the planner's rules or the model catalog. Everything else about the AI
+# (with a fake model) is covered by the unit tests in the regular CI.
+on:
+  pull_request:
+    paths:
+      - backend/src/ai/**
+      - .github/workflows/ai-evals.yml
+
+concurrency:
+  group: ai-evals-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  evals:
+    name: Backend · live AI evals
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      # A hard stop per run, in euro cents.
+      AI_EVAL_MAX_CENTS: '50'
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Skip without an API key
+        if: env.OPENAI_API_KEY == ''
+        run: echo "::warning::OPENAI_API_KEY secret is not set; AI evals skipped."
+      - name: Run evals
+        if: env.OPENAI_API_KEY != ''
+        run: pnpm ai:eval

@@ -1,18 +1,10 @@
-import {
-  CalendarClock,
-  History,
-  Lightbulb,
-  ListChecks,
-  MapPin,
-  Tag,
-  Text,
-  Users,
-} from 'lucide-react';
+import { CalendarClock, History, Lightbulb, MapPin, Tag, Text, Users } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
 import Link from 'next/link';
 import { Suspense, type ReactNode } from 'react';
 import { IconBlob } from '@/components/layout/icon-blob';
 import { Skeleton } from '@/components/ui/skeleton';
+import { EventAiPanel } from '@/features/ai/event-ai-panel';
 import { EventStatusActions } from '@/features/events/event-status-actions';
 import { getEvent } from '@/server/events/queries';
 import { formatEventRange, LOCALE } from '@/lib/format';
@@ -92,11 +84,9 @@ async function EventOverview({ params }: Pick<PageProps<'/events/[eventId]'>, 'p
         </dl>
       </section>
 
-      <section className="flex flex-col items-start gap-3 rounded-3xl bg-brand-tint p-5 sm:p-6">
-        <IconBlob icon={ListChecks} tone="accent" className="bg-card" />
-        <h2 className="text-lg">{t('eventOverview.nextStepsTitle')}</h2>
-        <p className="text-muted-foreground">{t('eventOverview.nextStepsBody')}</p>
-      </section>
+      <Suspense fallback={<Skeleton className="h-72 rounded-3xl bg-brand-tint/60" />}>
+        <EventAiPanel eventId={event.id} />
+      </Suspense>
     </div>
   );
 }

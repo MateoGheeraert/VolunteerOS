@@ -1026,6 +1026,19 @@ Required capabilities:
 
 Revisit when the first scheduled or bulk email arrives (reminders, assignment confirmations to many volunteers): pick between a Postgres-backed queue (pg-boss or Graphile Worker; no new infrastructure) and a hosted service (Trigger.dev or Inngest). The worker will call the same `EmailService.send`, so templates and the delivery log stay as they are.
 
+**Decision (November 2026): pg-boss**, for the AI agent's runs, which start on their own (an event is created, a question is answered). Chosen over Graphile Worker and the hosted services because:
+
+- it can add a job inside the caller's Drizzle transaction (`fromDrizzle(tx, sql)`), so a job exists exactly when the change that caused it commits;
+- it has time-zone aware cron that is safe with several app instances, singleton keys, and retries with backoff;
+- it is actively maintained and needs no new infrastructure.
+
+How it is set up (`src/jobs`):
+
+- It runs inside the Nest process (`JOB_WORKERS=on`) and keeps its tables in its own `pgboss` schema, which drizzle-kit doesn't manage.
+- It connects over `DATABASE_URL_UNPOOLED`: Neon's pooler runs in transaction mode, which breaks the queue's session locks and LISTEN/NOTIFY.
+- Tests set `JOB_WORKERS=off`: jobs are still added, but nothing processes them.
+- Emails still go out inside the request, as decided above.
+
 ### AI
 
 Use a provider abstraction around schema-validated LLM calls.
@@ -1041,6 +1054,54 @@ AI features should use:
 - Evaluation datasets.
 - Human review.
 - Safe deterministic fallbacks.
+
+**Decision (November 2026): the Vercel AI SDK with OpenAI, behind our own `ai` module in Nest. No agent framework (Mastra and the like) for now.**
+
+- **Why:** the hard parts of the agent are ours: grounded context, authorization, suggestion cards, evals and cost control. A framework would mostly duplicate what Nest, Drizzle and the activity log already do. The AI SDK is a library: it drops into a Nest service, validates structured output with Zod, reports token usage, ships mock models for tests, and streams to the frontend when the chat comes. Mastra runs on the AI SDK itself, so adopting it later stays cheap.
+- **Models in code, not in env:** each feature has its own primary model (and optionally a fallback) in `src/ai/model-catalog.ts`, because features differ in what they need. `MODEL_PRICES` there converts token usage to euro cents. Only `OPENAI_API_KEY` is configuration; without it the AI features are off and the app works without suggestions.
+
+**Mila (decided November 2026).** The agent is presented as Mila, with her picture (`frontend/public/mila_pf.png`) and her own purple colors (`--mila-*` in `globals.css`), so everything the AI proposes is recognisable at a glance. Her building blocks are in `frontend/src/components/mila`: MilaPanel, MilaSuggestion, MilaBubble (her questions), MilaThinking, MilaBadge and MilaAvatar, plus the `mila` and `mila-soft` button variants. Use them wherever AI shows up in the app. The prompts speak as Mila.
+
+**Mila helps with tasks in two ways (November 2026):**
+
+- **"Zoek ontbrekende taken":** a task-suggestion run in the background. Mila compares the event with last year and with events like it, and her suggestions are decided on one by one.
+- **"Help me taken maken":** the organizer types or pastes their own list. Mila turns it into tasks while they wait (`task_drafting`, `POST /events/:id/ai/task-drafts`): titles, deadlines resolved from "tegen 1 dec", members matched by name, and tasks that already exist flagged. The organizer checks and edits them in the dialog, and nothing is created until they click "Maak N taken aan". The created tasks carry the drafting run as their source in the activity log.
+- **On the task page** Mila is one line above the board (`MilaBar`), and her suggestions open in a side panel, so the board stays first. **On the overview** her panel scrolls on its own.
+
+How the agent works (`backend/src/ai`):
+
+- **Runs.** Every AI action is a run (`ai_run`), queued as a pg-boss job and done in the background.
+  - Triggers: creating an event (in its transaction), answering a question, or the organizer pressing "Stel taken voor".
+  - An event never has two unfinished runs of the same feature.
+  - The page learns that a run started or ended through Server-Sent Events (`GET /events/:id/ai/stream`). Next.js proxies that stream (`app/api/events/[eventId]/ai/stream`), so Nest stays private. Postgres LISTEN/NOTIFY carries the updates between backend instances.
+- **One call, context gathered in code.**
+  - A context builder turns the event, its previous edition, its tasks, the agent's memory and earlier answers into numbered records (E, P1, T1, M1). Ids never reach the model.
+  - The model returns one Zod-validated object.
+  - Tool calling is for the chat later; MCP is not planned yet.
+- **Server-side rules (the planner).** The model's output only becomes suggestions after the planner, a set of pure, unit-tested functions.
+  - Every task, field value and memory must cite a record that was sent; otherwise it is dropped.
+  - Tasks that already exist are skipped.
+  - At most 3 questions are open per event.
+  - A field is never overwritten.
+  - Due dates are counted back from the event start.
+- **Suggestions (`ai_suggestion`).** One table for every kind: `task_suggestion`, `question`, `update_event`.
+  - A dedup key per event means a rejected suggestion never comes back. A suggestion whose cause went away (the task was created by hand, the field was filled in) is closed as `dismissed_stale`.
+  - The agent never changes domain data. Accepting runs the normal service as the organizer, in the same transaction, and the activity log records the suggestion as the change's source (`source_type`, `source_id`).
+  - Answering a question fills in the event field it is about, or else becomes a memory.
+- **Memory (`ai_memory`).** Facts that have no field on the event, at event or organization level.
+  - The agent writes them without approval (its own notes, not domain data).
+  - Event memories are copied to the next edition.
+  - They are hidden from the normal screens; owners and admins see and delete them under Instellingen › Mila.
+- **Costs (`ai_usage`).** One row per model call, with tokens and cost.
+  - Each organization has a monthly cap (`AI_MONTHLY_CAP_CENTS`, default €10).
+  - Runs the organizer didn't start stop at 80% of it.
+  - On an invalid output the model is retried once; then the fallback model (if any) is tried; then the run fails and nothing changes.
+- **Who.** Everything on an event needs the same rights as managing its tasks: owners, admins and the event's managers. Usage is visible to owners only.
+- **Evals.**
+  - The planner and context builder have unit tests (no model).
+  - `pnpm ai:eval` runs live cases (`src/ai/evals`) against the configured models with code-based checks and a cost limit.
+  - CI runs it only on pull requests that touch `backend/src/ai`.
+  - Bump the prompt version on every prompt change.
 
 ### Scheduling Engine
 
@@ -1359,6 +1420,7 @@ Implemented as `activity_log`; see "Activity log" in the backend README.
 - actorType (user / volunteer / system / ai)
 - actorId
 - onBehalfOfUserId (the user an AI agent acted for)
+- sourceType, sourceId (where a person's change came from: `ai_suggestion` when they accepted one)
 - action
 - entityType
 - entityId
@@ -1423,6 +1485,13 @@ Minimize personal data shared with AI providers.
 Avoid processing unnecessary sensitive information.
 
 Design data retention and deletion from the beginning.
+
+**Known debt (November 2026), a pilot gate.** For now each AI feature sends what it needs, names included, to OpenAI directly, with no data processing agreement, EU residency or minimization checks. Before real volunteer data goes in (the pilot), the GDPR pass must be done:
+
+- data processing agreements with every provider used;
+- EU data residency;
+- data minimization in the context builders;
+- `ai_memory` and `ai_suggestion` in the delete-and-anonymize flow.
 
 ---
 
