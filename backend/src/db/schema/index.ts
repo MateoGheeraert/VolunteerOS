@@ -6,4 +6,5 @@ export * from './events.js';
 export * from './organization-enums.js';
 export * from './planning.js';
 export * from './tasks.js';
+export * from './uploads.js';
 export * from './user-profile.js';

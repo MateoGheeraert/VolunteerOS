@@ -14,7 +14,9 @@ import {
   type ProviderResult,
 } from '../src/email/email-provider.js';
 import { EMAIL_RETRY_DELAYS_MS } from '../src/email/email.service.js';
+import { FileStorage } from '../src/storage/file-storage.js';
 import { TEST_APP_URL, TEST_INTERNAL_SECRET } from './env.js';
+import { FakeFileStorage } from './fake-file-storage.js';
 
 /**
  * Captures emails instead of sending them, so tests can read invitation links. `failNext` makes
@@ -55,6 +57,7 @@ export interface TestApp {
   app: INestApplication;
   db: Database;
   emails: CapturingEmailProvider;
+  files: FakeFileStorage;
   /** A cookie-keeping client that acts like the Next.js server: it sends the internal secret. */
   client: () => TestClient;
   /** The admin invites `email` as a member; the invitee signs up, accepts and activates the org. */
@@ -70,11 +73,14 @@ export interface TestApp {
 
 export async function createTestApp(): Promise<TestApp> {
   const emails = new CapturingEmailProvider();
+  const files = new FakeFileStorage();
   const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
     .overrideProvider(EmailProvider)
     .useValue(emails)
     .overrideProvider(EMAIL_RETRY_DELAYS_MS)
     .useValue([0, 0])
+    .overrideProvider(FileStorage)
+    .useValue(files)
     .compile();
 
   const app = moduleRef.createNestApplication<NestExpressApplication>({
@@ -89,6 +95,7 @@ export async function createTestApp(): Promise<TestApp> {
     app,
     db,
     emails,
+    files,
     client: () => new TestClient(app),
     inviteMember: async (admin, organizationId, name, email) => {
       const invite = await admin.post('/api/auth/organization/invite-member', {
@@ -112,8 +119,9 @@ export async function createTestApp(): Promise<TestApp> {
     },
     reset: async () => {
       emails.reset();
+      files.reset();
       await db.execute(sql`
-        truncate table email_delivery, activity_log, assignment, volunteer_application, volunteer, shift,
+        truncate table event_upload, task_upload, upload, email_delivery, activity_log, assignment, volunteer_application, volunteer, shift,
           team, task_assignment_request, task_label_link,
           task_label, task, event_member, event, invitation, member, organization,
           session, account, verification, user_profile, "user" restart identity cascade
