@@ -6,7 +6,11 @@
  * - Owner:  mateogheeraert04@gmail.com / Hallo1234
  * - Member: lid@volunteeros.test       / Hallo1234
  * - Organization "Chiro Sint-Jan (seed)" with the event "Kerstmarkt 2026" (labels, tasks in every
- *   status, an overdue task, a pending assignment request) and its previous edition.
+ *   status, an overdue task, a pending assignment request, a budget with income and costs in every
+ *   state: estimated only, paid, over and under budget, labelled and linked to tasks) and its
+ *   previous edition (with a settled budget).
+ *
+ * Keep this in step with the features: a new feature adds its data here.
  *
  * Re-runnable: the users are kept (password, name and verification are reset), the seed
  * organization is deleted with everything in it and created again. Other organizations of the
@@ -190,14 +194,14 @@ async function seed(tx: Transaction) {
   const eventId = kerstmarkt!.id;
 
   const labels = await tx
-    .insert(schema.taskLabel)
+    .insert(schema.label)
     .values([
       { eventId, name: 'Bar', color: 'orange' },
       { eventId, name: 'Kassa', color: 'green' },
       { eventId, name: 'Opbouw', color: 'blue' },
       { eventId, name: 'Promotie', color: 'purple' },
     ])
-    .returning({ id: schema.taskLabel.id, name: schema.taskLabel.name });
+    .returning({ id: schema.label.id, name: schema.label.name });
   const label = (name: string) => labels.find((l) => l.name === name)!.id;
 
   type SeedTask = Omit<typeof schema.task.$inferInsert, 'eventId' | 'createdByUserId'> & {
@@ -284,6 +288,182 @@ async function seed(tx: Transaction) {
   await tx
     .insert(schema.taskAssignmentRequest)
     .values({ taskId: taskId('Tenten opzetten'), userId: memberId });
+
+  // The budget shares the event's labels; two more that only budget lines use.
+  const budgetLabels = await tx
+    .insert(schema.label)
+    .values([
+      { eventId, name: 'Sponsoring', color: 'teal' },
+      { eventId, name: 'Huur', color: 'yellow' },
+    ])
+    .returning({ id: schema.label.id, name: schema.label.name });
+  const anyLabel = (name: string) => [...labels, ...budgetLabels].find((l) => l.name === name)!.id;
+
+  await insertBudget(tx, eventId, ownerId, anyLabel, taskId, [
+    // Income: some still estimated only, some already in.
+    {
+      type: 'income',
+      title: 'Standgeld kraampjes',
+      estimated: 180000,
+      actual: 165000,
+      labels: ['Kassa'],
+      task: 'Kraampjes verdelen onder de standhouders',
+    },
+    {
+      type: 'income',
+      title: 'Verkoop glühwein en drank',
+      estimated: 320000,
+      actual: null,
+      labels: ['Bar'],
+    },
+    {
+      type: 'income',
+      title: 'Sponsoring bakkerij Van Damme',
+      estimated: 25000,
+      actual: 25000,
+      labels: ['Sponsoring'],
+      notes: 'Logo op de affiche in ruil.',
+    },
+    {
+      type: 'income',
+      title: 'Subsidie stad Gent',
+      estimated: 50000,
+      actual: null,
+      labels: ['Sponsoring'],
+    },
+    { type: 'income', title: 'Tombola', estimated: null, actual: 31250, labels: ['Kassa'] },
+    // Expenses: one over budget, one under, one not paid yet.
+    {
+      type: 'expense',
+      title: 'Glühwein en drank',
+      estimated: 145000,
+      actual: 138765,
+      labels: ['Bar'],
+      task: 'Glühwein en drank bestellen',
+      notes: 'Dubbele voorraad t.o.v. vorig jaar.',
+    },
+    {
+      type: 'expense',
+      title: 'Tenten huren',
+      estimated: 90000,
+      actual: null,
+      labels: ['Huur', 'Opbouw'],
+      task: 'Tenten opzetten',
+    },
+    {
+      type: 'expense',
+      title: 'Affiches drukken',
+      estimated: 12000,
+      actual: 13420,
+      labels: ['Promotie'],
+      task: 'Affiches ophangen in de buurt',
+    },
+    {
+      type: 'expense',
+      title: 'Kerstmanpak huren',
+      estimated: 4500,
+      actual: null,
+      labels: ['Huur'],
+      task: 'Kerstman regelen',
+    },
+    {
+      type: 'expense',
+      title: 'Vergunning stad',
+      estimated: 7500,
+      actual: 7500,
+      labels: [],
+      task: 'Vergunning aanvragen bij de stad',
+    },
+    {
+      type: 'expense',
+      title: 'Verlichting en elektriciteit',
+      estimated: 18000,
+      actual: null,
+      labels: ['Opbouw'],
+    },
+  ]);
+
+  // Last year's budget, settled: every line has its actual amount.
+  const previousLabels = await tx
+    .insert(schema.label)
+    .values([
+      { eventId: previous!.id, name: 'Bar', color: 'orange' },
+      { eventId: previous!.id, name: 'Kassa', color: 'green' },
+      { eventId: previous!.id, name: 'Huur', color: 'yellow' },
+    ])
+    .returning({ id: schema.label.id, name: schema.label.name });
+  const previousLabel = (name: string) => previousLabels.find((l) => l.name === name)!.id;
+  await insertBudget(tx, previous!.id, ownerId, previousLabel, () => undefined, [
+    {
+      type: 'income',
+      title: 'Standgeld kraampjes',
+      estimated: 150000,
+      actual: 157500,
+      labels: ['Kassa'],
+    },
+    {
+      type: 'income',
+      title: 'Verkoop glühwein en drank',
+      estimated: 250000,
+      actual: 212040,
+      labels: ['Bar'],
+      notes: 'Om 19u uitverkocht.',
+    },
+    {
+      type: 'expense',
+      title: 'Glühwein en drank',
+      estimated: 80000,
+      actual: 78230,
+      labels: ['Bar'],
+    },
+    { type: 'expense', title: 'Tenten huren', estimated: 85000, actual: 85000, labels: ['Huur'] },
+    { type: 'expense', title: 'Affiches drukken', estimated: 10000, actual: 11980, labels: [] },
+  ]);
+}
+
+interface SeedBudgetLine {
+  type: 'income' | 'expense';
+  title: string;
+  /** Euro cents. */
+  estimated: number | null;
+  actual: number | null;
+  labels: string[];
+  task?: string;
+  notes?: string;
+}
+
+/**
+ * Budget lines with their labels. `createdAt` is spread over the past days in list order, so
+ * "newest first" shows the last line on top.
+ */
+async function insertBudget(
+  tx: Transaction,
+  eventId: string,
+  createdByUserId: string,
+  labelId: (name: string) => string,
+  taskId: (title: string) => string | undefined,
+  lines: SeedBudgetLine[],
+) {
+  const entries = await tx
+    .insert(schema.budgetEntry)
+    .values(
+      lines.map((line, index) => ({
+        eventId,
+        createdByUserId,
+        type: line.type,
+        title: line.title,
+        estimatedCents: line.estimated,
+        actualCents: line.actual,
+        notes: line.notes ?? null,
+        taskId: line.task ? (taskId(line.task) ?? null) : null,
+        createdAt: at(index - lines.length, 9),
+      })),
+    )
+    .returning({ id: schema.budgetEntry.id });
+  const links = lines.flatMap((line, index) =>
+    line.labels.map((name) => ({ budgetEntryId: entries[index]!.id, labelId: labelId(name) })),
+  );
+  if (links.length > 0) await tx.insert(schema.budgetEntryLabelLink).values(links);
 }
 
 try {

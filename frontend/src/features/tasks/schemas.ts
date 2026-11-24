@@ -1,10 +1,11 @@
 import { z } from 'zod';
-import type { CreateTask, Task, TaskLabel } from '@/api/generated/types.gen';
-import { zCreateTask, zCreateTaskLabel } from '@/api/generated/zod.gen';
+import type { CreateTask, Task } from '@/api/generated/types.gen';
+import { zCreateTask } from '@/api/generated/zod.gen';
+import { MAX_LABELS_PER_ITEM } from '@/features/labels/schemas';
 import { msg } from '@/i18n/keys';
 
 /**
- * The task form and the label form, shared by the forms (instant feedback) and the server actions
+ * The task form, shared by the forms (instant feedback) and the server actions
  * (validated again). Messages are translation keys; limits and allowed values come from the
  * generated API schema, so they follow the backend.
  */
@@ -12,7 +13,6 @@ const limits = {
   title: zCreateTask.shape.title.maxLength ?? 200,
   description: zCreateTask.shape.description.unwrap().unwrap().maxLength ?? 5000,
   assigneeName: zCreateTask.shape.assigneeName.unwrap().unwrap().maxLength ?? 200,
-  labelName: zCreateTaskLabel.shape.name.maxLength ?? 50,
 };
 
 /** In board order: the columns, left to right. */
@@ -21,8 +21,6 @@ export type TaskStatus = (typeof TASK_STATUSES)[number];
 /** High first, as the backend sorts. */
 export const TASK_PRIORITIES = [...zCreateTask.shape.priority.unwrap().options].reverse();
 export type TaskPriority = Task['priority'];
-export const LABEL_COLORS = zCreateTaskLabel.shape.color.unwrap().options;
-export type LabelColor = TaskLabel['color'];
 
 /** The assignee select's value for "someone without an account": the name goes in its own field. */
 export const EXTERNAL_ASSIGNEE = '__external';
@@ -53,7 +51,7 @@ export const taskFormSchema = z
       .string()
       .trim()
       .max(limits.assigneeName, msg('taskForm.validation.assigneeNameTooLong')),
-    labelIds: z.array(z.uuid()).max(20),
+    labelIds: z.array(z.uuid()).max(MAX_LABELS_PER_ITEM),
   })
   .refine((value) => value.assignee !== EXTERNAL_ASSIGNEE || value.assigneeName.length > 0, {
     message: msg('taskForm.validation.assigneeNameRequired'),
@@ -93,16 +91,6 @@ export function toTaskBody(values: TaskFormValues): Required<CreateTask> {
 
 export const changeTaskStatusSchema = z.object({ status: z.enum(TASK_STATUSES) });
 
-export const labelFormSchema = z.object({
-  name: z
-    .string()
-    .trim()
-    .min(1, msg('taskLabels.validation.nameRequired'))
-    .max(limits.labelName, msg('taskLabels.validation.nameTooLong')),
-  color: z.enum(LABEL_COLORS),
-});
-export type LabelFormValues = z.infer<typeof labelFormSchema>;
-
 /**
  * One inline edit in the task pane: any subset of the task's fields. Empty text clears an
  * optional field.
@@ -129,7 +117,7 @@ export const taskPatchSchema = z
       .min(1, msg('taskForm.validation.assigneeNameRequired'))
       .max(limits.assigneeName, msg('taskForm.validation.assigneeNameTooLong'))
       .nullable(),
-    labelIds: z.array(z.uuid()).max(20),
+    labelIds: z.array(z.uuid()).max(MAX_LABELS_PER_ITEM),
   })
   .partial();
 export type TaskPatch = z.infer<typeof taskPatchSchema>;

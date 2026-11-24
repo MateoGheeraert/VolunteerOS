@@ -23,7 +23,7 @@ export function EventFiles({
       enabled={list.enabled}
       readOnly={readOnly}
       storage={list.storage}
-      showTask
+      showOwner
       onChanged={() => router.refresh()}
     />
   );

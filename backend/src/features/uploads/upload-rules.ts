@@ -68,15 +68,17 @@ export const opensInline = (mimeType: string) =>
 
 /** What a file is attached to. A task carries what visibility needs. */
 export type UploadOwner =
-  { type: 'event' } | { type: 'task'; task: Pick<TaskRow, 'assigneeUserId' | 'assigneeName'> };
+  | { type: 'event' }
+  | { type: 'task'; task: Pick<TaskRow, 'assigneeUserId' | 'assigneeName'> }
+  | { type: 'budgetEntry' };
 
 /**
- * Who may do what with an event's files. Event files: everyone sees them, managers add and change
- * them. Task files: whoever sees the task sees them; managers and the task's assignee add them;
- * managers and whoever uploaded one change it.
+ * Who may do what with an event's files. Event and budget entry files: everyone sees them,
+ * managers add and change them. Task files: whoever sees the task sees them; managers and the
+ * task's assignee add them; managers and whoever uploaded one change it.
  */
 export function canSeeUpload(viewer: TaskViewer, owner: UploadOwner): boolean {
-  return owner.type === 'event' || canSeeTask(viewer, owner.task);
+  return owner.type !== 'task' || canSeeTask(viewer, owner.task);
 }
 
 export function canAddUpload(viewer: TaskViewer, owner: UploadOwner): boolean {

@@ -48,25 +48,28 @@ import { deleteUpload, renameUpload } from '@/server/uploads/actions';
 import { ACCEPT, extensionOf, formatBytes } from './schemas';
 import { useFileUpload } from './use-file-upload';
 
+/** What new files are attached to, when not the event itself. */
+export type FileOwner = { taskId: string } | { budgetEntryId: string };
+
 /**
- * Files of an event or one task: a drop zone (for whoever may add files), uploads in progress,
+ * Files of an event, one task or one budget entry: a drop zone (for whoever may add files), uploads in progress,
  * and the list. The backend decides what is shown and allowed; `canAdd` and each file's
  * `canChange` only decide which controls show.
  */
 export function FilesPanel({
   eventId,
-  taskId,
+  owner,
   uploads,
   canAdd,
   enabled,
   readOnly,
   storage,
-  showTask = false,
+  showOwner = false,
   onChanged,
 }: {
   eventId: string;
-  /** Upload to this task instead of the event. */
-  taskId?: string;
+  /** Upload to this task or budget entry instead of the event. */
+  owner?: FileOwner;
   uploads: Upload[];
   canAdd: boolean;
   /** False when file storage is off: listed files can't be opened or added. */
@@ -74,20 +77,18 @@ export function FilesPanel({
   readOnly: boolean;
   /** The organization's usage, shown under the drop zone. */
   storage?: StorageUsage;
-  /** Mark task files with their task (the event's combined list). */
-  showTask?: boolean;
+  /** Mark task and budget entry files with what they belong to (the event's combined list). */
+  showOwner?: boolean;
   onChanged: () => void;
 }) {
   const t = useTranslations();
-  const { upload, inProgress } = useFileUpload({ eventId, taskId, onUploaded: onChanged });
+  const { upload, inProgress } = useFileUpload({ eventId, owner, onUploaded: onChanged });
   const mayAdd = canAdd && enabled && !readOnly;
 
   return (
     <div className="flex flex-col gap-3">
       {!enabled && <p className="text-sm text-muted-foreground">{t('files.disabled')}</p>}
-      {mayAdd && (
-        <DropZone onFiles={(files) => void upload(files)} compact={taskId !== undefined} />
-      )}
+      {mayAdd && <DropZone onFiles={(files) => void upload(files)} compact={owner !== undefined} />}
       {storage && mayAdd && (
         <p className="text-xs text-muted-foreground">
           {t('files.storageUsed', {
@@ -129,7 +130,7 @@ export function FilesPanel({
               key={file.id}
               eventId={eventId}
               file={file}
-              showTask={showTask}
+              showOwner={showOwner}
               openable={enabled}
               changeable={file.canChange && !readOnly}
               onChanged={onChanged}
@@ -203,14 +204,14 @@ function FileTypeIcon({ mimeType }: { mimeType: string }) {
 function FileRow({
   eventId,
   file,
-  showTask,
+  showOwner,
   openable,
   changeable,
   onChanged,
 }: {
   eventId: string;
   file: Upload;
-  showTask: boolean;
+  showOwner: boolean;
   openable: boolean;
   changeable: boolean;
   onChanged: () => void;
@@ -242,9 +243,14 @@ function FileRow({
           <span>{file.uploadedBy.name}</span>
           <span aria-hidden>·</span>
           <span>{formatDay(utcIsoToBrussels(file.createdAt).date)}</span>
-          {showTask && file.task && (
+          {showOwner && file.task && (
             <Badge variant="brand" className="ml-1 max-w-48 truncate">
               {file.task.title}
+            </Badge>
+          )}
+          {showOwner && file.budgetEntry && (
+            <Badge variant="secondary" className="ml-1 max-w-56 truncate">
+              {t('files.budgetEntry', { title: file.budgetEntry.title })}
             </Badge>
           )}
         </span>

@@ -14,7 +14,11 @@ import { msg } from '@/i18n/keys';
 import { actionClient } from '../action-client';
 
 const id = z.uuid();
-const revalidateFiles = (eventId: string) => revalidatePath(`/events/${eventId}/files`);
+/** Files show on the event's file tab, and as a count on the budget. */
+function revalidateFiles(eventId: string) {
+  revalidatePath(`/events/${eventId}/files`);
+  revalidatePath(`/events/${eventId}/budget`);
+}
 
 /**
  * Step 1 of an upload (bind the event): announces the file and returns where the browser PUTs it.
@@ -62,5 +66,14 @@ export const listTaskUploads = actionClient
   .bindArgsSchemas([id, id])
   .action(async ({ bindArgsParsedInputs: [eventId, taskId] }) => {
     const { data } = await uploadsControllerList({ path: { eventId }, query: { taskId } });
+    return data;
+  });
+
+/** One budget entry's files, for its pane (bind event and entry). */
+export const listBudgetEntryUploads = actionClient
+  .metadata({ name: 'listBudgetEntryUploads' })
+  .bindArgsSchemas([id, id])
+  .action(async ({ bindArgsParsedInputs: [eventId, budgetEntryId] }) => {
+    const { data } = await uploadsControllerList({ path: { eventId }, query: { budgetEntryId } });
     return data;
   });

@@ -31,7 +31,7 @@ const uuid = new ParseUUIDPipe({ errorHttpStatusCode: 404 });
 const optionalUuid = new ParseUUIDPipe({ errorHttpStatusCode: 404, optional: true });
 
 /**
- * Files of an event and its tasks. Every route needs 'read'; the service decides who may add,
+ * Files of an event, its tasks and its budget entries. Every route needs 'read'; the service decides who may add,
  * rename and delete (managers, and members on their own task).
  *
  * Uploading: POST announces the file and returns a signed URL, the browser PUTs the file there,
@@ -43,17 +43,22 @@ const optionalUuid = new ParseUUIDPipe({ errorHttpStatusCode: 404, optional: tru
 export class UploadsController {
   constructor(private readonly uploads: UploadsService) {}
 
-  /** The event's files and those of its tasks the caller sees; `taskId` narrows to one task. */
+  /**
+   * The event's files and those of its tasks and budget entries the caller sees; `taskId` or
+   * `budgetEntryId` narrows to one of them.
+   */
   @Get()
   @RequireEventAccess('read')
   @ApiQuery({ name: 'taskId', required: false, type: String })
+  @ApiQuery({ name: 'budgetEntryId', required: false, type: String })
   @ApiResponse({ status: 200, standardSchema: uploadListSchema })
   list(
     @CurrentOrg() org: OrgContext,
     @CurrentEventAccess() access: EventAccess,
     @Query('taskId', optionalUuid) taskId?: string,
+    @Query('budgetEntryId', optionalUuid) budgetEntryId?: string,
   ) {
-    return this.uploads.list(org, access, taskId);
+    return this.uploads.list(org, access, { taskId, budgetEntryId });
   }
 
   @Post()

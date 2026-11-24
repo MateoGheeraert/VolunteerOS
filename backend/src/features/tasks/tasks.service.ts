@@ -10,25 +10,20 @@ import { recordActivity } from '../../activity/activity-log.js';
 import type { EventAccess } from '../../authz/event-access.service.js';
 import type { OrgContext } from '../../authz/org-context.js';
 import type { Database, Transaction } from '../../db/database.js';
-import type {
-  EventRow,
-  TaskAssignmentRequestRow,
-  TaskLabelRow,
-  TaskRow,
-} from '../../db/schema/index.js';
+import type { EventRow, TaskAssignmentRequestRow, TaskRow } from '../../db/schema/index.js';
+import { rethrowUnique } from '../../db/unique-violation.js';
 import { isReadOnly } from '../events/event-status.js';
+import { BudgetService } from '../budget/budget.service.js';
+import { LabelsService } from '../labels/labels.service.js';
 import { UploadsService } from '../uploads/uploads.service.js';
 import { canSeeTask, isUnassigned, memberUpdateError } from './task-rules.js';
 import { TasksRepository, type TaskValues, type TaskView } from './tasks.repository.js';
 import type {
   CreateTaskInput,
-  CreateTaskLabelInput,
   MyTasksDto,
   OpenTaskCountDto,
   TaskDto,
-  TaskLabelDto,
   UpdateTaskInput,
-  UpdateTaskLabelInput,
 } from './tasks.schemas.js';
 
 /**
@@ -43,14 +38,12 @@ const TASK_LOGGED_VALUES = [
   'createdByUserId',
   'labelIds',
 ] as const;
-/** Label names are categories ("Bar"), not personal data. */
-const LABEL_LOGGED_VALUES = ['name', 'color'] as const;
 const REQUEST_LOGGED_VALUES = ['taskId', 'userId', 'status'] as const;
 
 type LoggedTask = TaskRow & { labelIds: string[] };
 
 /**
- * Business rules for an event's tasks, labels and assignment requests. Every write runs in a
+ * Business rules for an event's tasks and assignment requests (labels: `LabelsService`). Every write runs in a
  * transaction opened here and records its activity log entries in that same transaction.
  *
  * Routes have already authorized the event: 'manage' for managers-only writes, 'read' for what
@@ -61,7 +54,9 @@ export class TasksService {
   constructor(
     @InjectDrizzle() private readonly db: Database,
     private readonly tasks: TasksRepository,
+    private readonly labels: LabelsService,
     private readonly uploads: UploadsService,
+    private readonly budget: BudgetService,
   ) {}
 
   async list(org: OrgContext, access: EventAccess): Promise<TaskDto[]> {
@@ -82,7 +77,7 @@ export class TasksService {
       requestsOf: org.userId,
     });
     const eventIds = [...new Set(views.map((view) => view.event.id))];
-    const labels = await this.tasks.listLabels(eventIds);
+    const labels = await this.labels.list(eventIds);
     return {
       tasks: views.map((view) => ({
         ...toTaskDto(view),
@@ -94,7 +89,7 @@ export class TasksService {
           endsAt: view.event.endsAt.toISOString(),
         },
       })),
-      labels: labels.map(toTaskLabelDto),
+      labels,
     };
   }
 
@@ -118,7 +113,7 @@ export class TasksService {
     const eventId = access.event.id;
     assertWritable(access.event);
     if (input.assigneeUserId) await this.assertMember(org, input.assigneeUserId);
-    const labelIds = await this.assertLabels(eventId, input.labelIds ?? []);
+    const labelIds = await this.labels.assertLabels(eventId, input.labelIds ?? []);
 
     const row = await this.tasks.insertTask(tx, eventId, org.userId, {
       title: input.title,
@@ -165,7 +160,7 @@ export class TasksService {
     if (patch.assigneeUserId && patch.assigneeUserId !== current.assigneeUserId) {
       await this.assertMember(org, patch.assigneeUserId);
     }
-    const labelIds = newLabelIds && (await this.assertLabels(eventId, newLabelIds));
+    const labelIds = newLabelIds && (await this.labels.assertLabels(eventId, newLabelIds));
 
     await this.db.transaction(async (tx) => {
       const beforeLabels = await this.tasks.labelIdsOf(tx, taskId);
@@ -188,7 +183,10 @@ export class TasksService {
     return this.view(org, access, taskId);
   }
 
-  /** Soft-deletes the task with its files, and declines the requests for it. */
+  /**
+   * Soft-deletes the task with its files, declines the requests for it, and unlinks it from
+   * budget entries (which stay).
+   */
   async remove(org: OrgContext, access: EventAccess, taskId: string): Promise<void> {
     const eventId = access.event.id;
     assertWritable(access.event);
@@ -196,6 +194,7 @@ export class TasksService {
     await this.db.transaction(async (tx) => {
       await this.declineRequests(tx, org, eventId, taskId);
       await this.uploads.removeForTask(tx, org, eventId, taskId);
+      await this.budget.unlinkTask(tx, org, eventId, taskId);
       const row = await this.tasks.updateTask(tx, taskId, { deletedAt: new Date() });
       await recordActivity(tx, org, {
         action: 'deleted',
@@ -294,79 +293,6 @@ export class TasksService {
     });
   }
 
-  async listLabels(access: EventAccess): Promise<TaskLabelDto[]> {
-    const rows = await this.tasks.listLabels([access.event.id]);
-    return rows.map(toTaskLabelDto);
-  }
-
-  async createLabel(
-    org: OrgContext,
-    access: EventAccess,
-    input: CreateTaskLabelInput,
-  ): Promise<TaskLabelDto> {
-    const eventId = access.event.id;
-    assertWritable(access.event);
-    const created = await this.db
-      .transaction(async (tx) => {
-        const row = await this.tasks.insertLabel(tx, eventId, input);
-        await recordActivity(tx, org, {
-          action: 'created',
-          entityType: 'task_label',
-          entity: row,
-          before: null,
-          eventId,
-          values: LABEL_LOGGED_VALUES,
-        });
-        return row;
-      })
-      .catch(rethrowLabelNameTaken);
-    return toTaskLabelDto(created);
-  }
-
-  async updateLabel(
-    org: OrgContext,
-    access: EventAccess,
-    labelId: string,
-    input: UpdateTaskLabelInput,
-  ): Promise<TaskLabelDto> {
-    const eventId = access.event.id;
-    assertWritable(access.event);
-    const current = await this.findLabel(eventId, labelId);
-    if (Object.keys(input).length === 0) return toTaskLabelDto(current);
-    const updated = await this.db
-      .transaction(async (tx) => {
-        const row = await this.tasks.updateLabel(tx, labelId, input);
-        await recordActivity(tx, org, {
-          action: 'updated',
-          entityType: 'task_label',
-          entity: row,
-          before: current,
-          eventId,
-          values: LABEL_LOGGED_VALUES,
-        });
-        return row;
-      })
-      .catch(rethrowLabelNameTaken);
-    return toTaskLabelDto(updated);
-  }
-
-  /** Soft-deletes the label and takes it off every task. */
-  async removeLabel(org: OrgContext, access: EventAccess, labelId: string): Promise<void> {
-    const eventId = access.event.id;
-    assertWritable(access.event);
-    await this.findLabel(eventId, labelId);
-    await this.db.transaction(async (tx) => {
-      await this.tasks.unlinkLabel(tx, labelId);
-      const row = await this.tasks.updateLabel(tx, labelId, { deletedAt: new Date() });
-      await recordActivity(tx, org, {
-        action: 'deleted',
-        entityType: 'task_label',
-        entity: row,
-        eventId,
-      });
-    });
-  }
-
   /** What removing the member from the organization would release, per event. */
   async openTaskCounts(org: OrgContext, userId: string): Promise<OpenTaskCountDto[]> {
     return this.tasks.openTaskCounts(org.organizationId, userId);
@@ -395,25 +321,10 @@ export class TasksService {
     return toTaskDto(view);
   }
 
-  private async findLabel(eventId: string, labelId: string): Promise<TaskLabelRow> {
-    const row = await this.tasks.findLabel(eventId, labelId);
-    if (!row) throw new NotFoundException('Label not found');
-    return row;
-  }
-
   private async assertMember(org: OrgContext, userId: string): Promise<void> {
     if (!(await this.tasks.isOrganizationMember(org.organizationId, userId))) {
       throw new BadRequestException('assigneeUserId: not a member of this organization');
     }
-  }
-
-  /** The distinct, sorted label ids, after checking they are live labels of the event. */
-  private async assertLabels(eventId: string, labelIds: string[]): Promise<string[]> {
-    const unique = [...new Set(labelIds)].sort();
-    if ((await this.tasks.countLabels(eventId, unique)) !== unique.length) {
-      throw new BadRequestException('labelIds: unknown label');
-    }
-    return unique;
   }
 
   private async decide(
@@ -461,26 +372,6 @@ function assertWritable(event: EventRow): void {
   }
 }
 
-/** Turns a violation of the given unique index into a 409; rethrows anything else. */
-function rethrowUnique(error: unknown, constraint: string, message: string): never {
-  // Drizzle wraps the driver error: the Postgres code and constraint are on its cause.
-  const cause: unknown = error instanceof Error ? (error.cause ?? error) : error;
-  if (
-    typeof cause === 'object' &&
-    cause !== null &&
-    'code' in cause &&
-    cause.code === '23505' &&
-    'constraint' in cause &&
-    cause.constraint === constraint
-  ) {
-    throw new ConflictException(message);
-  }
-  throw error;
-}
-
-const rethrowLabelNameTaken = (error: unknown): never =>
-  rethrowUnique(error, 'task_label_event_name_uidx', 'name: a label with this name already exists');
-
 export function toTaskDto(view: TaskView): TaskDto {
   const { task } = view;
   let assignee: TaskDto['assignee'] = null;
@@ -517,12 +408,3 @@ export function toTaskDto(view: TaskView): TaskDto {
     updatedAt: task.updatedAt.toISOString(),
   };
 }
-
-const toTaskLabelDto = (row: TaskLabelRow): TaskLabelDto => ({
-  id: row.id,
-  eventId: row.eventId,
-  name: row.name,
-  color: row.color,
-  createdAt: row.createdAt.toISOString(),
-  updatedAt: row.updatedAt.toISOString(),
-});

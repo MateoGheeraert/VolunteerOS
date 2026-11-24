@@ -3,7 +3,7 @@ import { todayInBrussels } from '@/features/tasks/task-rules';
 import { getActiveMember, listMembers } from '@/server/auth';
 import { getAiState } from '@/server/ai/queries';
 import { getEvent, listEventManagers } from '@/server/events/queries';
-import { listTaskLabels } from '@/server/tasks/queries';
+import { listLabels } from '@/server/labels/queries';
 import { AiPanel } from './ai-panel';
 import { TaskMilaBar } from './task-mila-bar';
 
@@ -29,7 +29,7 @@ export async function EventAiPanel({
 
   const [state, labels, members] = await Promise.all([
     getAiState(eventId),
-    listTaskLabels(eventId),
+    listLabels(eventId),
     listMembers(),
   ]);
   const View = variant === 'bar' ? TaskMilaBar : AiPanel;

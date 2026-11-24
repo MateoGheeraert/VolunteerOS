@@ -3,8 +3,10 @@
 import { Trash2 } from 'lucide-react';
 import { useAction } from 'next-safe-action/hooks';
 import { useTranslations } from 'next-intl';
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import type { TaskLabel } from '@/api/generated/types.gen';
+import { toast } from 'sonner';
+import type { Label } from '@/api/generated/types.gen';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { NativeSelect } from '@/components/ui/native-select';
@@ -15,33 +17,37 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet';
-import { createTaskLabel, deleteTaskLabel, updateTaskLabel } from '@/server/tasks/actions';
-import { LABEL_COLORS, type LabelColor } from './schemas';
-import { LabelChip } from './task-badges';
-import { useActionFeedback, useTasksContext } from './tasks-context';
+import type { ActionError } from '@/server/action-client';
+import { createLabel, deleteLabel, getLabelUsage, updateLabel } from '@/server/labels/actions';
+import { LabelChip } from './label-chip';
+import { LABEL_COLORS, LABEL_NAME_MAX, type LabelColor } from './schemas';
 
-/** Managers add, rename, recolor and delete the event's labels. */
+/**
+ * Managers add, rename, recolor and delete the event's labels. The same labels show on tasks and
+ * budget entries, so this opens from both pages.
+ */
 export function LabelManager({
   eventId,
+  labels,
   open,
   onOpenChange,
 }: {
   eventId: string;
+  labels: Label[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
   const t = useTranslations();
-  const { labels } = useTasksContext();
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-full overflow-y-auto sm:max-w-lg">
         <SheetHeader>
-          <SheetTitle className="text-lg">{t('taskLabels.title')}</SheetTitle>
-          <SheetDescription>{t('taskLabels.description')}</SheetDescription>
+          <SheetTitle className="text-lg">{t('labels.title')}</SheetTitle>
+          <SheetDescription>{t('labels.description')}</SheetDescription>
         </SheetHeader>
         <div className="flex flex-col gap-4 px-4 pb-6">
           {labels.length === 0 ? (
-            <p className="text-muted-foreground">{t('taskLabels.empty')}</p>
+            <p className="text-muted-foreground">{t('labels.empty')}</p>
           ) : (
             <ul className="flex flex-col gap-3">
               {labels.map((label) => (
@@ -55,6 +61,17 @@ export function LabelManager({
       </SheetContent>
     </Sheet>
   );
+}
+
+/** A success refreshes the page data; a failure gets a toast. */
+function useFeedback() {
+  const t = useTranslations();
+  const router = useRouter();
+  return {
+    onSuccess: () => router.refresh(),
+    onError: ({ error }: { error: { serverError?: ActionError } }) =>
+      toast.error(t(error.serverError?.message ?? 'common.genericError')),
+  };
 }
 
 function LabelFields({
@@ -75,13 +92,13 @@ function LabelFields({
     <div className="grid grid-cols-[minmax(0,1fr)_8.5rem] gap-2">
       <Input
         id={`${idPrefix}-name`}
-        aria-label={t('taskLabels.name')}
+        aria-label={t('labels.name')}
         value={name}
-        maxLength={50}
+        maxLength={LABEL_NAME_MAX}
         onChange={(event) => onName(event.target.value)}
       />
       <NativeSelect
-        aria-label={t('taskLabels.color')}
+        aria-label={t('labels.color')}
         value={color}
         onChange={(event) => onColor(event.target.value as LabelColor)}
       >
@@ -95,16 +112,20 @@ function LabelFields({
   );
 }
 
-function LabelRow({ eventId, label }: { eventId: string; label: TaskLabel }) {
+function LabelRow({ eventId, label }: { eventId: string; label: Label }) {
   const t = useTranslations();
-  const feedback = useActionFeedback();
+  const feedback = useFeedback();
   const [name, setName] = useState(label.name);
   const [color, setColor] = useState<LabelColor>(label.color);
-  const [confirming, setConfirming] = useState(false);
-  const save = useAction(updateTaskLabel.bind(null, eventId, label.id), feedback);
-  const remove = useAction(deleteTaskLabel.bind(null, eventId, label.id), feedback);
+  const save = useAction(updateLabel.bind(null, eventId, label.id), feedback);
+  const remove = useAction(deleteLabel.bind(null, eventId, label.id), feedback);
+  // Asking what carries the label opens the confirmation, which says what deleting touches.
+  const usage = useAction(getLabelUsage.bind(null, eventId, label.id), {
+    onError: feedback.onError,
+  });
+  const confirming = usage.hasSucceeded && usage.result.data !== undefined;
   const changed = name.trim() !== label.name || color !== label.color;
-  const busy = save.isPending || remove.isPending;
+  const busy = save.isPending || remove.isPending || usage.isPending;
 
   return (
     <li className="flex flex-col gap-2 rounded-2xl bg-muted/50 p-3">
@@ -118,9 +139,9 @@ function LabelRow({ eventId, label }: { eventId: string; label: TaskLabel }) {
               disabled={busy}
               onClick={() => remove.execute()}
             >
-              {t('taskLabels.deleteConfirm')}
+              {t('labels.deleteConfirm')}
             </Button>
-            <Button size="sm" variant="ghost" onClick={() => setConfirming(false)}>
+            <Button size="sm" variant="ghost" onClick={() => usage.reset()}>
               {t('common.cancel')}
             </Button>
           </span>
@@ -128,13 +149,24 @@ function LabelRow({ eventId, label }: { eventId: string; label: TaskLabel }) {
           <Button
             size="icon-sm"
             variant="ghost"
-            aria-label={t('taskLabels.delete', { name: label.name })}
-            onClick={() => setConfirming(true)}
+            disabled={busy}
+            aria-label={t('labels.delete', { name: label.name })}
+            onClick={() => usage.execute()}
           >
             <Trash2 aria-hidden />
           </Button>
         )}
       </div>
+      {confirming && usage.result.data && (
+        <output className="text-sm text-muted-foreground">
+          {usage.result.data.tasks + usage.result.data.budgetEntries === 0
+            ? t('labels.unused')
+            : t('labels.usedBy', {
+                tasks: usage.result.data.tasks,
+                budgetEntries: usage.result.data.budgetEntries,
+              })}
+        </output>
+      )}
       <LabelFields
         idPrefix={label.id}
         name={name}
@@ -158,11 +190,10 @@ function LabelRow({ eventId, label }: { eventId: string; label: TaskLabel }) {
 
 function NewLabel({ eventId }: { eventId: string }) {
   const t = useTranslations();
-  const feedback = useActionFeedback();
+  const { onSuccess, onError } = useFeedback();
   const [name, setName] = useState('');
   const [color, setColor] = useState<LabelColor>('blue');
-  const { onSuccess, onError } = feedback;
-  const create = useAction(createTaskLabel.bind(null, eventId), {
+  const create = useAction(createLabel.bind(null, eventId), {
     onSuccess: () => {
       setName('');
       onSuccess();
@@ -178,10 +209,10 @@ function NewLabel({ eventId }: { eventId: string }) {
         if (name.trim()) create.execute({ name, color });
       }}
     >
-      <h3 className="text-sm font-bold">{t('taskLabels.newLabel')}</h3>
+      <h3 className="text-sm font-bold">{t('labels.newLabel')}</h3>
       <LabelFields idPrefix="new" name={name} color={color} onName={setName} onColor={setColor} />
       <Button type="submit" size="sm" className="w-fit" disabled={!name.trim() || create.isPending}>
-        {t('taskLabels.add')}
+        {t('labels.add')}
       </Button>
     </form>
   );

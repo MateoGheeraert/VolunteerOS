@@ -7,18 +7,16 @@ import {
   event,
   member,
   task,
+  label,
   taskAssignmentRequest,
-  taskLabel,
   taskLabelLink,
   user,
   type EventRow,
   type TaskAssignmentRequestRow,
   type TaskAssignmentRequestStatus,
-  type TaskLabelRow,
   type TaskRow,
 } from '../../db/schema/index.js';
 import { notDeleted } from '../../db/soft-delete.js';
-import type { CreateTaskLabelInput, UpdateTaskLabelInput } from './tasks.schemas.js';
 
 /** A task with the names of the people it refers to, and whether they are still members. */
 export interface TaskView {
@@ -43,7 +41,7 @@ const creatorUser = alias(user, 'creator_user');
 const creatorMember = alias(member, 'creator_member');
 
 /**
- * Data access for tasks, their labels and assignment requests. Reads take the organization and
+ * Data access for tasks, their label links and assignment requests. Reads take the organization and
  * join the event, so they can never reach another tenant's rows; writes take an already
  * authorized event or task. Reads skip soft-deleted rows.
  */
@@ -146,15 +144,11 @@ export class TasksRepository {
     return this.db
       .select({ taskId: taskLabelLink.taskId, labelId: taskLabelLink.labelId })
       .from(taskLabelLink)
-      .innerJoin(taskLabel, eq(taskLabel.id, taskLabelLink.labelId))
+      .innerJoin(label, eq(label.id, taskLabelLink.labelId))
       .where(
-        and(
-          inArray(taskLabelLink.taskId, taskIds),
-          notDeleted(taskLabelLink),
-          notDeleted(taskLabel),
-        ),
+        and(inArray(taskLabelLink.taskId, taskIds), notDeleted(taskLabelLink), notDeleted(label)),
       )
-      .orderBy(asc(taskLabel.name));
+      .orderBy(asc(label.name));
   }
 
   private pendingRequests(taskIds: string[], userId?: string) {
@@ -221,10 +215,8 @@ export class TasksRepository {
     const rows = await db
       .select({ labelId: taskLabelLink.labelId })
       .from(taskLabelLink)
-      .innerJoin(taskLabel, eq(taskLabel.id, taskLabelLink.labelId))
-      .where(
-        and(eq(taskLabelLink.taskId, taskId), notDeleted(taskLabelLink), notDeleted(taskLabel)),
-      );
+      .innerJoin(label, eq(label.id, taskLabelLink.labelId))
+      .where(and(eq(taskLabelLink.taskId, taskId), notDeleted(taskLabelLink), notDeleted(label)));
     return rows.map((row) => row.labelId).sort();
   }
 
@@ -248,70 +240,6 @@ export class TasksRepository {
         target: [taskLabelLink.taskId, taskLabelLink.labelId],
         where: sql`${taskLabelLink.deletedAt} is null`,
       });
-  }
-
-  /** Live labels of the given events (already authorized). */
-  async listLabels(eventIds: string[]): Promise<TaskLabelRow[]> {
-    if (eventIds.length === 0) return [];
-    return this.db
-      .select()
-      .from(taskLabel)
-      .where(and(inArray(taskLabel.eventId, eventIds), notDeleted(taskLabel)))
-      .orderBy(asc(sql`lower(${taskLabel.name})`));
-  }
-
-  /** How many of `labelIds` are live labels of the event. */
-  async countLabels(eventId: string, labelIds: string[]): Promise<number> {
-    if (labelIds.length === 0) return 0;
-    const [row] = await this.db
-      .select({ n: count() })
-      .from(taskLabel)
-      .where(
-        and(eq(taskLabel.eventId, eventId), inArray(taskLabel.id, labelIds), notDeleted(taskLabel)),
-      );
-    return row!.n;
-  }
-
-  async findLabel(eventId: string, labelId: string): Promise<TaskLabelRow | undefined> {
-    const [row] = await this.db
-      .select()
-      .from(taskLabel)
-      .where(and(eq(taskLabel.id, labelId), eq(taskLabel.eventId, eventId), notDeleted(taskLabel)))
-      .limit(1);
-    return row;
-  }
-
-  async insertLabel(
-    tx: DbExecutor,
-    eventId: string,
-    input: CreateTaskLabelInput,
-  ): Promise<TaskLabelRow> {
-    const [created] = await tx
-      .insert(taskLabel)
-      .values({ eventId, name: input.name, color: input.color })
-      .returning();
-    return created!;
-  }
-
-  async updateLabel(
-    tx: DbExecutor,
-    labelId: string,
-    patch: UpdateTaskLabelInput & { deletedAt?: Date },
-  ): Promise<TaskLabelRow> {
-    const [updated] = await tx
-      .update(taskLabel)
-      .set(patch)
-      .where(and(eq(taskLabel.id, labelId), notDeleted(taskLabel)))
-      .returning();
-    return updated!;
-  }
-
-  /** Removes the label from every task. */
-  async unlinkLabel(tx: DbExecutor, labelId: string): Promise<void> {
-    await tx
-      .update(taskLabelLink)
-      .set({ deletedAt: new Date() })
-      .where(and(eq(taskLabelLink.labelId, labelId), notDeleted(taskLabelLink)));
   }
 
   async findPendingRequest(

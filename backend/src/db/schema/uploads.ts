@@ -2,6 +2,7 @@ import { sql } from 'drizzle-orm';
 import { bigint, index, pgEnum, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 import { deletedAt } from '../soft-delete.js';
 import { organization, user } from './auth.js';
+import { budgetEntry } from './budget.js';
 import { event } from './events.js';
 import { task } from './tasks.js';
 
@@ -14,7 +15,8 @@ export type UploadStatus = (typeof uploadStatusEnum.enumValues)[number];
 
 /**
  * A file in object storage (Cloudflare R2). The row holds the facts about the file; what it is
- * attached to lives in one link table per owner type (`event_upload`, `task_upload`), each with
+ * attached to lives in one link table per owner type (`event_upload`, `task_upload`,
+ * `budget_entry_upload`), each with
  * `upload_id` as primary key, so a file has exactly one owner.
  *
  * Deleting a file soft-deletes the row. The storage object is removed later by the daily cleanup
@@ -84,6 +86,20 @@ export const taskUpload = pgTable(
       .references(() => task.id, { onDelete: 'cascade' }),
   },
   (t) => [index('task_upload_task_id_idx').on(t.taskId)],
+);
+
+/** A file attached to a budget entry, e.g. its invoice or receipt. */
+export const budgetEntryUpload = pgTable(
+  'budget_entry_upload',
+  {
+    uploadId: uuid('upload_id')
+      .primaryKey()
+      .references(() => upload.id, { onDelete: 'cascade' }),
+    budgetEntryId: uuid('budget_entry_id')
+      .notNull()
+      .references(() => budgetEntry.id, { onDelete: 'cascade' }),
+  },
+  (t) => [index('budget_entry_upload_budget_entry_id_idx').on(t.budgetEntryId)],
 );
 
 export type UploadRow = typeof upload.$inferSelect;

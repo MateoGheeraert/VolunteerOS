@@ -314,10 +314,10 @@
       "assigneeNameTooLong": "De naam is te lang."
     }
   },
-  "taskLabels": {
+  "labels": {
     "title": "Labels",
     "manage": "Labels",
-    "description": "Labels groeperen taken, bv. alles voor de bar. Ze horen bij dit evenement.",
+    "description": "Labels groeperen taken en budgetposten, bv. alles voor de bar. Ze horen bij dit evenement.",
     "empty": "Nog geen labels.",
     "name": "Naam",
     "color": "Kleur",
@@ -330,7 +330,11 @@
       "nameRequired": "Geef het label een naam.",
       "nameTooLong": "De naam is te lang."
     },
-    "nameTaken": "Er bestaat al een label met deze naam."
+    "nameTaken": "Er bestaat al een label met deze naam.",
+    "usedBy": "Gebruikt door {tasks, plural, =0 {geen taken} one {# taak} other {# taken}} en {budgetEntries, plural, =0 {geen budgetposten} one {# budgetpost} other {# budgetposten}}. Het label verdwijnt overal.",
+    "unused": "Dit label wordt nergens gebruikt.",
+    "tag": "Labels kiezen",
+    "tagItem": "Labels voor {name}"
   },
   "myTasks": {
     "title": "Mijn taken",
@@ -912,6 +916,76 @@
     "delete": "Verwijderen",
     "deleteTitle": "Bestand verwijderen?",
     "deleteWarning": "{name} verdwijnt uit het evenement.",
-    "deleteConfirm": "Verwijderen"
+    "deleteConfirm": "Verwijderen",
+    "budgetEntry": "Budget: {title}"
+  },
+  "budget": {
+    "title": "Budget",
+    "description": "Wat je verwacht en wat er echt binnenkomt en uitgaat, zodat je weet of het evenement winst maakt.",
+    "readOnly": "Dit evenement is gearchiveerd: het budget is alleen nog te bekijken.",
+    "editTitle": "Budgetpost",
+    "editDescription": "Pas de post aan of voeg een factuur of bonnetje toe.",
+    "saved": "Opgeslagen",
+    "emptyFiltered": "Geen budgetposten voor deze filter.",
+    "gone": "Deze budgetpost bestaat niet meer.",
+    "summary": "Overzicht",
+    "filtered": "gefilterd",
+    "estimated": "Geraamd",
+    "actual": "Werkelijk",
+    "income": "Inkomsten",
+    "expenses": "Uitgaven",
+    "result": "Resultaat",
+    "noAmount": "—",
+    "type": "Soort",
+    "allTypes": "Alles",
+    "allLabels": "Alle labels",
+    "labels": "Labels",
+    "fileCount": "{count, plural, one {# bestand} other {# bestanden}}",
+    "entryActions": "Acties voor {title}",
+    "open": "Openen",
+    "delete": "Verwijderen",
+    "deleteTitle": "Budgetpost verwijderen?",
+    "deleteWarning": "{title} en de bestanden ervan verdwijnen uit het budget.",
+    "deleteConfirm": "Verwijderen",
+    "form": {
+      "type": "Soort",
+      "title": "Omschrijving",
+      "titlePlaceholderIncome": "Bv. Inkomkaarten",
+      "titlePlaceholderExpense": "Bv. Tent huren",
+      "estimated": "Geraamd bedrag",
+      "actual": "Werkelijk bedrag",
+      "amountPlaceholder": "0,00",
+      "amountHelp": "In euro, bv. 1.250,50",
+      "notes": "Notities",
+      "task": "Taak",
+      "noTask": "Geen taak",
+      "taskHelp": "Optioneel: de taak waar deze post bij hoort."
+    },
+    "validation": {
+      "titleRequired": "Geef een omschrijving.",
+      "titleTooLong": "De omschrijving is te lang.",
+      "notesTooLong": "De notities zijn te lang.",
+      "amountRequired": "Vul een geraamd of een werkelijk bedrag in.",
+      "amountInvalid": "Dit is geen bedrag. Schrijf bv. 12,50.",
+      "amountDecimals": "Gebruik hoogstens 2 cijfers na de komma.",
+      "amountTooLarge": "Het bedrag is te groot (hoogstens € 9.999.999,99).",
+      "amountSignsConflict": "Gebruik in beide bedragen hetzelfde teken: + voor een inkomst, − voor een kost."
+    },
+    "quickAdd": {
+      "label": "Nieuwe budgetpost",
+      "placeholder": "Omschrijving, bv. Tent huren",
+      "newItem": "de nieuwe post",
+      "add": "Toevoegen (Enter)",
+      "typeIncome": "Inkomst: klik voor een kost",
+      "typeExpense": "Kost: klik voor een inkomst",
+      "signHint": "Tip: typ -500 voor een kost of +500 voor een inkomst."
+    },
+    "empty": "Nog geen inkomsten of kosten.",
+    "columnDescription": "Omschrijving",
+    "sortBy": "Sorteren op {column}"
+  },
+  "budgetEntryType": {
+    "income": "Inkomst",
+    "expense": "Uitgave"
   }
 }

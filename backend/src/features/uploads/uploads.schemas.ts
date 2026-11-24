@@ -5,7 +5,7 @@ import { upload } from '../../db/schema/index.js';
 import { MAX_UPLOAD_BYTES } from './upload-rules.js';
 
 /**
- * API contracts for files attached to an event or its tasks, derived from the `upload` table.
+ * API contracts for files attached to an event, its tasks or its budget entries, derived from the `upload` table.
  * Type, extension and size rules live in upload-rules.ts; these schemas only check the shape.
  */
 
@@ -15,10 +15,17 @@ const uploadInput = createInsertSchema(upload, {
   sizeBytes: () => z.number().int().positive().max(MAX_UPLOAD_BYTES),
 });
 
-/** Announces a file before the browser uploads it. Without `taskId` it belongs to the event. */
+/**
+ * Announces a file before the browser uploads it. It belongs to the task (`taskId`), the budget
+ * entry (`budgetEntryId`) or, with neither, the event.
+ */
 export const createUploadSchema = uploadInput
   .pick({ name: true, mimeType: true, sizeBytes: true })
-  .extend({ taskId: z.uuid().optional() })
+  .extend({ taskId: z.uuid().optional(), budgetEntryId: z.uuid().optional() })
+  .refine((value) => !value.taskId || !value.budgetEntryId, {
+    message: 'Set either taskId or budgetEntryId, not both',
+    path: ['budgetEntryId'],
+  })
   .meta({ id: 'CreateUpload' });
 export type CreateUploadInput = z.infer<typeof createUploadSchema>;
 
@@ -30,8 +37,10 @@ export const uploadSchema = createSelectSchema(upload, { createdAt: dateTimeOutp
   .pick({ id: true, name: true, mimeType: true, sizeBytes: true, createdAt: true })
   .extend({
     uploadedBy: z.object({ userId: z.string(), name: z.string() }),
-    /** The task it is attached to, or null for a file of the event itself. */
+    /** The task it is attached to, if any. */
     task: z.object({ id: z.uuid(), title: z.string() }).nullable(),
+    /** The budget entry it is attached to, if any. With neither, it is a file of the event. */
+    budgetEntry: z.object({ id: z.uuid(), title: z.string() }).nullable(),
     /** Whether the caller may rename or delete it. */
     canChange: z.boolean(),
   })

@@ -77,14 +77,6 @@ const dateFormat = new Intl.DateTimeFormat(LOCALE, {
 /** "19 december 2026", in Brussels. */
 export const formatDate = (date: Date): string => dateFormat.format(date);
 
-const euro = new Intl.NumberFormat(LOCALE, { style: 'currency', currency: 'EUR' });
-
-/** Money is stored in integer cents (never floats). 42050 → "€ 420,50". */
-export function formatCents(cents: number): string {
-  if (!Number.isInteger(cents)) throw new Error(`Amount must be whole cents: ${cents}`);
-  return euro.format(cents / 100);
-}
-
 const dayOnlyFormat = new Intl.DateTimeFormat(LOCALE, {
   timeZone: 'UTC',
   weekday: 'short',

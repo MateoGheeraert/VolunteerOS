@@ -24,7 +24,7 @@ beforeEach(async () => {
 });
 
 const tasksUrl = (event = eventId) => `/api/events/${event}/tasks`;
-const labelsUrl = (event = eventId) => `/api/events/${event}/task-labels`;
+const labelsUrl = (event = eventId) => `/api/events/${event}/labels`;
 
 async function createTask(client: TestClient, body: Record<string, unknown> = {}, event = eventId) {
   const res = await client.post(tasksUrl(event), { title: 'Tap reinigen', ...body });
@@ -414,10 +414,7 @@ describe('labels', () => {
     const [listed] = (await admin.get(tasksUrl())).body;
     expect(listed.labelIds).toEqual([kassa.id]);
     expect((await admin.post(labelsUrl(), { name: 'Bar' })).status).toBe(201);
-    expect((await logOf('task_label', bar.id)).map((e) => e.action)).toEqual([
-      'created',
-      'deleted',
-    ]);
+    expect((await logOf('label', bar.id)).map((e) => e.action)).toEqual(['created', 'deleted']);
   });
 
   it('replace the task’s labels on update, logged as ids', async () => {

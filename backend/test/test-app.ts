@@ -121,9 +121,10 @@ export async function createTestApp(): Promise<TestApp> {
       emails.reset();
       files.reset();
       await db.execute(sql`
-        truncate table event_upload, task_upload, upload, email_delivery, activity_log, assignment, volunteer_application, volunteer, shift,
+        truncate table event_upload, task_upload, budget_entry_upload, upload,
+          budget_entry_label_link, budget_entry, email_delivery, activity_log, assignment, volunteer_application, volunteer, shift,
           team, task_assignment_request, task_label_link,
-          task_label, task, event_member, event, invitation, member, organization,
+          label, task, event_member, event, invitation, member, organization,
           session, account, verification, user_profile, "user" restart identity cascade
       `);
     },

@@ -9,7 +9,8 @@ import { todayInBrussels } from '@/features/tasks/task-rules';
 import { TasksView } from '@/features/tasks/tasks-view';
 import { getActiveMember, listMembers } from '@/server/auth';
 import { getEvent, listEventManagers } from '@/server/events/queries';
-import { listTaskLabels, listTasks } from '@/server/tasks/queries';
+import { listLabels } from '@/server/labels/queries';
+import { listTasks } from '@/server/tasks/queries';
 
 export const metadata: Metadata = { title: 'Taken' };
 
@@ -30,7 +31,7 @@ async function EventTasks({ params }: Pick<PageProps<'/events/[eventId]/tasks'>,
   const [event, tasks, labels, me, members, managers, t] = await Promise.all([
     getEvent(eventId),
     listTasks(eventId),
-    listTaskLabels(eventId),
+    listLabels(eventId),
     getActiveMember(),
     listMembers(),
     listEventManagers(eventId),

@@ -1,10 +1,11 @@
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
 import { z } from 'zod';
 import { dateTimeOutput } from '../../common/schemas.js';
-import { event, task, taskAssignmentRequest, taskLabel, user } from '../../db/schema/index.js';
+import { event, task, taskAssignmentRequest, user } from '../../db/schema/index.js';
+import { labelIdsSchema, labelSchema } from '../labels/labels.schemas.js';
 
 /**
- * API contracts for tasks and their labels, derived from the Drizzle tables (see events.schemas.ts).
+ * API contracts for tasks, derived from the Drizzle tables (see events.schemas.ts).
  */
 
 /** At most one of the two assignee fields may be set. */
@@ -14,8 +15,6 @@ const singleAssigneeIssue = {
   message: 'Set either assigneeUserId or assigneeName, not both',
   path: ['assigneeName'],
 };
-
-const MAX_LABELS_PER_TASK = 20;
 
 const taskInput = createInsertSchema(task, {
   title: (schema) => schema.trim().min(1).max(200),
@@ -37,7 +36,7 @@ const editableFields = {
   assigneeName: true,
 } as const;
 
-const labelIds = z.array(z.uuid()).max(MAX_LABELS_PER_TASK);
+const labelIds = labelIdsSchema;
 
 export const createTaskSchema = taskInput
   .pick(editableFields)
@@ -97,29 +96,6 @@ export const taskSchema = createSelectSchema(task, {
   .meta({ id: 'Task' });
 export type TaskDto = z.infer<typeof taskSchema>;
 
-const labelInput = createInsertSchema(taskLabel, {
-  name: (schema) => schema.trim().min(1).max(50),
-});
-
-export const createTaskLabelSchema = labelInput
-  .pick({ name: true, color: true })
-  .meta({ id: 'CreateTaskLabel' });
-export type CreateTaskLabelInput = z.infer<typeof createTaskLabelSchema>;
-
-export const updateTaskLabelSchema = labelInput
-  .pick({ name: true, color: true })
-  .partial()
-  .meta({ id: 'UpdateTaskLabel' });
-export type UpdateTaskLabelInput = z.infer<typeof updateTaskLabelSchema>;
-
-export const taskLabelSchema = createSelectSchema(taskLabel, {
-  createdAt: dateTimeOutput,
-  updatedAt: dateTimeOutput,
-})
-  .omit({ deletedAt: true })
-  .meta({ id: 'TaskLabel' });
-export type TaskLabelDto = z.infer<typeof taskLabelSchema>;
-
 /** A member's unfinished tasks in one event: shown before removing them from the organization. */
 export const openTaskCountSchema = z
   .object({ eventId: z.uuid(), eventName: z.string(), openTasks: z.number().int() })
@@ -136,6 +112,6 @@ export const myTaskSchema = taskSchema
   .meta({ id: 'MyTask' });
 
 export const myTasksSchema = z
-  .object({ tasks: z.array(myTaskSchema), labels: z.array(taskLabelSchema) })
+  .object({ tasks: z.array(myTaskSchema), labels: z.array(labelSchema) })
   .meta({ id: 'MyTasks' });
 export type MyTasksDto = z.infer<typeof myTasksSchema>;
