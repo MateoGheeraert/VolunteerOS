@@ -27,13 +27,15 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { LabelChip } from '@/features/labels/label-chip';
+import { LABEL_NAME_MAX, nextLabelColor } from '@/features/labels/schemas';
 import { TaskFiles } from '@/features/uploads/task-files';
+import { createLabel } from '@/server/labels/actions';
 import { formatDay } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import {
   approveTaskRequest,
   cancelTaskRequest,
-  createTaskLabel,
   declineTaskRequest,
   deleteTask,
   patchTask,
@@ -48,9 +50,8 @@ import {
   type TaskPriority,
   type TaskStatus,
 } from './schemas';
-import { LabelChip, PriorityBadge, TaskStatusBadge } from './task-badges';
+import { PriorityBadge, TaskStatusBadge } from './task-badges';
 import { AssigneeName } from './task-card';
-import { nextColor } from './task-form';
 import { assigneeUserId, isDueAfterEvent, isOverdue } from './task-rules';
 import { useActionFeedback, useTasksContext, type ShownTask } from './tasks-context';
 
@@ -488,7 +489,7 @@ function NewLabel({ eventId, onCreated }: { eventId: string; onCreated: (id: str
   const router = useRouter();
   const { labels } = useTasksContext();
   const [name, setName] = useState('');
-  const create = useAction(createTaskLabel.bind(null, eventId), {
+  const create = useAction(createLabel.bind(null, eventId), {
     onSuccess: ({ data }) => {
       if (!data) return;
       onCreated(data.id);
@@ -498,15 +499,15 @@ function NewLabel({ eventId, onCreated }: { eventId: string; onCreated: (id: str
     onError: ({ error }) => toast.error(t(error.serverError?.message ?? 'common.genericError')),
   });
   const add = () => {
-    if (name.trim()) create.execute({ name, color: nextColor(labels.length) });
+    if (name.trim()) create.execute({ name, color: nextLabelColor(labels.length) });
   };
   return (
     <div className="flex gap-1.5 border-t border-border pt-2">
       <Input
-        aria-label={t('taskLabels.newLabel')}
-        placeholder={t('taskLabels.newLabelPlaceholder')}
+        aria-label={t('labels.newLabel')}
+        placeholder={t('labels.newLabelPlaceholder')}
         value={name}
-        maxLength={50}
+        maxLength={LABEL_NAME_MAX}
         className="h-9"
         onChange={(event) => setName(event.target.value)}
         onKeyDown={(event) => {
@@ -520,7 +521,7 @@ function NewLabel({ eventId, onCreated }: { eventId: string; onCreated: (id: str
         type="button"
         size="icon-sm"
         variant="secondary"
-        aria-label={t('taskLabels.add')}
+        aria-label={t('labels.add')}
         disabled={!name.trim() || create.isPending}
         onClick={add}
       >

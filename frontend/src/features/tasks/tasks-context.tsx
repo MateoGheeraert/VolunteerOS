@@ -4,7 +4,7 @@ import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { createContext, use } from 'react';
 import { toast } from 'sonner';
-import type { Task, TaskEvent, TaskLabel } from '@/api/generated/types.gen';
+import type { Label, Task, TaskEvent } from '@/api/generated/types.gen';
 import type { ActionError } from '@/server/action-client';
 
 /** A task as the views show it. On "my tasks", which spans events, it also says which event. */
@@ -24,7 +24,7 @@ export interface TasksContextValue {
   readOnly: boolean;
   /** Today in Brussels, from the server, so server and client agree on what is overdue. */
   today: string;
-  labels: TaskLabel[];
+  labels: Label[];
   /** Current organization members, for the assignee picker. */
   members: { userId: string; name: string }[];
 }

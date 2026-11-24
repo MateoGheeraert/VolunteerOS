@@ -10,6 +10,7 @@ import { DatabaseModule } from './db/database.module.js';
 import { EmailModule } from './email/email.module.js';
 import { EventsModule } from './features/events/events.module.js';
 import { JobsModule } from './jobs/jobs.module.js';
+import { LabelsModule } from './features/labels/labels.module.js';
 import { PlanningModule } from './features/planning/planning.module.js';
 import { ProfileModule } from './features/profile/profile.module.js';
 import { TasksModule } from './features/tasks/tasks.module.js';
@@ -42,6 +43,7 @@ import { StorageModule } from './storage/storage.module.js';
     AuthModule,
     AuthzModule,
     EventsModule,
+    LabelsModule,
     TasksModule,
     UploadsModule,
     PlanningModule,

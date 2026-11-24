@@ -4,9 +4,6 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import {
   memberTasksControllerOpenTasks,
-  taskLabelsControllerCreate,
-  taskLabelsControllerRemove,
-  taskLabelsControllerUpdate,
   tasksControllerApproveRequest,
   tasksControllerCancelRequest,
   tasksControllerCreate,
@@ -17,7 +14,6 @@ import {
 } from '@/api/generated';
 import {
   changeTaskStatusSchema,
-  labelFormSchema,
   taskApiFields,
   taskFormSchema,
   taskPatchSchema,
@@ -119,34 +115,6 @@ export const declineTaskRequest = actionClient
   .bindArgsSchemas([id, id, id])
   .action(async ({ bindArgsParsedInputs: [eventId, taskId, requestId] }) => {
     await tasksControllerDeclineRequest({ path: { eventId, taskId, requestId } });
-    revalidateTasks(eventId);
-  });
-
-/** Bind the event. Returns the label, so the task form can select it right away. */
-export const createTaskLabel = actionClient
-  .metadata({ name: 'createTaskLabel', conflictMessage: msg('taskLabels.nameTaken') })
-  .bindArgsSchemas([id])
-  .inputSchema(labelFormSchema)
-  .action(async ({ parsedInput, bindArgsParsedInputs: [eventId] }) => {
-    const { data } = await taskLabelsControllerCreate({ path: { eventId }, body: parsedInput });
-    revalidateTasks(eventId);
-    return data;
-  });
-
-export const updateTaskLabel = actionClient
-  .metadata({ name: 'updateTaskLabel', conflictMessage: msg('taskLabels.nameTaken') })
-  .bindArgsSchemas([id, id])
-  .inputSchema(labelFormSchema)
-  .action(async ({ parsedInput, bindArgsParsedInputs: [eventId, labelId] }) => {
-    await taskLabelsControllerUpdate({ path: { eventId, labelId }, body: parsedInput });
-    revalidateTasks(eventId);
-  });
-
-export const deleteTaskLabel = actionClient
-  .metadata({ name: 'deleteTaskLabel' })
-  .bindArgsSchemas([id, id])
-  .action(async ({ bindArgsParsedInputs: [eventId, labelId] }) => {
-    await taskLabelsControllerRemove({ path: { eventId, labelId } });
     revalidateTasks(eventId);
   });
 

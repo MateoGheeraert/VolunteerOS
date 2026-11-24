@@ -3,6 +3,7 @@ export * from './ai.js';
 export * from './auth.js';
 export * from './email-delivery.js';
 export * from './events.js';
+export * from './labels.js';
 export * from './organization-enums.js';
 export * from './planning.js';
 export * from './tasks.js';

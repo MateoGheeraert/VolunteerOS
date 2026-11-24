@@ -20,18 +20,13 @@ import {
 import type { EventAccess } from '../../authz/event-access.service.js';
 import { CurrentOrg, type OrgContext } from '../../authz/org-context.js';
 import {
-  createTaskLabelSchema,
   createTaskSchema,
   myTasksSchema,
   openTaskCountSchema,
-  taskLabelSchema,
   taskSchema,
-  updateTaskLabelSchema,
   updateTaskSchema,
   type CreateTaskInput,
-  type CreateTaskLabelInput,
   type UpdateTaskInput,
-  type UpdateTaskLabelInput,
 } from './tasks.schemas.js';
 import { TasksService } from './tasks.service.js';
 
@@ -137,55 +132,6 @@ export class TasksController {
     @Param('requestId', uuid) requestId: string,
   ) {
     return this.tasks.declineRequest(org, access, taskId, requestId);
-  }
-}
-
-/** An event's task labels: everyone reads them, managers maintain them. */
-@ApiTags('tasks')
-@OrgScoped()
-@Controller('events/:eventId/task-labels')
-export class TaskLabelsController {
-  constructor(private readonly tasks: TasksService) {}
-
-  @Get()
-  @RequireEventAccess('read')
-  @ApiResponse({ status: 200, standardSchema: z.array(taskLabelSchema) })
-  list(@CurrentEventAccess() access: EventAccess) {
-    return this.tasks.listLabels(access);
-  }
-
-  @Post()
-  @RequireEventAccess('manage')
-  @ApiResponse({ status: 201, standardSchema: taskLabelSchema })
-  create(
-    @CurrentOrg() org: OrgContext,
-    @CurrentEventAccess() access: EventAccess,
-    @Body({ schema: createTaskLabelSchema }) body: CreateTaskLabelInput,
-  ) {
-    return this.tasks.createLabel(org, access, body);
-  }
-
-  @Patch(':labelId')
-  @RequireEventAccess('manage')
-  @ApiResponse({ status: 200, standardSchema: taskLabelSchema })
-  update(
-    @CurrentOrg() org: OrgContext,
-    @CurrentEventAccess() access: EventAccess,
-    @Param('labelId', uuid) labelId: string,
-    @Body({ schema: updateTaskLabelSchema }) body: UpdateTaskLabelInput,
-  ) {
-    return this.tasks.updateLabel(org, access, labelId, body);
-  }
-
-  @Delete(':labelId')
-  @HttpCode(204)
-  @RequireEventAccess('manage')
-  remove(
-    @CurrentOrg() org: OrgContext,
-    @CurrentEventAccess() access: EventAccess,
-    @Param('labelId', uuid) labelId: string,
-  ) {
-    return this.tasks.removeLabel(org, access, labelId);
   }
 }
 

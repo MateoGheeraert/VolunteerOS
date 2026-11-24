@@ -190,14 +190,14 @@ async function seed(tx: Transaction) {
   const eventId = kerstmarkt!.id;
 
   const labels = await tx
-    .insert(schema.taskLabel)
+    .insert(schema.label)
     .values([
       { eventId, name: 'Bar', color: 'orange' },
       { eventId, name: 'Kassa', color: 'green' },
       { eventId, name: 'Opbouw', color: 'blue' },
       { eventId, name: 'Promotie', color: 'purple' },
     ])
-    .returning({ id: schema.taskLabel.id, name: schema.taskLabel.name });
+    .returning({ id: schema.label.id, name: schema.label.name });
   const label = (name: string) => labels.find((l) => l.name === name)!.id;
 
   type SeedTask = Omit<typeof schema.task.$inferInsert, 'eventId' | 'createdByUserId'> & {

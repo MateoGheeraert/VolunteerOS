@@ -7,7 +7,8 @@ import type { TaskAssignee } from '@/api/generated/types.gen';
 import { Badge } from '@/components/ui/badge';
 import { formatDay } from '@/lib/format';
 import { cn } from '@/lib/utils';
-import { LabelChip, PriorityBadge, TaskStatusBadge } from './task-badges';
+import { LabelChip } from '@/features/labels/label-chip';
+import { PriorityBadge, TaskStatusBadge } from './task-badges';
 import { assigneeUserId, isOverdue } from './task-rules';
 import { useTasksContext, type ShownTask } from './tasks-context';
 

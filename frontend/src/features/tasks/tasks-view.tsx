@@ -35,7 +35,7 @@ import {
 import { keepOpenWhileInlineEditing } from '@/components/inline-edit/inline-edit';
 import { cn } from '@/lib/utils';
 import { changeTaskStatus } from '@/server/tasks/actions';
-import { LabelManager } from './label-manager';
+import { LabelManager } from '@/features/labels/label-manager';
 import { TASK_PRIORITIES, TASK_STATUSES, type TaskPriority, type TaskStatus } from './schemas';
 import { TaskCard } from './task-card';
 import { TaskForm } from './task-form';
@@ -71,7 +71,7 @@ export function TasksView({ tasks, ...context }: TasksContextValue & { tasks: Sh
 function Tasks({ tasks }: { tasks: ShownTask[] }) {
   const t = useTranslations();
   const router = useRouter();
-  const { userId, canManage, readOnly, mode, event } = useTasksContext();
+  const { userId, canManage, readOnly, mode, event, labels } = useTasksContext();
   const [view, setView] = useState<View>('board');
   const [filters, setFilters] = useState<TaskFilters>(NO_FILTERS);
   const [pane, setPane] = useState<Pane>(null);
@@ -131,7 +131,7 @@ function Tasks({ tasks }: { tasks: ShownTask[] }) {
           <div className="flex flex-wrap gap-2">
             <Button variant="secondary" onClick={() => setLabelsOpen(true)}>
               <Tags data-icon="inline-start" aria-hidden />
-              {t('taskLabels.manage')}
+              {t('labels.manage')}
             </Button>
             <Button onClick={() => setPane({ kind: 'create' })}>
               <Plus data-icon="inline-start" aria-hidden />
@@ -203,7 +203,12 @@ function Tasks({ tasks }: { tasks: ShownTask[] }) {
       </Sheet>
 
       {event && canManage && (
-        <LabelManager eventId={event.id} open={labelsOpen} onOpenChange={setLabelsOpen} />
+        <LabelManager
+          eventId={event.id}
+          labels={labels}
+          open={labelsOpen}
+          onOpenChange={setLabelsOpen}
+        />
       )}
     </div>
   );

@@ -13,21 +13,11 @@ import {
 import { deletedAt } from '../soft-delete.js';
 import { user } from './auth.js';
 import { event } from './events.js';
+import { label } from './labels.js';
 
 export const taskStatusEnum = pgEnum('task_status', ['todo', 'in_progress', 'done']);
 /** Declared low → high, so `order by priority desc` puts high first. */
 export const taskPriorityEnum = pgEnum('task_priority', ['low', 'medium', 'high']);
-/** A fixed palette, so every label renders well in light and dark mode. */
-export const taskLabelColorEnum = pgEnum('task_label_color', [
-  'gray',
-  'red',
-  'orange',
-  'yellow',
-  'green',
-  'teal',
-  'blue',
-  'purple',
-]);
 export const taskAssignmentRequestStatusEnum = pgEnum('task_assignment_request_status', [
   'pending',
   'approved',
@@ -37,7 +27,6 @@ export const taskAssignmentRequestStatusEnum = pgEnum('task_assignment_request_s
 
 export type TaskStatus = (typeof taskStatusEnum.enumValues)[number];
 export type TaskPriority = (typeof taskPriorityEnum.enumValues)[number];
-export type TaskLabelColor = (typeof taskLabelColorEnum.enumValues)[number];
 export type TaskAssignmentRequestStatus =
   (typeof taskAssignmentRequestStatusEnum.enumValues)[number];
 
@@ -82,27 +71,7 @@ export const task = pgTable(
   ],
 );
 
-/** A label of one event's tasks ("Bar", "Kassa"). Names are unique per event, ignoring case. */
-export const taskLabel = pgTable(
-  'task_label',
-  {
-    id: uuid('id').primaryKey().defaultRandom(),
-    eventId: uuid('event_id')
-      .notNull()
-      .references(() => event.id, { onDelete: 'cascade' }),
-    name: text('name').notNull(),
-    color: taskLabelColorEnum('color').notNull().default('gray'),
-    createdAt,
-    updatedAt,
-    deletedAt: deletedAt(),
-  },
-  (t) => [
-    uniqueIndex('task_label_event_name_uidx')
-      .on(t.eventId, sql`lower(${t.name})`)
-      .where(sql`${t.deletedAt} is null`),
-  ],
-);
-
+/** A label on a task. */
 export const taskLabelLink = pgTable(
   'task_label_link',
   {
@@ -112,7 +81,7 @@ export const taskLabelLink = pgTable(
       .references(() => task.id, { onDelete: 'cascade' }),
     labelId: uuid('label_id')
       .notNull()
-      .references(() => taskLabel.id, { onDelete: 'cascade' }),
+      .references(() => label.id, { onDelete: 'cascade' }),
     createdAt,
     deletedAt: deletedAt(),
   },
@@ -150,6 +119,5 @@ export const taskAssignmentRequest = pgTable(
 );
 
 export type TaskRow = typeof task.$inferSelect;
-export type TaskLabelRow = typeof taskLabel.$inferSelect;
 export type TaskLabelLinkRow = typeof taskLabelLink.$inferSelect;
 export type TaskAssignmentRequestRow = typeof taskAssignmentRequest.$inferSelect;
