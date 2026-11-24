@@ -35,7 +35,18 @@ const envSchema = z.object({
   OPENAI_API_KEY: z.string().min(1).optional(),
   /** What one organization may spend on AI per calendar month, in euro cents. */
   AI_MONTHLY_CAP_CENTS: z.coerce.number().int().nonnegative().default(1000),
+
+  /**
+   * File storage on Cloudflare R2, through its S3 API. Set all four or none: unset turns file
+   * uploads off (existing files stay listed, but can't be added or downloaded).
+   */
+  R2_ACCOUNT_ID: z.string().min(1).optional(),
+  R2_ACCESS_KEY_ID: z.string().min(1).optional(),
+  R2_SECRET_ACCESS_KEY: z.string().min(1).optional(),
+  R2_BUCKET: z.string().min(1).optional(),
 });
+
+const R2_KEYS = ['R2_ACCOUNT_ID', 'R2_ACCESS_KEY_ID', 'R2_SECRET_ACCESS_KEY', 'R2_BUCKET'] as const;
 
 export type Env = z.infer<typeof envSchema>;
 
@@ -47,6 +58,10 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): Env {
   const result = envSchema.safeParse(defined);
   if (!result.success) {
     throw new Error(`Invalid environment variables:\n${z.prettifyError(result.error)}`);
+  }
+  const r2Set = R2_KEYS.filter((key) => result.data[key] !== undefined);
+  if (r2Set.length > 0 && r2Set.length < R2_KEYS.length) {
+    throw new Error(`Invalid environment variables: set all of ${R2_KEYS.join(', ')}, or none`);
   }
   return result.data;
 }

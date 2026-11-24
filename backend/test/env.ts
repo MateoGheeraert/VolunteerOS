@@ -17,3 +17,6 @@ Object.assign(process.env, {
 });
 delete process.env.RESEND_API_KEY;
 delete process.env.OPENAI_API_KEY;
+for (const key of ['R2_ACCOUNT_ID', 'R2_ACCESS_KEY_ID', 'R2_SECRET_ACCESS_KEY', 'R2_BUCKET']) {
+  delete process.env[key];
+}
