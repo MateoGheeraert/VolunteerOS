@@ -145,7 +145,7 @@ export function InlineText({
       event.preventDefault();
       finish();
     } else if (event.key === 'Escape') {
-      // Cancels the edit (see keepOpenWhileInlineEditing for the surrounding sheet).
+      // Cancels the edit (see keepOpenWhileInlineEditing for the surrounding modal).
       end();
       onDone?.();
     }

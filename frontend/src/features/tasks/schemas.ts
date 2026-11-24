@@ -71,6 +71,22 @@ export const EMPTY_TASK: TaskFormValues = {
   labelIds: [],
 };
 
+/** An existing task → the form's values, to edit it. */
+export function taskToForm(task: Task): TaskFormValues {
+  const { assignee } = task;
+  return {
+    title: task.title,
+    description: task.description ?? '',
+    status: task.status,
+    priority: task.priority,
+    dueDate: task.dueDate ?? '',
+    assignee:
+      assignee === null ? '' : assignee.type === 'member' ? assignee.userId : EXTERNAL_ASSIGNEE,
+    assigneeName: assignee?.type === 'external' ? assignee.name : '',
+    labelIds: task.labelIds,
+  };
+}
+
 /** Which form field a Nest validation error on an API field belongs to. */
 export const taskApiFields = { assigneeUserId: 'assignee' };
 
@@ -90,34 +106,3 @@ export function toTaskBody(values: TaskFormValues): Required<CreateTask> {
 }
 
 export const changeTaskStatusSchema = z.object({ status: z.enum(TASK_STATUSES) });
-
-/**
- * One inline edit in the task pane: any subset of the task's fields. Empty text clears an
- * optional field.
- */
-export const taskPatchSchema = z
-  .object({
-    title: z
-      .string()
-      .trim()
-      .min(1, msg('taskForm.validation.titleRequired'))
-      .max(limits.title, msg('taskForm.validation.titleTooLong')),
-    description: z
-      .string()
-      .trim()
-      .max(limits.description, msg('taskForm.validation.descriptionTooLong'))
-      .nullable(),
-    status: z.enum(TASK_STATUSES),
-    priority: z.enum(TASK_PRIORITIES),
-    dueDate: z.string().regex(DATE, msg('taskForm.validation.dueDateInvalid')).nullable(),
-    assigneeUserId: z.string().min(1).nullable(),
-    assigneeName: z
-      .string()
-      .trim()
-      .min(1, msg('taskForm.validation.assigneeNameRequired'))
-      .max(limits.assigneeName, msg('taskForm.validation.assigneeNameTooLong'))
-      .nullable(),
-    labelIds: z.array(z.uuid()).max(MAX_LABELS_PER_ITEM),
-  })
-  .partial();
-export type TaskPatch = z.infer<typeof taskPatchSchema>;

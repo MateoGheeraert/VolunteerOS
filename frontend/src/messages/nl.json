@@ -265,7 +265,6 @@
     "createdBy": "Aangemaakt door",
     "event": "Evenement",
     "allEvents": "Alle evenementen",
-    "previewDescription": "Details en acties voor deze taak.",
     "gone": "Taak niet meer zichtbaar",
     "goneBody": "Ze werd verwijderd of is niet meer aan jou toegewezen.",
     "emptyBodyMine": "Je hebt nog geen taken. Taken die aan jou toegewezen worden, verschijnen hier, over alle evenementen heen.",
@@ -277,9 +276,9 @@
     "unassignSelfWarning": "Je bent dan niet meer verantwoordelijk voor „{title}”. De organisatoren moeten iemand anders zoeken om ze te doen.",
     "unassignSelfConfirm": "Ja, schrijf me uit",
     "noLabels": "Geen labels",
-    "addDescription": "Klik om een beschrijving toe te voegen…",
     "deleteTitle": "Taak verwijderen?",
-    "deleteWarning": "„{title}” verdwijnt uit de takenlijst. Dit kan je niet zelf ongedaan maken."
+    "deleteWarning": "„{title}” verdwijnt uit de takenlijst. Dit kan je niet zelf ongedaan maken.",
+    "saved": "Taak opgeslagen."
   },
   "taskStatus": {
     "todo": "Te doen",

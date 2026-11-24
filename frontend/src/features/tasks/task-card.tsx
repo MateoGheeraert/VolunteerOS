@@ -15,7 +15,7 @@ import { useTasksContext, type ShownTask } from './tasks-context';
 /**
  * One task as a card on the board or a row in the list. The whole card is one button: a click
  * (or Enter) opens the task, and on the board the same card is what you drag. Everything you can
- * do with a task is in the pane it opens, so the card holds no buttons of its own.
+ * do with a task is in the modal it opens, so the card holds no buttons of its own.
  */
 export function TaskCard({
   task,

@@ -39,7 +39,7 @@ export function useTasksContext(): TasksContextValue {
 }
 
 /**
- * Callbacks for `useAction`. A success shows itself (the task moves, the pane updates), so it only
+ * Callbacks for `useAction`. A success shows itself (the task moves, the modal updates), so it only
  * refreshes the data; only a failure gets a toast.
  */
 export function useActionFeedback() {

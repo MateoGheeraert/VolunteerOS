@@ -396,9 +396,9 @@ Features:
 - Mark tasks complete.
 - A kanban board with one column per status (dragging the whole card changes its status), and a list view.
 - Filter by status, assignee, priority and label; switch between "my tasks" and all tasks.
-- Clicking a task opens it in a side pane where every field except the creator is edited in place ("inline", as in issue trackers): the value turns into its input without the layout moving, and each field saves on its own.
+- Clicking a task opens it in a modal, laid out like a budget line's: managers get the task form (the same fields as a new task), then the files, then one row with "Opslaan" and the other actions (give back, ask for it, delete). Nothing saves until "Opslaan". Members read the task; the assignee who isn't a manager only gets a status select, saved the same way.
 - "Mijn taken": one page with the user's tasks across all events that aren't archived.
-- Removing an assignee, taking yourself off a task and deleting a task each ask for confirmation, with a warning that someone new has to be found.
+- Taking yourself off a task and deleting a task each ask for confirmation, with a warning that someone new has to be found. A manager changing the assignee in the form confirms it with "Opslaan".
 - Show overdue tasks: due before today (Europe/Brussels) and not done, in the red status color.
 - Warn (without blocking) when a due date falls after the event.
 - Every write is in the activity log.
@@ -628,7 +628,7 @@ Budget entry fields:
 
 Features:
 
-- One list of income (green, +) and costs (red, −), newest first. A row on top adds a line without a dialog: + or −, description, labels, estimated and/or actual amount, Enter; the cursor goes back to the description for the next line. A sign typed before an amount wins over the + / − choice: "-500" makes a cost, "+500" an income (a + in one amount and a − in the other is refused). The column titles sort the list (description A–Z, amounts by what they do to the result, lines without that amount last); clicking a third time goes back to newest first. Lines are tagged in place; the task, notes and files are in the line's side sheet. No colored side stripes: the amount's color and sign show income or cost. Deleting is confirmed and takes its files along.
+- One list of income (green, +) and costs (red, −), newest first. A row on top adds a line without a dialog: + or −, description, labels, estimated and/or actual amount, Enter; the cursor goes back to the description for the next line. A sign typed before an amount wins over the + / − choice: "-500" makes a cost, "+500" an income (a + in one amount and a − in the other is refused). The column titles sort the list (description A–Z, amounts by what they do to the result, lines without that amount last); clicking a third time goes back to newest first. Lines are tagged in place; the task, notes and files are in the line's modal. No colored side stripes: the amount's color and sign show income or cost. Deleting is confirmed and takes its files along.
 - Totals: income, expenses and the result (income minus expenses), each estimated and actual. A missing amount counts as 0 in its own column; an estimate is never used in place of an actual amount.
 - Filter the list by type and by label; the totals follow the filters.
 - Every org member reads the budget; owners, admins and the event's managers change it. Archived events are read-only.
@@ -659,7 +659,7 @@ A supplier is linked to an event only through the budget: a budget entry (income
 Features:
 
 - `/suppliers`: a list with search (name, contact, email), a category filter and a "show archived" toggle. A new supplier opens in a dialog.
-- `/suppliers/[id]`: the contact card and the usage history: every event whose budget references the supplier, newest first, with the actual total (the estimate, marked as such, when an entry has no actual amount yet), income and expenses apart, the entries, and their files (most likely the invoices). Deleted entries do not count; archived events do. Editing is in a side sheet.
+- `/suppliers/[id]`: the contact card and the usage history: every event whose budget references the supplier, newest first, with the actual total (the estimate, marked as such, when an entry has no actual amount yet), income and expenses apart, the entries, and their files (most likely the invoices). Deleted entries do not count; archived events do. Editing is in a modal.
 - Budget entry: a supplier picker over the active suppliers, with "+ New supplier" (a dialog with name and category) inside it. The budget can be filtered by supplier.
 - Event Suppliers tab: read-only, derived from the budget: each supplier used in the event with its category, contact, total, number of entries and files. An entry opens in the budget.
 - Archive and unarchive, never delete. An archived supplier disappears from the list and the picker, but stays on the entries that already reference it (marked "archived") and keeps its page.
@@ -896,7 +896,7 @@ Decided November 2026:
 - **Event form:** a start date and time and an end date and time. On a single-day event an end time before the start time means it runs past midnight (end on the next day); a later end date makes a multi-day event. Optional setup start and teardown end widen the window shifts may fall in.
 - **Active organization on login:** every new Better Auth session starts in the user's oldest organization (a `session.create.before` hook in `backend/src/auth/auth.ts`), so returning organizers land on their events.
 - **Auth flows in the first slice:** signup → `/onboarding` (organization name only; slug generated from the name with a numeric suffix if taken, never shown) → `/events`. `/invitations/[id]`: log in or sign up first, then Accept/Decline; accepting sets that organization as active. Password reset (`/forgot-password`, `/reset-password`) is included and needs Better Auth's `sendResetPassword` on the backend. Organizer email verification is deferred until just before the pilot.
-- **Layout:** organizer app uses the shadcn `Sidebar` (organization level: Events, Suppliers, Members, Settings, org switcher, user menu). It collapses to a sheet on mobile. Inside an event, the sections (Overview, Tasks, Planning, Budget, Suppliers, Settings) are tabs under the event header. Public volunteer pages (`/e/[publicSlug]`, later `/v/[token]`) use their own minimal mobile-first layout.
+- **Layout:** organizer app uses the shadcn `Sidebar` (organization level: Events, My tasks, Suppliers, Members, Settings; the user menu at the bottom also switches organizations). It collapses to a sheet on mobile. Inside an event, the sidebar shows a way back to the events list, an event switcher (which keeps the section you're on) and the event's sections (Overview, Tasks, Planning, Files, Budget, Suppliers, Settings) instead. Public volunteer pages (`/e/[publicSlug]`, later `/v/[token]`) use their own minimal mobile-first layout.
 - **Folder layout:**
 
   ```text
@@ -1725,8 +1725,8 @@ Friendly and community-like, deliberately not the default shadcn / Linear / Noti
 
 - **Status colors are separate from the brand colors:** green `#2E9E5B` = done or filled, amber `#B7791F` = due soon or partly filled, red `#C2453D` = overdue or unfilled (each with a light background tint).
 - **Type:** Nunito everywhere (via `next/font`), headings at weight 800.
-- **Shape:** `1rem` radius on cards and dialogs, pill-shaped buttons, tabs and badges, soft shadows instead of hard borders, 44px buttons and inputs, generous padding. One primary action per screen. Tables only where they really pay off.
-- **Creating vs. viewing (decided November 2026):** creating something new (a shift, a task, a volunteer added by hand) always opens a centered modal (`components/ui/dialog.tsx`). The side sheet (`Sheet`) is only for looking at and editing something that already exists. Never use the side sheet as a create form.
+- **Shape:** one radius for cards, panels, dialogs and the sidebar's menu items: `--card-radius` in `globals.css` (`rounded-card`), so they can all be rounded more or less in one place. Pill-shaped buttons, tabs and badges, soft shadows instead of hard borders, 44px buttons and inputs, generous padding. One primary action per screen. Tables only where they really pay off.
+- **Modals for creating and editing (decided November 2026, revised 24 November 2026):** creating something new and looking at or editing something that exists both open a centered modal (`components/ui/dialog.tsx`); side sheets were too narrow for a task's or a budget line's details. Sizes: `default` for a short create form, `md` for an edit form (a task, a budget line, a supplier, a team, a shift, a volunteer, labels). An edit modal is one scrolling column: the form, then the files, then one row with "Opslaan" on the left and the other actions (delete, …) on the right. No inline editing and no side columns in modals: every record saves the same way. The side sheet stays only for Mila's suggestions next to the task board and the mobile sidebar.
 - **Icons:** Lucide, placed in soft colored circles for empty states, dashboard cards and section headers. No custom illustrations in the MVP.
 - **Public volunteer pages:** same tokens, lighter feel. A colored header with soft circles and the form on a rounded sheet, large touch targets, a coral submit button.
 - Reference prototype: https://claude.ai/artifact/VNcfaPKRXKhxBER4zfvJ6a (variant A).
