@@ -74,10 +74,10 @@ function eventIdFrom(pathname: string | null): string | null {
 }
 
 /**
- * Organization-level navigation, or an event's sections while inside that event. The user menu
- * (which also switches organizations) streams in as a slot.
+ * Organization-level navigation, or an event's switcher and sections while inside that event. The
+ * event switcher and the user menu (which also switches organizations) stream in as slots.
  */
-export function AppSidebar({ user }: { user: ReactNode }) {
+export function AppSidebar({ eventSwitcher, user }: { eventSwitcher: ReactNode; user: ReactNode }) {
   const { setOpenMobile } = useSidebar();
 
   return (
@@ -91,8 +91,8 @@ export function AppSidebar({ user }: { user: ReactNode }) {
         <SidebarGroup>
           <SidebarGroupContent>
             {/* The pathname is request data on dynamic routes, so it streams in. */}
-            <Suspense fallback={<NavMenu pathname={null} />}>
-              <CurrentNavMenu />
+            <Suspense fallback={<NavMenu pathname={null} eventSwitcher={null} />}>
+              <CurrentNavMenu eventSwitcher={eventSwitcher} />
             </Suspense>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -102,11 +102,17 @@ export function AppSidebar({ user }: { user: ReactNode }) {
   );
 }
 
-function CurrentNavMenu() {
-  return <NavMenu pathname={usePathname()} />;
+function CurrentNavMenu({ eventSwitcher }: { eventSwitcher: ReactNode }) {
+  return <NavMenu pathname={usePathname()} eventSwitcher={eventSwitcher} />;
 }
 
-function NavMenu({ pathname }: { pathname: string | null }) {
+function NavMenu({
+  pathname,
+  eventSwitcher,
+}: {
+  pathname: string | null;
+  eventSwitcher: ReactNode;
+}) {
   const t = useTranslations();
   const { setOpenMobile } = useSidebar();
   const eventId = eventIdFrom(pathname);
@@ -124,6 +130,7 @@ function NavMenu({ pathname }: { pathname: string | null }) {
           {t('nav.events')}
         </Link>
       )}
+      {eventId && <div className="px-1 pb-1">{eventSwitcher}</div>}
       <SidebarMenu className="gap-1">
         {items.map((item) => (
           <SidebarMenuItem key={item.href}>

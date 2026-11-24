@@ -5,6 +5,8 @@ import { BrandLogo } from '@/components/layout/brand-logo';
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { UserMenu } from '@/features/auth/user-menu';
+import { EventSwitcher } from '@/features/events/event-switcher';
+import { listEvents } from '@/server/events/queries';
 import { missingProfileFields } from '@/features/settings/profile-rules';
 import { getMyProfile } from '@/server/profile/queries';
 
@@ -17,6 +19,11 @@ export default function AppLayout({ children }: LayoutProps<'/'>) {
   return (
     <SidebarProvider>
       <AppSidebar
+        eventSwitcher={
+          <Suspense fallback={<Skeleton className="h-15 w-full rounded-2xl bg-card" />}>
+            <CurrentEventSwitcher />
+          </Suspense>
+        }
         user={
           <Suspense fallback={<Skeleton className="h-12 w-full rounded-full bg-card" />}>
             <CurrentUser />
@@ -34,6 +41,11 @@ export default function AppLayout({ children }: LayoutProps<'/'>) {
       </SidebarInset>
     </SidebarProvider>
   );
+}
+
+async function CurrentEventSwitcher() {
+  const events = await listEvents();
+  return <EventSwitcher events={events} />;
 }
 
 async function CurrentUser() {
