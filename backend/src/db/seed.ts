@@ -8,7 +8,8 @@
  * - Organization "Chiro Sint-Jan (seed)" with the event "Kerstmarkt 2026" (labels, tasks in every
  *   status, an overdue task, a pending assignment request, a budget with income and costs in every
  *   state: estimated only, paid, over and under budget, labelled and linked to tasks) and its
- *   previous edition (with a settled budget).
+ *   previous edition (with a settled budget). Suppliers (one archived, one never used) on the
+ *   budget lines of both editions.
  *
  * Keep this in step with the features: a new feature adds its data here.
  *
@@ -299,7 +300,9 @@ async function seed(tx: Transaction) {
     .returning({ id: schema.label.id, name: schema.label.name });
   const anyLabel = (name: string) => [...labels, ...budgetLabels].find((l) => l.name === name)!.id;
 
-  await insertBudget(tx, eventId, ownerId, anyLabel, taskId, [
+  const supplierId = await insertSuppliers(tx, organizationId, ownerId);
+
+  await insertBudget(tx, eventId, ownerId, anyLabel, taskId, supplierId, [
     // Income: some still estimated only, some already in.
     {
       type: 'income',
@@ -322,6 +325,7 @@ async function seed(tx: Transaction) {
       estimated: 25000,
       actual: 25000,
       labels: ['Sponsoring'],
+      supplier: 'Bakkerij Van Damme',
       notes: 'Logo op de affiche in ruil.',
     },
     {
@@ -339,6 +343,7 @@ async function seed(tx: Transaction) {
       estimated: 145000,
       actual: 138765,
       labels: ['Bar'],
+      supplier: 'Drankenhandel Peeters',
       task: 'Glühwein en drank bestellen',
       notes: 'Dubbele voorraad t.o.v. vorig jaar.',
     },
@@ -348,6 +353,7 @@ async function seed(tx: Transaction) {
       estimated: 90000,
       actual: null,
       labels: ['Huur', 'Opbouw'],
+      supplier: 'Tentenverhuur Ardenne',
       task: 'Tenten opzetten',
     },
     {
@@ -356,6 +362,7 @@ async function seed(tx: Transaction) {
       estimated: 12000,
       actual: 13420,
       labels: ['Promotie'],
+      supplier: 'Drukkerij Vanden Broele',
       task: 'Affiches ophangen in de buurt',
     },
     {
@@ -364,6 +371,7 @@ async function seed(tx: Transaction) {
       estimated: 4500,
       actual: null,
       labels: ['Huur'],
+      supplier: 'Feestkledij Lieve',
       task: 'Kerstman regelen',
     },
     {
@@ -380,6 +388,7 @@ async function seed(tx: Transaction) {
       estimated: 18000,
       actual: null,
       labels: ['Opbouw'],
+      supplier: 'Klank & Licht Decock',
     },
   ]);
 
@@ -393,7 +402,7 @@ async function seed(tx: Transaction) {
     ])
     .returning({ id: schema.label.id, name: schema.label.name });
   const previousLabel = (name: string) => previousLabels.find((l) => l.name === name)!.id;
-  await insertBudget(tx, previous!.id, ownerId, previousLabel, () => undefined, [
+  await insertBudget(tx, previous!.id, ownerId, previousLabel, () => undefined, supplierId, [
     {
       type: 'income',
       title: 'Standgeld kraampjes',
@@ -415,9 +424,25 @@ async function seed(tx: Transaction) {
       estimated: 80000,
       actual: 78230,
       labels: ['Bar'],
+      supplier: 'Drankenhandel Peeters',
     },
-    { type: 'expense', title: 'Tenten huren', estimated: 85000, actual: 85000, labels: ['Huur'] },
-    { type: 'expense', title: 'Affiches drukken', estimated: 10000, actual: 11980, labels: [] },
+    {
+      type: 'expense',
+      title: 'Tenten huren',
+      estimated: 85000,
+      actual: 85000,
+      labels: ['Huur'],
+      supplier: 'Tentenverhuur Ardenne',
+    },
+    {
+      type: 'expense',
+      title: 'Affiches drukken',
+      estimated: 10000,
+      actual: 11980,
+      labels: [],
+      supplier: 'Drukkerij De Kopie',
+      notes: 'Te laat geleverd: dit jaar een andere drukker.',
+    },
   ]);
 }
 
@@ -429,7 +454,87 @@ interface SeedBudgetLine {
   actual: number | null;
   labels: string[];
   task?: string;
+  /** The supplier's name. */
+  supplier?: string;
   notes?: string;
+}
+
+/**
+ * The organization's suppliers, in every category the budget uses: a printer that was dropped
+ * after last year (archived) and a sanitation company nobody used yet. Returns a lookup by name.
+ */
+async function insertSuppliers(tx: Transaction, organizationId: string, createdByUserId: string) {
+  const rows = await tx
+    .insert(schema.supplier)
+    .values(
+      (
+        [
+          {
+            name: 'Drankenhandel Peeters',
+            category: 'drinks',
+            contactName: 'Koen Peeters',
+            email: 'bestellingen@drankenhandelpeeters.be',
+            phone: '09 228 14 70',
+            website: 'https://www.drankenhandelpeeters.be',
+            notes: 'Levert op vrijdag voor 14u. Leeggoed wordt maandag opgehaald.',
+          },
+          {
+            name: 'Bakkerij Van Damme',
+            category: 'food',
+            contactName: 'Els Van Damme',
+            email: 'els@bakkerijvandamme.be',
+            phone: '09 225 33 81',
+            notes: 'Sponsort elk jaar in ruil voor een logo op de affiche.',
+          },
+          {
+            name: 'Tentenverhuur Ardenne',
+            category: 'tents_and_furniture',
+            contactName: 'Marc Lambert',
+            email: 'info@tentenardenne.be',
+            phone: '+32 475 12 34 56',
+            website: 'https://tentenardenne.be',
+            notes: 'Opbouw door hun ploeg, wij leveren 4 helpers.',
+          },
+          {
+            name: 'Klank & Licht Decock',
+            category: 'sound_and_light',
+            contactName: 'Pieter Decock',
+            email: 'pieter@klankenlichtdecock.be',
+            phone: '0496 55 21 09',
+          },
+          {
+            name: 'Drukkerij Vanden Broele',
+            category: 'printing',
+            email: 'offerte@vandenbroele.be',
+            website: 'https://www.vandenbroele.be',
+          },
+          {
+            name: 'Drukkerij De Kopie',
+            category: 'printing',
+            phone: '09 233 40 12',
+            notes: 'Affiches vorig jaar te laat geleverd.',
+            archivedAt: at(-200, 10),
+          },
+          {
+            name: 'Feestkledij Lieve',
+            category: 'rental',
+            contactName: 'Lieve Martens',
+            phone: '0479 88 10 42',
+          },
+          {
+            name: 'Toiletwagens Vermeulen',
+            category: 'sanitation',
+            website: 'https://www.toiletwagensvermeulen.be',
+            notes: 'Offerte gevraagd voor de zomerbar.',
+          },
+        ] satisfies Omit<
+          typeof schema.supplier.$inferInsert,
+          'organizationId' | 'createdByUserId'
+        >[]
+      ).map((values) => ({ ...values, organizationId, createdByUserId })),
+    )
+    .returning({ id: schema.supplier.id, name: schema.supplier.name });
+  return (name: string) => rows.find((row) => row.name === name)!.id;
 }
 
 /**
@@ -442,6 +547,7 @@ async function insertBudget(
   createdByUserId: string,
   labelId: (name: string) => string,
   taskId: (title: string) => string | undefined,
+  supplierId: (name: string) => string,
   lines: SeedBudgetLine[],
 ) {
   const entries = await tx
@@ -456,6 +562,7 @@ async function insertBudget(
         actualCents: line.actual,
         notes: line.notes ?? null,
         taskId: line.task ? (taskId(line.task) ?? null) : null,
+        supplierId: line.supplier ? supplierId(line.supplier) : null,
         createdAt: at(index - lines.length, 9),
       })),
     )
