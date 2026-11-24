@@ -29,7 +29,7 @@ export default function AppLayout({ children }: LayoutProps<'/'>) {
           </Suspense>
         }
       />
-      <SidebarInset className="bg-background">
+      <SidebarInset className="min-w-0 bg-background">
         <header className="flex items-center justify-between gap-3 px-4 pt-4 md:hidden">
           <BrandLogo />
           <SidebarTrigger className="size-11 rounded-full bg-card shadow-soft" />
