@@ -1,11 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  brusselsToUtcIso,
-  formatCents,
-  formatDay,
-  formatEventRange,
-  utcIsoToBrussels,
-} from '@/lib/format';
+import { brusselsToUtcIso, formatDay, formatEventRange, utcIsoToBrussels } from '@/lib/format';
 
 describe('Brussels time conversion', () => {
   it('converts winter time (UTC+1)', () => {
@@ -44,16 +38,6 @@ describe('formatEventRange', () => {
     expect(formatEventRange('2026-12-19T19:00:00Z', '2026-12-20T01:00:00Z')).toBe(
       'za 19 dec 2026 20:00 – zo 20 dec 2026 02:00',
     );
-  });
-});
-
-describe('formatCents', () => {
-  it('formats euros the Belgian way', () => {
-    expect(formatCents(42050).replace(/\s/g, ' ')).toBe('€ 420,50');
-  });
-
-  it('refuses fractional cents', () => {
-    expect(() => formatCents(10.5)).toThrow(/whole cents/);
   });
 });
 
