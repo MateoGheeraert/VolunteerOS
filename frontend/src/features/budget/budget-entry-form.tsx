@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Controller, type FieldError, type UseFormRegisterReturn } from 'react-hook-form';
 import type { Label } from '@/api/generated/types.gen';
 import { FormError, FormFieldError } from '@/components/form-error';
-import { Button } from '@/components/ui/button';
+import { useOutsideSave, type OutsideSave } from '@/components/layout/modal-actions';
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { NativeSelect } from '@/components/ui/native-select';
@@ -26,20 +26,21 @@ type BudgetEntryAction = SingleInputActionFn<
 >;
 
 /**
- * Creates a budget entry (in a dialog) or edits one (in its sheet). Only managers get here.
- * Amounts are typed as text and become cents when saved.
+ * Edits a budget entry in its modal. Only managers get here. Amounts are typed as text and become
+ * cents when saved. The form has no buttons of its own: the modal saves it from its bottom row
+ * (`ModalActions`), below the files.
  */
 export function BudgetEntryForm({
+  outsideSave,
   eventId,
   action,
   defaultValues,
   labels,
   tasks,
   suppliers,
-  submitLabel,
   onDone,
-  onCancel,
 }: {
+  outsideSave: OutsideSave;
   eventId: string;
   action: BudgetEntryAction;
   defaultValues: BudgetEntryFormValues;
@@ -48,9 +49,7 @@ export function BudgetEntryForm({
   tasks: { id: string; title: string }[];
   /** The organization's suppliers, archived ones marked (only shown, not offered). */
   suppliers: PickableSupplier[];
-  submitLabel: string;
   onDone: () => void;
-  onCancel?: () => void;
 }) {
   const t = useTranslations();
   const router = useRouter();
@@ -64,8 +63,15 @@ export function BudgetEntryForm({
   const { errors } = form.formState;
   const isIncome = form.watch('type') === 'income';
 
+  useOutsideSave(outsideSave, pending);
+
   return (
-    <form onSubmit={(e) => void onSubmit(e)} noValidate className="flex flex-col gap-6">
+    <form
+      id={outsideSave.formId}
+      onSubmit={(e) => void onSubmit(e)}
+      noValidate
+      className="flex flex-col gap-6"
+    >
       <FieldGroup className="gap-5">
         <div className="grid gap-5 sm:grid-cols-[9rem_minmax(0,1fr)]">
           <Field>
@@ -169,16 +175,6 @@ export function BudgetEntryForm({
       </FieldGroup>
 
       <FormError message={formError} />
-      <div className="flex flex-wrap gap-2">
-        <Button type="submit" disabled={pending}>
-          {submitLabel}
-        </Button>
-        {onCancel && (
-          <Button type="button" variant="ghost" onClick={onCancel}>
-            {t('common.cancel')}
-          </Button>
-        )}
-      </div>
     </form>
   );
 }

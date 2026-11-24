@@ -18,7 +18,7 @@ export function StatusPage({
 }) {
   return (
     <main className="flex flex-1 items-center justify-center px-4 py-16">
-      <div className="flex max-w-md flex-col items-center gap-4 rounded-3xl bg-card px-6 py-10 text-center shadow-soft">
+      <div className="flex max-w-md flex-col items-center gap-4 rounded-card bg-card px-6 py-10 text-center shadow-soft">
         <IconBlob icon={icon} tone={tone} size="lg" />
         <h1 className="text-2xl">{title}</h1>
         <p className="text-muted-foreground">{body}</p>

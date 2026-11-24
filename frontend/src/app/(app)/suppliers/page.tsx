@@ -8,7 +8,7 @@ export const metadata: Metadata = { title: 'Leveranciers' };
 
 export default function SuppliersPage() {
   return (
-    <Suspense fallback={<Skeleton className="h-96 max-w-5xl rounded-3xl bg-card" />}>
+    <Suspense fallback={<Skeleton className="h-96 max-w-5xl rounded-card bg-card" />}>
       <Suppliers />
     </Suspense>
   );

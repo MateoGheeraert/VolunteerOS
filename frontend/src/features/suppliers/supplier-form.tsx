@@ -22,7 +22,7 @@ type SupplierAction = SingleInputActionFn<
 >;
 
 /**
- * Creates a supplier (in a dialog) or edits one (in its sheet). Only the name and the category
+ * Creates a supplier (in a dialog) or edits one (in its modal). Only the name and the category
  * are required; the contact details can follow later.
  */
 export function SupplierForm({

@@ -16,7 +16,7 @@ export const metadata: Metadata = { title: 'Geen lid meer' };
  */
 export default function RemovedPage() {
   return (
-    <Suspense fallback={<Skeleton className="h-56 w-full rounded-2xl" />}>
+    <Suspense fallback={<Skeleton className="h-56 w-full rounded-card" />}>
       <Removed />
     </Suspense>
   );

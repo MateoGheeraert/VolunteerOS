@@ -20,7 +20,7 @@ export async function EventList() {
 
   if (events.length === 0) {
     return (
-      <div className="flex flex-col items-center gap-4 rounded-3xl bg-card px-6 py-14 text-center shadow-soft">
+      <div className="flex flex-col items-center gap-4 rounded-card bg-card px-6 py-14 text-center shadow-soft">
         <IconBlob icon={CalendarPlus} size="lg" />
         <h2 className="text-xl">{t('events.emptyTitle')}</h2>
         <p className="max-w-md text-muted-foreground">{t('events.emptyBody')}</p>
@@ -62,7 +62,7 @@ function EventRow({ event, noLocation }: { event: Event; noLocation: string }) {
     <li>
       <Link
         href={`/events/${event.id}`}
-        className="group flex items-center gap-4 rounded-2xl bg-card p-4 shadow-soft transition-shadow outline-none hover:shadow-md focus-visible:ring-[3px] focus-visible:ring-ring/50 sm:p-5"
+        className="group flex items-center gap-4 rounded-card bg-card p-4 shadow-soft transition-shadow outline-none hover:shadow-md focus-visible:ring-[3px] focus-visible:ring-ring/50 sm:p-5"
       >
         <DateTile iso={event.startsAt} />
         <div className="flex min-w-0 flex-1 flex-col gap-1">
@@ -105,7 +105,7 @@ export function EventListSkeleton() {
   return (
     <div className="grid gap-3">
       {[0, 1, 2].map((key) => (
-        <Skeleton key={key} className="h-24 rounded-2xl bg-card" />
+        <Skeleton key={key} className="h-24 rounded-card bg-card" />
       ))}
     </div>
   );

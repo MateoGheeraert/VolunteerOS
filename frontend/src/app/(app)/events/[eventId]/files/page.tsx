@@ -11,7 +11,7 @@ export const metadata: Metadata = { title: 'Bestanden' };
 
 export default function EventFilesPage({ params }: PageProps<'/events/[eventId]/files'>) {
   return (
-    <Suspense fallback={<Skeleton className="h-96 rounded-3xl bg-card" />}>
+    <Suspense fallback={<Skeleton className="h-96 rounded-card bg-card" />}>
       <Files params={params} />
     </Suspense>
   );

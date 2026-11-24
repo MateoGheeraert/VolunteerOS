@@ -25,7 +25,7 @@ export async function generateMetadata({
 
 export default function SupplierPage({ params }: PageProps<'/suppliers/[supplierId]'>) {
   return (
-    <Suspense fallback={<Skeleton className="h-96 max-w-4xl rounded-3xl bg-card" />}>
+    <Suspense fallback={<Skeleton className="h-96 max-w-4xl rounded-card bg-card" />}>
       <SupplierDetail params={params} />
     </Suspense>
   );
@@ -72,12 +72,12 @@ async function SupplierDetail({ params }: Pick<PageProps<'/suppliers/[supplierId
           {t('suppliers.usage')}
         </h2>
         {events.length === 0 ? (
-          <p className="rounded-3xl bg-card p-5 text-sm text-muted-foreground">
+          <p className="rounded-card bg-card p-5 text-sm text-muted-foreground">
             {t('suppliers.usageEmpty')}
           </p>
         ) : (
           events.map(({ event, entries }) => (
-            <article key={event.id} className="flex flex-col gap-2 rounded-3xl bg-card p-5">
+            <article key={event.id} className="flex flex-col gap-2 rounded-card bg-card p-5">
               <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
                 <div className="flex min-w-0 flex-col">
                   <Link
@@ -136,7 +136,7 @@ async function ContactCard({ supplier }: { supplier: Supplier }) {
   return (
     <section
       aria-label={t('suppliers.contact')}
-      className="flex flex-col gap-4 rounded-3xl bg-card p-5"
+      className="flex flex-col gap-4 rounded-card bg-card p-5"
     >
       {rows.length === 0 && !supplier.notes ? (
         <p className="text-sm text-muted-foreground">{t('suppliers.noContact')}</p>

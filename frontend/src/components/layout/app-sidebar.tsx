@@ -1,18 +1,22 @@
 'use client';
 
 import {
+  ArrowLeft,
+  CalendarClock,
   CalendarDays,
+  FolderOpen,
+  LayoutDashboard,
   ListChecks,
   Settings,
   ShoppingBag,
   Users,
+  Wallet,
   type LucideIcon,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Suspense, type ReactNode } from 'react';
-import { Badge } from '@/components/ui/badge';
 import {
   Sidebar,
   SidebarContent,
@@ -25,42 +29,61 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from '@/components/ui/sidebar';
+import { parseEventPath } from '@/lib/event-path';
 import { BrandLogo } from './brand-logo';
 
+type NavLabel =
+  | `nav.${'events' | 'myTasks' | 'suppliers' | 'members'}`
+  | `eventTabs.${'overview' | 'tasks' | 'planning' | 'files' | 'budget' | 'suppliers' | 'settings'}`;
+
 interface NavItem {
-  key: 'events' | 'myTasks' | 'suppliers' | 'members' | 'settings';
+  label: NavLabel;
   href: string;
   icon: LucideIcon;
-  /** Shown but not clickable until the feature exists. */
-  soon?: boolean;
+  /** Matches only the exact href, not its children (an event's overview). */
+  exact?: boolean;
 }
 
-const NAV: NavItem[] = [
-  { key: 'events', href: '/events', icon: CalendarDays },
-  { key: 'myTasks', href: '/tasks', icon: ListChecks },
-  { key: 'suppliers', href: '/suppliers', icon: ShoppingBag },
-  { key: 'members', href: '/members', icon: Users },
-  { key: 'settings', href: '/settings', icon: Settings, soon: true },
+const ORGANIZATION_NAV: NavItem[] = [
+  { label: 'nav.events', href: '/events', icon: CalendarDays },
+  { label: 'nav.myTasks', href: '/tasks', icon: ListChecks },
+  { label: 'nav.suppliers', href: '/suppliers', icon: ShoppingBag },
+  { label: 'nav.members', href: '/members', icon: Users },
 ];
 
-/** Organization-level navigation. The organization switcher and user menu stream in as slots. */
-export function AppSidebar({ organization, user }: { organization: ReactNode; user: ReactNode }) {
+function eventNav(eventId: string): NavItem[] {
+  const base = `/events/${eventId}`;
+  return [
+    { label: 'eventTabs.overview', href: base, icon: LayoutDashboard, exact: true },
+    { label: 'eventTabs.tasks', href: `${base}/tasks`, icon: ListChecks },
+    { label: 'eventTabs.planning', href: `${base}/planning`, icon: CalendarClock },
+    { label: 'eventTabs.files', href: `${base}/files`, icon: FolderOpen },
+    { label: 'eventTabs.budget', href: `${base}/budget`, icon: Wallet },
+    { label: 'eventTabs.suppliers', href: `${base}/suppliers`, icon: ShoppingBag },
+    { label: 'eventTabs.settings', href: `${base}/settings`, icon: Settings },
+  ];
+}
+
+/**
+ * Organization-level navigation, or an event's switcher and sections while inside that event. The
+ * event switcher and the user menu (which also switches organizations) stream in as slots.
+ */
+export function AppSidebar({ eventSwitcher, user }: { eventSwitcher: ReactNode; user: ReactNode }) {
   const { setOpenMobile } = useSidebar();
 
   return (
     <Sidebar>
-      <SidebarHeader className="gap-4 px-3 pt-5">
+      <SidebarHeader className="px-3 pt-5">
         <Link href="/events" className="px-2" onClick={() => setOpenMobile(false)}>
           <BrandLogo />
         </Link>
-        {organization}
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupContent>
             {/* The pathname is request data on dynamic routes, so it streams in. */}
-            <Suspense fallback={<NavMenu pathname={null} />}>
-              <CurrentNavMenu />
+            <Suspense fallback={<NavMenu pathname={null} eventSwitcher={null} />}>
+              <CurrentNavMenu eventSwitcher={eventSwitcher} />
             </Suspense>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -70,40 +93,57 @@ export function AppSidebar({ organization, user }: { organization: ReactNode; us
   );
 }
 
-function CurrentNavMenu() {
-  return <NavMenu pathname={usePathname()} />;
+function CurrentNavMenu({ eventSwitcher }: { eventSwitcher: ReactNode }) {
+  return <NavMenu pathname={usePathname()} eventSwitcher={eventSwitcher} />;
 }
 
-function NavMenu({ pathname }: { pathname: string | null }) {
+function NavMenu({
+  pathname,
+  eventSwitcher,
+}: {
+  pathname: string | null;
+  eventSwitcher: ReactNode;
+}) {
   const t = useTranslations();
   const { setOpenMobile } = useSidebar();
+  const eventId = parseEventPath(pathname)?.eventId ?? null;
+  const items = eventId ? eventNav(eventId) : ORGANIZATION_NAV;
 
   return (
-    <SidebarMenu className="gap-1">
-      {NAV.map((item) => (
-        <SidebarMenuItem key={item.key}>
-          {item.soon ? (
-            <SidebarMenuButton disabled className="h-11 rounded-full px-4 font-semibold">
-              <item.icon />
-              <span>{t(`nav.${item.key}`)}</span>
-              <Badge variant="outline" className="ml-auto">
-                {t('common.comingSoon')}
-              </Badge>
-            </SidebarMenuButton>
-          ) : (
+    <div className="flex flex-col gap-3">
+      {eventId && (
+        <Link
+          href="/events"
+          onClick={() => setOpenMobile(false)}
+          className="inline-flex w-fit items-center gap-1.5 rounded-full px-4 py-1 text-sm font-bold text-muted-foreground outline-none hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50"
+        >
+          <ArrowLeft className="size-4" aria-hidden />
+          {t('nav.events')}
+        </Link>
+      )}
+      {eventId && <div className="px-1 pb-1">{eventSwitcher}</div>}
+      <SidebarMenu className="gap-1">
+        {items.map((item) => (
+          <SidebarMenuItem key={item.href}>
             <SidebarMenuButton
               asChild
-              isActive={pathname?.startsWith(item.href) ?? false}
-              className="h-11 rounded-full px-4 font-semibold data-[active=true]:font-bold data-[active=true]:shadow-soft"
+              isActive={isActive(pathname, item)}
+              className="h-11 rounded-card px-4 font-semibold data-[active=true]:font-bold data-[active=true]:shadow-soft"
             >
               <Link href={item.href} onClick={() => setOpenMobile(false)}>
                 <item.icon />
-                <span>{t(`nav.${item.key}`)}</span>
+                <span>{t(item.label)}</span>
               </Link>
             </SidebarMenuButton>
-          )}
-        </SidebarMenuItem>
-      ))}
-    </SidebarMenu>
+          </SidebarMenuItem>
+        ))}
+      </SidebarMenu>
+    </div>
   );
+}
+
+function isActive(pathname: string | null, item: NavItem): boolean {
+  if (!pathname) return false;
+  if (item.exact) return pathname === item.href;
+  return pathname === item.href || pathname.startsWith(`${item.href}/`);
 }

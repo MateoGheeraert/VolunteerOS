@@ -101,7 +101,7 @@ export function FilesPanel({
       {inProgress.length > 0 && (
         <ul className="flex flex-col gap-2" aria-live="polite">
           {inProgress.map((item) => (
-            <li key={item.key} className="flex flex-col gap-1 rounded-2xl bg-card p-3 text-sm">
+            <li key={item.key} className="flex flex-col gap-1 rounded-card bg-card p-3 text-sm">
               <span className="truncate font-semibold">{item.name}</span>
               <progress
                 className="sr-only"
@@ -162,7 +162,7 @@ function DropZone({ onFiles, compact }: { onFiles: (files: File[]) => void; comp
       onDragLeave={() => setOver(false)}
       onDrop={onDrop}
       className={cn(
-        'flex flex-col items-center justify-center gap-2 rounded-3xl border-2 border-dashed border-border text-center transition-colors',
+        'flex flex-col items-center justify-center gap-2 rounded-card border-2 border-dashed border-border text-center transition-colors',
         compact ? 'p-4' : 'p-8',
         over && 'border-primary bg-brand-tint',
       )}
@@ -222,7 +222,7 @@ function FileRow({
   const href = uploadHref(eventId, file.id);
 
   return (
-    <li className="flex items-center gap-3 rounded-2xl bg-card px-3 py-2.5">
+    <li className="flex items-center gap-3 rounded-card bg-card px-3 py-2.5">
       <FileTypeIcon mimeType={file.mimeType} />
       <div className="flex min-w-0 flex-1 flex-col">
         {openable ? (

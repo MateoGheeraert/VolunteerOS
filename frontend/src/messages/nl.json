@@ -6,7 +6,6 @@
     "save": "Opslaan",
     "cancel": "Annuleren",
     "back": "Terug",
-    "comingSoon": "Binnenkort",
     "genericError": "Er ging iets mis. Probeer het opnieuw.",
     "invalidField": "Controleer dit veld.",
     "checkFields": "Controleer de gemarkeerde velden.",
@@ -77,7 +76,9 @@
     "suppliers": "Leveranciers",
     "members": "Leden",
     "settings": "Instellingen",
-    "organization": "Organisatie",
+    "event": "Evenement",
+    "switchEvent": "Wissel van evenement",
+    "allEvents": "Alle evenementen",
     "switchOrganization": "Wissel van organisatie",
     "newOrganization": "Nieuwe organisatie",
     "organizationSettings": "Organisatiegegevens",
@@ -142,11 +143,24 @@
     "attendanceActual": "{actual} bezoekers",
     "noAttendance": "Nog niet ingevuld.",
     "retrospective": "Wat leerden we?",
-    "publish": "Publiceren",
-    "unpublish": "Terug naar concept",
-    "complete": "Markeer als afgelopen",
-    "reopen": "Heropenen",
     "edit": "Bewerken"
+  },
+  "eventStatusBanner": {
+    "publishMessage": "Zullen we dit evenement publiceren?",
+    "publishDetail": "Staat alles klaar? Publiceer het. Nog niet zeker? Ik maak het binnenkort samen met jou publicatieklaar.",
+    "publish": "Publiceer het evenement",
+    "makeReady": "Maak het publicatieklaar",
+    "comingSoon": "Binnenkort",
+    "completeMessage": "Dit evenement is voorbij. Zullen we het afsluiten?",
+    "completeDetail": "Markeer het als afgelopen, dan staat het bij je vorige edities.",
+    "complete": "Markeer als afgelopen"
+  },
+  "eventStatusSettings": {
+    "title": "Status",
+    "publishedBody": "Dit evenement is gepubliceerd. Nog niet klaar? Zet het terug naar concept.",
+    "completedBody": "Dit evenement is afgelopen. Toch nog niet voorbij? Heropen het.",
+    "unpublish": "Terug naar concept",
+    "reopen": "Heropenen"
   },
   "eventForm": {
     "createTitle": "Nieuw evenement",
@@ -250,21 +264,17 @@
     "createdBy": "Aangemaakt door",
     "event": "Evenement",
     "allEvents": "Alle evenementen",
-    "previewDescription": "Details en acties voor deze taak.",
     "gone": "Taak niet meer zichtbaar",
     "goneBody": "Ze werd verwijderd of is niet meer aan jou toegewezen.",
     "emptyBodyMine": "Je hebt nog geen taken. Taken die aan jou toegewezen worden, verschijnen hier, over alle evenementen heen.",
-    "unassignTitle": "Toewijzing verwijderen?",
-    "unassignWarning": "{name} is dan niet meer verantwoordelijk voor „{title}”. De taak staat weer open: er moet iemand anders gezocht worden om ze te doen.",
-    "unassignConfirm": "Ja, verwijder toewijzing",
     "unassignSelf": "Mezelf uitschrijven",
     "unassignSelfTitle": "Jezelf uitschrijven voor deze taak?",
     "unassignSelfWarning": "Je bent dan niet meer verantwoordelijk voor „{title}”. De organisatoren moeten iemand anders zoeken om ze te doen.",
     "unassignSelfConfirm": "Ja, schrijf me uit",
     "noLabels": "Geen labels",
-    "addDescription": "Klik om een beschrijving toe te voegen…",
     "deleteTitle": "Taak verwijderen?",
-    "deleteWarning": "„{title}” verdwijnt uit de takenlijst. Dit kan je niet zelf ongedaan maken."
+    "deleteWarning": "„{title}” verdwijnt uit de takenlijst. Dit kan je niet zelf ongedaan maken.",
+    "saved": "Taak opgeslagen."
   },
   "taskStatus": {
     "todo": "Te doen",
@@ -762,7 +772,9 @@
         "updated": "Gewijzigd sinds de e-mail",
         "removed": "Niet meer ingepland sinds de e-mail"
       }
-    }
+    },
+    "gone": "Niet meer beschikbaar",
+    "goneBody": "Dit werd ondertussen verwijderd."
   },
   "register": {
     "title": "Schrijf je in als vrijwilliger",

@@ -23,7 +23,7 @@ export function MilaBubble({
   return (
     <Root className={cn('flex items-start gap-3', className)}>
       <MilaAvatar size="sm" className="mt-1" />
-      <div className="flex min-w-0 flex-1 flex-col gap-3 rounded-2xl rounded-tl-sm bg-card p-4 shadow-soft">
+      <div className="flex min-w-0 flex-1 flex-col gap-3 rounded-card rounded-tl-sm bg-card p-4 shadow-soft">
         <div className="flex flex-col gap-1">
           <p className="font-bold text-mila-ink">{message}</p>
           {detail && <p className="text-sm text-muted-foreground">{detail}</p>}

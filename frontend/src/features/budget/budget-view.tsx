@@ -17,6 +17,7 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import type { BudgetEntry, Label } from '@/api/generated/types.gen';
+import { ModalActions } from '@/components/layout/modal-actions';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,19 +31,19 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { NativeSelect } from '@/components/ui/native-select';
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from '@/components/ui/sheet';
 import { LabelChip, labelsOf } from '@/features/labels/label-chip';
 import { LabelManager } from '@/features/labels/label-manager';
 import { LabelPopover } from '@/features/labels/label-popover';
@@ -71,11 +72,14 @@ import { BudgetEntryForm } from './budget-entry-form';
 import { BudgetQuickAdd } from './budget-quick-add';
 import { budgetEntryToForm, type BudgetEntryType } from './schemas';
 
+/** Links the save button at the bottom of the entry modal to the form above the files. */
+const ENTRY_FORM_ID = 'budget-entry-form';
+
 /**
  * An event's budget: the totals, then one list of income (green, +) and costs (red, −), newest
  * first. Managers type new lines into the row on top (Enter adds one), tag lines in place, and
- * open a line in a side sheet for its task, notes and files; everyone else reads. The backend decides what is
- * allowed; `canManage` only decides which controls show.
+ * open a line in a modal for its task, notes and files; everyone else reads. The backend decides
+ * what is allowed; `canManage` only decides which controls show.
  */
 export function BudgetView({
   eventId,
@@ -94,7 +98,7 @@ export function BudgetView({
   tasks: { id: string; title: string }[];
   /** The organization's suppliers, archived ones marked, to pick one (managers only). */
   suppliers: PickableSupplier[];
-  /** An entry to open in the sheet straight away (from a supplier's page). */
+  /** An entry to open in the modal straight away (from a supplier's page). */
   initialOpenId?: string;
   canManage: boolean;
   /** Archived events: everything is shown, nothing can change. */
@@ -106,6 +110,7 @@ export function BudgetView({
     initialOpenId && entries.some((entry) => entry.id === initialOpenId) ? initialOpenId : null,
   );
   const [deleting, setDeleting] = useState<BudgetEntry | null>(null);
+  const [saving, setSaving] = useState(false);
   const [labelsOpen, setLabelsOpen] = useState(false);
   const mayEdit = canManage && !readOnly;
 
@@ -126,7 +131,7 @@ export function BudgetView({
   const shown = sortEntries(filterEntries(entries, activeFilters), sort);
   const sortBy = (key: Exclude<BudgetSortKey, 'created'>) =>
     setSort((current) => nextSort(current, key));
-  // The pane reads the entry from fresh page data, so it updates after every change.
+  // The modal reads the entry from fresh page data, so it updates after every change.
   const openEntry = openId ? entries.find((entry) => entry.id === openId) : undefined;
 
   return (
@@ -201,7 +206,7 @@ export function BudgetView({
         )}
       </div>
 
-      <section aria-label={t('budget.title')} className="overflow-hidden rounded-3xl bg-card">
+      <section aria-label={t('budget.title')} className="overflow-hidden rounded-card bg-card">
         <div className="flex items-center gap-2 border-b border-border px-4 py-1.5 text-xs font-bold text-muted-foreground sm:px-5">
           <SortButton
             label={t('budget.columnDescription')}
@@ -244,27 +249,27 @@ export function BudgetView({
         </ul>
       </section>
 
-      <Sheet open={openId !== null} onOpenChange={(isOpen) => !isOpen && setOpenId(null)}>
-        <SheetContent className="w-full overflow-y-auto sm:max-w-lg">
-          <SheetHeader>
-            <SheetTitle className="text-lg">{openEntry?.title ?? t('budget.editTitle')}</SheetTitle>
-            <SheetDescription>
+      <Dialog open={openId !== null} onOpenChange={(isOpen) => !isOpen && setOpenId(null)}>
+        <DialogContent size={openEntry ? 'md' : 'default'}>
+          <DialogHeader>
+            <DialogTitle>{openEntry?.title ?? t('budget.editTitle')}</DialogTitle>
+            <DialogDescription>
               {openEntry ? t('budget.editDescription') : t('budget.gone')}
-            </SheetDescription>
-          </SheetHeader>
+            </DialogDescription>
+          </DialogHeader>
           {openEntry && (
-            <div className="flex flex-col gap-6 px-4 pb-6">
+            <div className="flex flex-col gap-6">
               {mayEdit ? (
                 <BudgetEntryForm
                   // Fresh form values after each save.
                   key={`${openEntry.id}-${openEntry.updatedAt}`}
+                  outsideSave={{ formId: ENTRY_FORM_ID, onPendingChange: setSaving }}
                   eventId={eventId}
                   action={updateBudgetEntry.bind(null, eventId, openEntry.id)}
                   defaultValues={budgetEntryToForm(openEntry)}
                   labels={labels}
                   tasks={withLinkedTask(tasks, openEntry)}
                   suppliers={withCurrentSupplier(suppliers, openEntry)}
-                  submitLabel={t('common.save')}
                   onDone={() => toast.success(t('budget.saved'))}
                 />
               ) : (
@@ -278,19 +283,21 @@ export function BudgetView({
                 readOnly={readOnly}
               />
               {mayEdit && (
-                <Button
-                  variant="ghost"
-                  className="w-fit text-destructive"
-                  onClick={() => setDeleting(openEntry)}
-                >
-                  <Trash2 data-icon="inline-start" aria-hidden />
-                  {t('budget.delete')}
-                </Button>
+                <ModalActions formId={ENTRY_FORM_ID} saving={saving}>
+                  <Button
+                    variant="ghost"
+                    className="text-destructive"
+                    onClick={() => setDeleting(openEntry)}
+                  >
+                    <Trash2 data-icon="inline-start" aria-hidden />
+                    {t('budget.delete')}
+                  </Button>
+                </ModalActions>
               )}
             </div>
           )}
-        </SheetContent>
-      </Sheet>
+        </DialogContent>
+      </Dialog>
 
       {deleting && (
         <DeleteEntryDialog
@@ -434,7 +441,7 @@ function Summary({ entries, filtered }: { entries: BudgetEntry[]; filtered: bool
     { key: 'result', label: t('budget.result'), pair: totals.result, result: true },
   ];
   return (
-    <section aria-labelledby="budget-summary" className="rounded-3xl bg-card p-5">
+    <section aria-labelledby="budget-summary" className="rounded-card bg-card p-5">
       <h2 id="budget-summary" className="mb-3 flex items-center gap-2 text-base font-bold">
         {t('budget.summary')}
         {filtered && <Badge variant="warn">{t('budget.filtered')}</Badge>}
@@ -594,7 +601,7 @@ function EntryRow({
   );
 }
 
-/** What members see in the sheet: the entry, read-only. */
+/** What members see in the modal: the entry, read-only. */
 function EntryDetails({ entry, labels }: { entry: BudgetEntry; labels: Label[] }) {
   const t = useTranslations();
   const entryLabels = labelsOf(labels, entry.labelIds);

@@ -26,7 +26,7 @@ type Field = 'title' | 'estimated' | 'actual';
  * description, labels and an amount or two, then Enter. The line is added and the cursor is back
  * in the description for the next one. The + / − button keeps what was chosen there; a sign
  * typed in an amount only applies to that one line. A task, notes and files are added
- * afterwards in the line's sheet.
+ * afterwards in the line's modal.
  */
 export function BudgetQuickAdd({ eventId, labels }: { eventId: string; labels: Label[] }) {
   const t = useTranslations();

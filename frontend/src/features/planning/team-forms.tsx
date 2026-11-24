@@ -74,7 +74,7 @@ export function TeamQuickAdd({
   const suggestions = TEAM_SUGGESTIONS.filter((name) => !taken.has(name.toLocaleLowerCase('nl')));
 
   return (
-    <div className="flex flex-col gap-3 rounded-3xl bg-card p-4 shadow-soft sm:p-5">
+    <div className="flex flex-col gap-3 rounded-card bg-card p-4 shadow-soft sm:p-5">
       {onClose && (
         <div className="flex items-center justify-between gap-2">
           <h2 className="text-base">{t('planning.teams.add')}</h2>
@@ -224,18 +224,20 @@ export function TeamForm({
         </Field>
       </FieldGroup>
       <FormError message={formError} />
-      <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-between">
+      {/* Like every edit modal: save on the left, deleting on the right. */}
+      <div className="flex flex-wrap items-center gap-2 border-t border-border pt-5">
+        <Button type="submit" disabled={pending}>
+          {t('common.save')}
+        </Button>
         <Button
           type="button"
-          variant="destructive"
+          variant="ghost"
+          className="ml-auto text-destructive"
           onClick={() => void onDelete()}
           disabled={remove.isPending}
         >
           <Trash2 data-icon="inline-start" aria-hidden />
           {t('planning.teams.delete')}
-        </Button>
-        <Button type="submit" disabled={pending}>
-          {t('common.save')}
         </Button>
       </div>
     </form>

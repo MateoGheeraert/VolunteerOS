@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { Controller, useWatch } from 'react-hook-form';
 import { FormError, FormFieldError } from '@/components/form-error';
+import { useOutsideSave, type OutsideSave } from '@/components/layout/modal-actions';
 import { Button } from '@/components/ui/button';
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
@@ -31,9 +32,10 @@ import { useTasksContext } from './tasks-context';
 type TaskFormAction = SingleInputActionFn<ActionError, typeof taskFormSchema, unknown, unknown>;
 
 /**
- * Creates a task of the event. Only managers get here. Existing tasks are edited field by field
- * in the task pane (inline), not with this form. Accepting an AI task suggestion uses it too, with
- * the suggestion filled in and its own `action`.
+ * Creates a task of the event, or edits one in its modal. Only managers get here. Accepting an AI
+ * task suggestion uses it too, with the suggestion filled in and its own `action`.
+ * Creating, it has its own buttons. Editing with `outsideSave`, it has none: the modal saves it
+ * from its bottom row (`ModalActions`), below the files.
  */
 export function TaskForm({
   event,
@@ -42,17 +44,27 @@ export function TaskForm({
   action,
   defaultValues = EMPTY_TASK,
   submitLabel,
+  outsideSave,
+  currentAssignee,
 }: {
   event: { id: string; endsAt: string };
   onDone: () => void;
-  onCancel: () => void;
+  onCancel?: () => void;
   action?: TaskFormAction;
   defaultValues?: TaskFormValues;
   submitLabel?: string;
+  /** Editing in a modal: saved by the button in its bottom row. */
+  outsideSave?: OutsideSave;
+  /** Editing: the assignee now, so someone who left the organization stays selectable. */
+  currentAssignee?: { userId: string; name: string };
 }) {
   const t = useTranslations();
   const router = useRouter();
   const { members, labels } = useTasksContext();
+  const formerMember =
+    currentAssignee && !members.some((member) => member.userId === currentAssignee.userId)
+      ? currentAssignee
+      : null;
 
   const { form, onSubmit, formError, pending } = useActionForm(
     action ?? createTask.bind(null, event.id),
@@ -68,8 +80,15 @@ export function TaskForm({
   const { errors } = form.formState;
   const [assignee, dueDate] = useWatch({ control: form.control, name: ['assignee', 'dueDate'] });
 
+  useOutsideSave(outsideSave, pending);
+
   return (
-    <form onSubmit={(e) => void onSubmit(e)} noValidate className="flex flex-col gap-6">
+    <form
+      id={outsideSave?.formId}
+      onSubmit={(e) => void onSubmit(e)}
+      noValidate
+      className="flex flex-col gap-6"
+    >
       <FieldGroup className="gap-5">
         <Field data-invalid={!!errors.title}>
           <FieldLabel htmlFor="title">{t('taskForm.title')}</FieldLabel>
@@ -147,6 +166,11 @@ export function TaskForm({
                 {member.name}
               </option>
             ))}
+            {formerMember && (
+              <option value={formerMember.userId}>
+                {formerMember.name} ({t('tasks.inactive')})
+              </option>
+            )}
             <option value={EXTERNAL_ASSIGNEE}>{t('taskForm.external')}</option>
           </NativeSelect>
           <FormFieldError error={errors.assignee} />
@@ -183,14 +207,18 @@ export function TaskForm({
       </FieldGroup>
 
       <FormError message={formError} />
-      <div className="flex flex-wrap gap-2">
-        <Button type="submit" disabled={pending}>
-          {submitLabel ?? t('taskForm.createButton')}
-        </Button>
-        <Button type="button" variant="ghost" onClick={onCancel}>
-          {t('common.cancel')}
-        </Button>
-      </div>
+      {!outsideSave && (
+        <div className="flex flex-wrap gap-2">
+          <Button type="submit" disabled={pending}>
+            {submitLabel ?? t('taskForm.createButton')}
+          </Button>
+          {onCancel && (
+            <Button type="button" variant="ghost" onClick={onCancel}>
+              {t('common.cancel')}
+            </Button>
+          )}
+        </div>
+      )}
     </form>
   );
 }

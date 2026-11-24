@@ -13,7 +13,7 @@ export const metadata: Metadata = { title: 'Leveranciers' };
 
 export default function EventSuppliersPage({ params }: PageProps<'/events/[eventId]/suppliers'>) {
   return (
-    <Suspense fallback={<Skeleton className="h-96 rounded-3xl bg-card" />}>
+    <Suspense fallback={<Skeleton className="h-96 rounded-card bg-card" />}>
       <EventSuppliers params={params} />
     </Suspense>
   );
@@ -44,13 +44,13 @@ async function EventSuppliers({
         })}
       </p>
       {suppliers.length === 0 ? (
-        <p className="rounded-3xl bg-card p-8 text-center text-sm text-muted-foreground">
+        <p className="rounded-card bg-card p-8 text-center text-sm text-muted-foreground">
           {t('suppliers.eventTab.empty')}
         </p>
       ) : (
         <div className="grid gap-4 lg:grid-cols-2">
           {suppliers.map(({ supplier, entries }) => (
-            <article key={supplier.id} className="flex flex-col gap-3 rounded-3xl bg-card p-5">
+            <article key={supplier.id} className="flex flex-col gap-3 rounded-card bg-card p-5">
               <div className="flex flex-col gap-1.5">
                 <div className="flex flex-wrap items-center gap-2">
                   <Link

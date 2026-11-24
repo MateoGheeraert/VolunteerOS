@@ -24,7 +24,7 @@ export function MilaPanel({
   return (
     <section
       className={cn(
-        'flex flex-col gap-4 rounded-3xl border border-mila-tint-strong/60 bg-mila-tint p-5 sm:p-6',
+        'flex flex-col gap-4 rounded-card border border-mila-tint-strong/60 bg-mila-tint p-5 sm:p-6',
         className,
       )}
     >

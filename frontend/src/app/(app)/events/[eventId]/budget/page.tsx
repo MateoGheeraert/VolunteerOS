@@ -19,7 +19,7 @@ export default function EventBudgetPage({
   searchParams,
 }: PageProps<'/events/[eventId]/budget'>) {
   return (
-    <Suspense fallback={<Skeleton className="h-96 rounded-3xl bg-card" />}>
+    <Suspense fallback={<Skeleton className="h-96 rounded-card bg-card" />}>
       <EventBudget params={params} searchParams={searchParams} />
     </Suspense>
   );

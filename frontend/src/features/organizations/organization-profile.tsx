@@ -264,7 +264,7 @@ function Section({
   children: ReactNode;
 }) {
   return (
-    <section className="flex flex-col gap-3 rounded-3xl bg-card p-5 shadow-soft sm:p-6">
+    <section className="flex flex-col gap-3 rounded-card bg-card p-5 shadow-soft sm:p-6">
       <div className="flex flex-col gap-1">
         <h2 className="text-lg">{title}</h2>
         {description && <p className="text-sm text-muted-foreground">{description}</p>}

@@ -14,6 +14,7 @@ import { NativeSelect } from '@/components/ui/native-select';
 import { useActionForm } from '@/hooks/use-action-form';
 import { formatDateTime, formatShortDay, utcIsoToBrussels } from '@/lib/format';
 import { createShift, deleteShift, updateShift } from '@/server/planning/actions';
+import { cn } from '@/lib/utils';
 import { useConfirm } from './confirm-dialog';
 import { shiftFormSchemaFor, type shiftFormSchema, type ShiftFormValues } from './schemas';
 
@@ -195,29 +196,37 @@ export function ShiftForm({
       )}
       <FormError message={formError} />
 
-      <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-between">
-        <div className="flex flex-col-reverse gap-2 sm:flex-row">
-          {shift && (
+      {/* Like every edit modal: save on the left, the shift's other actions on the right. */}
+      <div
+        className={cn('flex flex-wrap items-center gap-2', shift && 'border-t border-border pt-5')}
+      >
+        <Button type="submit" disabled={pending}>
+          {shift ? t('common.save') : t('planning.shifts.create')}
+        </Button>
+        {shift && (
+          <div className="ml-auto flex flex-wrap items-center gap-2">
+            {onDuplicate && (
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => onDuplicate(form.getValues())}
+              >
+                <Copy data-icon="inline-start" aria-hidden />
+                {t('planning.shifts.duplicate')}
+              </Button>
+            )}
             <Button
               type="button"
-              variant="destructive"
+              variant="ghost"
+              className="text-destructive"
               onClick={() => void onDelete()}
               disabled={remove.isPending}
             >
               <Trash2 data-icon="inline-start" aria-hidden />
               {t('planning.shifts.delete')}
             </Button>
-          )}
-          {shift && onDuplicate && (
-            <Button type="button" variant="secondary" onClick={() => onDuplicate(form.getValues())}>
-              <Copy data-icon="inline-start" aria-hidden />
-              {t('planning.shifts.duplicate')}
-            </Button>
-          )}
-        </div>
-        <Button type="submit" disabled={pending}>
-          {shift ? t('common.save') : t('planning.shifts.create')}
-        </Button>
+          </div>
+        )}
       </div>
     </form>
   );

@@ -28,21 +28,6 @@ import { cn } from '@/lib/utils';
  */
 const focusOnMount = (node: HTMLElement | null) => node?.focus();
 
-/**
- * Marks an input while it edits. Radix dialogs and sheets listen for Escape on the document
- * before React sees the key, so they can't be stopped from the input: give them
- * `onEscapeKeyDown={keepOpenWhileInlineEditing}` instead.
- */
-const EDITING = { 'data-inline-editing': '' };
-
-/** For a Sheet or Dialog's `onEscapeKeyDown`: Escape inside an inline edit only cancels the edit. */
-export function keepOpenWhileInlineEditing(event: KeyboardEvent | globalThis.KeyboardEvent) {
-  const target = event.target;
-  if (target instanceof Element && target.closest('[data-inline-editing]')) {
-    event.preventDefault();
-  }
-}
-
 /** Resolves to true when the value was saved. */
 export type SaveHandler<T> = (value: T) => Promise<boolean>;
 
@@ -145,7 +130,7 @@ export function InlineText({
       event.preventDefault();
       finish();
     } else if (event.key === 'Escape') {
-      // Cancels the edit (see keepOpenWhileInlineEditing for the surrounding sheet).
+      // Cancels the edit.
       end();
       onDone?.();
     }
@@ -154,7 +139,6 @@ export function InlineText({
   if (editing) {
     return (
       <input
-        {...EDITING}
         aria-label={label}
         ref={focusOnMount}
         onFocus={(event) => event.currentTarget.select()}
@@ -224,7 +208,6 @@ export function InlineTextarea({
   if (draft !== null) {
     return (
       <textarea
-        {...EDITING}
         ref={ref}
         aria-label={label}
         value={draft}
@@ -286,7 +269,6 @@ export function InlineDate({
   if (draft !== null) {
     return (
       <input
-        {...EDITING}
         type="date"
         aria-label={label}
         ref={focusOnMount}

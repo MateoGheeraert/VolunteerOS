@@ -15,6 +15,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useActionForm } from '@/hooks/use-action-form';
 import { formatShiftTime, formatShortDay } from '@/lib/format';
 import { createVolunteer, deleteVolunteer, updateVolunteer } from '@/server/planning/actions';
+import { cn } from '@/lib/utils';
 import { useConfirm } from './confirm-dialog';
 import { shiftDay } from './planning-rules';
 import { volunteerFormSchema, type VolunteerFormValues } from './schemas';
@@ -227,23 +228,28 @@ export function VolunteerForm({
         </Field>
       </FieldGroup>
       <FormError message={formError} />
-      <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-between">
-        {application ? (
+      {/* Like every edit modal: save on the left, removing on the right. */}
+      <div
+        className={cn(
+          'flex flex-wrap items-center gap-2',
+          application && 'border-t border-border pt-5',
+        )}
+      >
+        <Button type="submit" disabled={pending}>
+          {application ? t('common.save') : t('planning.volunteers.add')}
+        </Button>
+        {application && (
           <Button
             type="button"
-            variant="destructive"
+            variant="ghost"
+            className="ml-auto text-destructive"
             onClick={() => void onDelete()}
             disabled={remove.isPending}
           >
             <Trash2 data-icon="inline-start" aria-hidden />
             {t('planning.volunteers.remove')}
           </Button>
-        ) : (
-          <span />
         )}
-        <Button type="submit" disabled={pending}>
-          {application ? t('common.save') : t('planning.volunteers.add')}
-        </Button>
       </div>
     </form>
   );

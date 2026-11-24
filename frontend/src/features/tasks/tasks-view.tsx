@@ -25,14 +25,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { NativeSelect } from '@/components/ui/native-select';
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from '@/components/ui/sheet';
-import { keepOpenWhileInlineEditing } from '@/components/inline-edit/inline-edit';
 import { cn } from '@/lib/utils';
 import { changeTaskStatus } from '@/server/tasks/actions';
 import { LabelManager } from '@/features/labels/label-manager';
@@ -99,7 +91,7 @@ function Tasks({ tasks }: { tasks: ShownTask[] }) {
   const set = <K extends keyof TaskFilters>(key: K, value: TaskFilters[K]) =>
     setFilters((current) => ({ ...current, [key]: value }));
   const open = (task: ShownTask) => setPane({ kind: 'task', taskId: task.id });
-  // The pane reads the task from fresh page data, so it updates after every change.
+  // The modal reads the task from fresh page data, so it updates after every change.
   const paneTask = pane?.kind === 'task' ? shown.find((x) => x.id === pane.taskId) : null;
 
   return (
@@ -155,14 +147,14 @@ function Tasks({ tasks }: { tasks: ShownTask[] }) {
             </li>
           ))}
           {visible.length === 0 && (
-            <li className="rounded-2xl bg-card p-6 text-center text-muted-foreground">
+            <li className="rounded-card bg-card p-6 text-center text-muted-foreground">
               {t('tasks.noMatches')}
             </li>
           )}
         </ul>
       )}
 
-      {/* Creating opens a modal; the side sheet is for viewing and editing a task. */}
+      {/* Creating opens a short modal; viewing and editing a task opens a wide one. */}
       <Dialog open={pane?.kind === 'create'} onOpenChange={(isOpen) => !isOpen && setPane(null)}>
         <DialogContent>
           <DialogHeader>
@@ -175,32 +167,21 @@ function Tasks({ tasks }: { tasks: ShownTask[] }) {
         </DialogContent>
       </Dialog>
 
-      <Sheet
+      <Dialog
         open={pane !== null && pane.kind !== 'create'}
         onOpenChange={(isOpen) => !isOpen && setPane(null)}
       >
-        <SheetContent
-          className="w-full overflow-y-auto sm:max-w-lg"
-          onEscapeKeyDown={keepOpenWhileInlineEditing}
-        >
-          {paneTask && (
-            <>
-              {/* The title is edited in the pane itself; the sheet still needs a name. */}
-              <SheetHeader className="sr-only">
-                <SheetTitle>{paneTask.title}</SheetTitle>
-                <SheetDescription>{t('tasks.previewDescription')}</SheetDescription>
-              </SheetHeader>
-              <div className="px-4 pt-12 pb-6">
-                <TaskPreview task={paneTask} onDeleted={() => setPane(null)} />
-              </div>
-            </>
-          )}
+        <DialogContent size={paneTask ? 'md' : 'default'}>
+          {paneTask && <TaskPreview task={paneTask} onDeleted={() => setPane(null)} />}
           {pane?.kind === 'task' && !paneTask && (
             // Deleted, or no longer visible (e.g. given away).
-            <PaneHeader title={t('tasks.gone')} description={t('tasks.goneBody')} />
+            <DialogHeader>
+              <DialogTitle>{t('tasks.gone')}</DialogTitle>
+              <DialogDescription>{t('tasks.goneBody')}</DialogDescription>
+            </DialogHeader>
           )}
-        </SheetContent>
-      </Sheet>
+        </DialogContent>
+      </Dialog>
 
       {event && canManage && (
         <LabelManager
@@ -211,15 +192,6 @@ function Tasks({ tasks }: { tasks: ShownTask[] }) {
         />
       )}
     </div>
-  );
-}
-
-function PaneHeader({ title, description }: { title: string; description: string }) {
-  return (
-    <SheetHeader>
-      <SheetTitle className="pr-8 text-lg">{title}</SheetTitle>
-      <SheetDescription>{description}</SheetDescription>
-    </SheetHeader>
   );
 }
 
@@ -394,7 +366,7 @@ function Board({
   onMove: (task: ShownTask, status: TaskStatus) => void;
 }) {
   // Dragging needs a few pixels of movement (or a long press on touch), so a click still opens
-  // the task. The pane's status picker is the keyboard and screen reader way to move a task.
+  // the task. The modal's status picker is the keyboard and screen reader way to move a task.
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } }),
@@ -445,7 +417,7 @@ function Column({
       ref={setNodeRef}
       aria-label={t(`taskStatus.${status}`)}
       className={cn(
-        'flex min-h-40 flex-col gap-3 rounded-3xl bg-muted/60 p-3 transition-colors',
+        'flex min-h-40 flex-col gap-3 rounded-card bg-muted/60 p-3 transition-colors',
         isOver && 'bg-brand-tint ring-2 ring-brand-secondary',
       )}
     >
@@ -496,7 +468,7 @@ function EmptyState() {
         ? t('tasks.emptyBodyManager')
         : t('tasks.emptyBodyMember');
   return (
-    <section className="flex flex-col items-start gap-3 rounded-3xl bg-brand-tint p-6">
+    <section className="flex flex-col items-start gap-3 rounded-card bg-brand-tint p-6">
       <IconBlob icon={ListChecks} tone="accent" className="bg-card" />
       <h2 className="text-lg">{t('tasks.emptyTitle')}</h2>
       <p className="text-muted-foreground">{body}</p>

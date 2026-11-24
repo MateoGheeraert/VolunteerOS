@@ -15,7 +15,7 @@ export const metadata: Metadata = { title: 'Uitnodiging' };
 /** The link in the invitation email (backend/src/auth/auth.ts) points here. */
 export default function InvitationPage({ params }: PageProps<'/invitations/[id]'>) {
   return (
-    <Suspense fallback={<Skeleton className="h-56 w-full rounded-2xl" />}>
+    <Suspense fallback={<Skeleton className="h-56 w-full rounded-card" />}>
       <Invitation params={params} />
     </Suspense>
   );

@@ -16,7 +16,7 @@ export const metadata: Metadata = { title: 'Taken' };
 
 export default function EventTasksPage({ params }: PageProps<'/events/[eventId]/tasks'>) {
   return (
-    <Suspense fallback={<Skeleton className="h-96 rounded-3xl bg-card" />}>
+    <Suspense fallback={<Skeleton className="h-96 rounded-card bg-card" />}>
       <EventTasks params={params} />
     </Suspense>
   );

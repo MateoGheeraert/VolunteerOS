@@ -55,13 +55,6 @@ import {
 import { Input } from '@/components/ui/input';
 import { NativeSelect } from '@/components/ui/native-select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from '@/components/ui/sheet';
 import { formatDateTime, formatShiftTime, formatShortDay } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import {
@@ -270,6 +263,11 @@ export function PlanningBoard({
     pane?.kind === 'shift' ? planning.shifts.find((x) => x.id === pane.shiftId) : null;
   const paneApplication =
     pane?.kind === 'volunteer' ? applicationById.get(pane.applicationId) : null;
+  // Deleted (here or by someone else) while its modal was open.
+  const paneGone =
+    (pane?.kind === 'team' && !paneTeam) ||
+    (pane?.kind === 'shift' && !paneShift) ||
+    (pane?.kind === 'volunteer' && !paneApplication);
 
   const newShiftValues = (team: Team): ShiftFormValues => {
     const last = planning.shifts.filter((s) => s.teamId === team.id).at(-1);
@@ -398,7 +396,7 @@ export function PlanningBoard({
         )}
       </DragOverlay>
 
-      {/* Creating opens a modal; the side sheet is for viewing and editing what exists. */}
+      {/* Creating and editing both open a modal: a short one to create, a wider one to edit. */}
       <Dialog open={creating} onOpenChange={(open) => !open && close()}>
         <DialogContent>
           {pane?.kind === 'newShift' && (
@@ -435,8 +433,14 @@ export function PlanningBoard({
         </DialogContent>
       </Dialog>
 
-      <Sheet open={pane !== null && !creating} onOpenChange={(open) => !open && close()}>
-        <SheetContent className="w-full overflow-y-auto sm:max-w-lg">
+      <Dialog open={pane !== null && !creating} onOpenChange={(open) => !open && close()}>
+        <DialogContent size={paneGone ? 'default' : 'md'}>
+          {paneGone && (
+            <DialogHeader>
+              <DialogTitle>{t('planning.gone')}</DialogTitle>
+              <DialogDescription>{t('planning.goneBody')}</DialogDescription>
+            </DialogHeader>
+          )}
           {paneTeam && (
             <PaneBody title={t('planning.teams.editTitle')} description={paneTeam.name}>
               <TeamForm
@@ -502,8 +506,8 @@ export function PlanningBoard({
               <PublishPanel eventId={event.id} planning={planning} onDone={close} />
             </PaneBody>
           )}
-        </SheetContent>
-      </Sheet>
+        </DialogContent>
+      </Dialog>
     </DndContext>
   );
 }
@@ -519,11 +523,11 @@ function PaneBody({
 }) {
   return (
     <>
-      <SheetHeader>
-        <SheetTitle className="pr-8 text-lg">{title}</SheetTitle>
-        <SheetDescription>{description}</SheetDescription>
-      </SheetHeader>
-      <div className="px-6 pb-6">{children}</div>
+      <DialogHeader>
+        <DialogTitle>{title}</DialogTitle>
+        <DialogDescription>{description}</DialogDescription>
+      </DialogHeader>
+      {children}
     </>
   );
 }
@@ -547,7 +551,7 @@ function Toolbar({
   const isOpen = planning.registrationClosedReason === null;
 
   return (
-    <div className="flex flex-col gap-3 rounded-3xl bg-card p-4 shadow-soft sm:flex-row sm:items-center sm:justify-between sm:p-5">
+    <div className="flex flex-col gap-3 rounded-card bg-card p-4 shadow-soft sm:flex-row sm:items-center sm:justify-between sm:p-5">
       <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
         <div className="flex items-center gap-2">
           <IconBlob icon={UsersRound} />
@@ -627,7 +631,7 @@ function PublishStep({
     return (
       <section
         className={cn(
-          'flex flex-col gap-3 rounded-3xl px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5',
+          'flex flex-col gap-3 rounded-card px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5',
           changes > 0 ? 'bg-status-warn-bg text-status-warn' : 'bg-status-ok-bg text-status-ok',
         )}
       >
@@ -653,7 +657,7 @@ function PublishStep({
 
   if (ready) {
     return (
-      <section className="flex flex-col gap-4 rounded-3xl bg-primary p-5 text-primary-foreground shadow-soft sm:flex-row sm:items-center sm:justify-between sm:p-6">
+      <section className="flex flex-col gap-4 rounded-card bg-primary p-5 text-primary-foreground shadow-soft sm:flex-row sm:items-center sm:justify-between sm:p-6">
         <div className="flex items-start gap-3">
           <CircleCheck className="mt-0.5 size-6 shrink-0" aria-hidden />
           <div className="flex flex-col gap-1">
@@ -670,7 +674,7 @@ function PublishStep({
   }
 
   return (
-    <section className="flex flex-col gap-3 rounded-3xl border-2 border-dashed border-border px-4 py-3 sm:px-5">
+    <section className="flex flex-col gap-3 rounded-card border-2 border-dashed border-border px-4 py-3 sm:px-5">
       <div className="flex flex-col gap-0.5">
         <h2 className="text-base">{t('planning.publish.stepTitle')}</h2>
         <p className="text-sm text-muted-foreground">{t('planning.publish.stepIntro')}</p>
@@ -727,7 +731,7 @@ function ChecklistItem({ children, action }: { children: ReactNode; action?: Rea
 function EmptyTeams({ eventId, editable }: { eventId: string; editable: boolean }) {
   const t = useTranslations();
   return (
-    <section className="flex flex-col items-start gap-3 rounded-3xl bg-brand-tint p-6">
+    <section className="flex flex-col items-start gap-3 rounded-card bg-brand-tint p-6">
       <IconBlob icon={UsersRound} tone="accent" className="bg-card" />
       <h2 className="text-lg">{t('planning.teams.emptyTitle')}</h2>
       <p className="text-muted-foreground">
@@ -789,7 +793,7 @@ function TeamLane({
     <section
       aria-label={team.name}
       className={cn(
-        'flex flex-col gap-3 rounded-3xl transition-colors',
+        'flex flex-col gap-3 rounded-card transition-colors',
         preferred && '-m-3 bg-brand-tint/70 p-3',
       )}
     >
@@ -900,7 +904,7 @@ function ShiftCard({
     <article
       ref={setNodeRef}
       className={cn(
-        'flex flex-col gap-2.5 rounded-2xl border border-border bg-card p-3 transition-all',
+        'flex flex-col gap-2.5 rounded-card border border-border bg-card p-3 transition-all',
         dragged && (marked ? 'border-status-ok ring-2 ring-status-ok/30' : 'opacity-70'),
         isOver && 'scale-[1.01] ring-2 ring-brand-secondary',
       )}
@@ -1117,7 +1121,7 @@ function VolunteerPanel({
       aria-label={t('planning.volunteers.title')}
       className={cn(
         // Below lg it sits above the board and stays in view while scrolling, to drag from.
-        'sticky top-2 z-20 order-first flex max-h-[42vh] min-h-0 flex-col gap-3 rounded-3xl bg-card p-4 shadow-soft transition-colors lg:top-4 lg:order-none lg:max-h-[calc(100vh-2rem)]',
+        'sticky top-2 z-20 order-first flex max-h-[42vh] min-h-0 flex-col gap-3 rounded-card bg-card p-4 shadow-soft transition-colors lg:top-4 lg:order-none lg:max-h-[calc(100vh-2rem)]',
         isOver && 'ring-2 ring-brand-secondary',
       )}
     >
@@ -1164,7 +1168,7 @@ function VolunteerPanel({
       )}
       <ul className="-mx-1 flex min-h-0 flex-col gap-2 overflow-y-auto px-1 pb-1">
         {planning.applications.length === 0 && (
-          <li className="rounded-2xl bg-muted/60 p-4 text-sm text-muted-foreground">
+          <li className="rounded-card bg-muted/60 p-4 text-sm text-muted-foreground">
             {t('planning.volunteers.empty')}
           </li>
         )}
@@ -1224,7 +1228,7 @@ function VolunteerCard({
   return (
     <div
       className={cn(
-        'flex flex-wrap items-start gap-2 rounded-2xl border-2 border-transparent bg-muted/50 p-2.5 transition-opacity',
+        'flex flex-wrap items-start gap-2 rounded-card border-2 border-transparent bg-muted/50 p-2.5 transition-opacity',
         done && !application.pendingNotice && 'opacity-60',
         application.pendingNotice && 'border-status-warn-bg bg-status-warn-bg/40',
         isDragging && 'opacity-30',

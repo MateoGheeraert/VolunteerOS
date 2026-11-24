@@ -11,12 +11,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { NativeSelect } from '@/components/ui/native-select';
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from '@/components/ui/sheet';
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import type { ActionError } from '@/server/action-client';
 import { createLabel, deleteLabel, getLabelUsage, updateLabel } from '@/server/labels/actions';
 import { LabelChip } from './label-chip';
@@ -39,13 +39,13 @@ export function LabelManager({
 }) {
   const t = useTranslations();
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full overflow-y-auto sm:max-w-lg">
-        <SheetHeader>
-          <SheetTitle className="text-lg">{t('labels.title')}</SheetTitle>
-          <SheetDescription>{t('labels.description')}</SheetDescription>
-        </SheetHeader>
-        <div className="flex flex-col gap-4 px-4 pb-6">
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent size="md">
+        <DialogHeader>
+          <DialogTitle>{t('labels.title')}</DialogTitle>
+          <DialogDescription>{t('labels.description')}</DialogDescription>
+        </DialogHeader>
+        <div className="flex flex-col gap-4">
           {labels.length === 0 ? (
             <p className="text-muted-foreground">{t('labels.empty')}</p>
           ) : (
@@ -58,8 +58,8 @@ export function LabelManager({
           )}
           <NewLabel eventId={eventId} />
         </div>
-      </SheetContent>
-    </Sheet>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -128,7 +128,7 @@ function LabelRow({ eventId, label }: { eventId: string; label: Label }) {
   const busy = save.isPending || remove.isPending || usage.isPending;
 
   return (
-    <li className="flex flex-col gap-2 rounded-2xl bg-muted/50 p-3">
+    <li className="flex flex-col gap-2 rounded-card bg-muted/50 p-3">
       <div className="flex items-center justify-between gap-2">
         <LabelChip label={{ name: name.trim() || label.name, color }} />
         {confirming ? (

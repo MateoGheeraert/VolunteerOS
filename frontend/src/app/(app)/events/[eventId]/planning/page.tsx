@@ -13,7 +13,7 @@ export const metadata: Metadata = { title: 'Planning' };
 
 export default function EventPlanningPage({ params }: PageProps<'/events/[eventId]/planning'>) {
   return (
-    <Suspense fallback={<Skeleton className="h-96 rounded-3xl bg-card" />}>
+    <Suspense fallback={<Skeleton className="h-96 rounded-card bg-card" />}>
       <EventPlanning params={params} />
     </Suspense>
   );

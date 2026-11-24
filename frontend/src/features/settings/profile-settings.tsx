@@ -58,7 +58,7 @@ export function ProfileSettings({ profile, today }: { profile: MyProfile; today:
   return (
     <div className="flex max-w-3xl flex-col gap-5">
       {missing.length > 0 && (
-        <section className="flex items-start gap-3 rounded-3xl bg-brand-tint p-5 text-sm sm:px-8">
+        <section className="flex items-start gap-3 rounded-card bg-brand-tint p-5 text-sm sm:px-8">
           <Sparkles className="mt-0.5 size-5 shrink-0 text-primary" aria-hidden />
           <div className="flex flex-col gap-1">
             <p className="font-bold">{t('settings.profile.nudgeTitle')}</p>
@@ -71,7 +71,7 @@ export function ProfileSettings({ profile, today }: { profile: MyProfile; today:
         </section>
       )}
 
-      <section className="flex flex-col gap-5 rounded-3xl bg-card p-5 shadow-soft sm:p-8">
+      <section className="flex flex-col gap-5 rounded-card bg-card p-5 shadow-soft sm:p-8">
         <h2 className="text-lg">{t('settings.profile.title')}</h2>
         <dl className="grid gap-4 text-sm">
           <Detail label={t('settings.profile.fields.name')}>

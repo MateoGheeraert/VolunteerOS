@@ -9,7 +9,7 @@ import { listBudgetEntryUploads, listTaskUploads } from '@/server/uploads/action
 import { FilesPanel, type FileOwner } from './files-panel';
 
 /**
- * The files of one task or budget entry, in its pane. The pane is a client component, so the
+ * The files of one task or budget entry, in its modal. The modal is a client component, so the
  * list is fetched when it opens, and again after each change. Mount it keyed by the owner, so
  * switching starts from an empty list.
  */
@@ -68,7 +68,7 @@ export function AttachedFiles({
           }}
         />
       ) : (
-        <Skeleton className="h-16 rounded-2xl" />
+        <Skeleton className="h-16 rounded-card" />
       )}
     </section>
   );

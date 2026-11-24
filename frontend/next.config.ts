@@ -18,14 +18,6 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [{ source: '/', destination: '/events', permanent: false }];
   },
-  turbopack: {
-    rules: {
-      '*.css': {
-        loaders: ['@tailwindcss/turbopack'],
-        as: '*.css',
-      },
-    },
-  },
 };
 
 export default withNextIntl(nextConfig);

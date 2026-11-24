@@ -16,7 +16,6 @@ import {
   changeTaskStatusSchema,
   taskApiFields,
   taskFormSchema,
-  taskPatchSchema,
   toTaskBody,
 } from '@/features/tasks/schemas';
 import { msg } from '@/i18n/keys';
@@ -46,15 +45,13 @@ export const createTask = actionClient
     return { id: data.id };
   });
 
-/** One inline edit from the task pane (bind event and task): only the fields sent change. */
-export const patchTask = actionClient
-  .metadata({ name: 'patchTask', apiFields: taskApiFields })
+/** A manager saves the task's modal (bind event and task): every field is sent. */
+export const updateTask = actionClient
+  .metadata({ name: 'updateTask', apiFields: taskApiFields })
   .bindArgsSchemas([id, id])
-  .inputSchema(taskPatchSchema)
+  .inputSchema(taskFormSchema)
   .action(async ({ parsedInput, bindArgsParsedInputs: [eventId, taskId] }) => {
-    const body = { ...parsedInput };
-    if (body.description === '') body.description = null;
-    await tasksControllerUpdate({ path: { eventId, taskId }, body });
+    await tasksControllerUpdate({ path: { eventId, taskId }, body: toTaskBody(parsedInput) });
     revalidateTasks(eventId);
   });
 

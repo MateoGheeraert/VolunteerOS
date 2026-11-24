@@ -252,7 +252,7 @@ export function EventForm({
           </div>
           <FieldDescription className="-mt-2">{t('eventForm.endsNextDay')}</FieldDescription>
 
-          <FieldSet className="gap-4 rounded-2xl bg-muted/50 p-4">
+          <FieldSet className="gap-4 rounded-card bg-muted/50 p-4">
             <div className="flex flex-col gap-1">
               <FieldLegend className="mb-0 text-base">{t('eventForm.setupTitle')}</FieldLegend>
               <FieldDescription>{t('eventForm.setupBody')}</FieldDescription>
