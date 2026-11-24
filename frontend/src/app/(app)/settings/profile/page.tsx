@@ -9,7 +9,7 @@ export const metadata: Metadata = { title: 'Profiel' };
 
 export default function ProfilePage() {
   return (
-    <Suspense fallback={<Skeleton className="h-96 max-w-3xl rounded-3xl bg-card" />}>
+    <Suspense fallback={<Skeleton className="h-96 max-w-3xl rounded-card bg-card" />}>
       <Profile />
     </Suspense>
   );

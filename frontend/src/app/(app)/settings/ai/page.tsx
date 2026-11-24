@@ -13,7 +13,7 @@ export const metadata: Metadata = { title: 'Mila' };
 
 export default function AiSettingsPage() {
   return (
-    <Suspense fallback={<Skeleton className="h-72 rounded-3xl bg-card" />}>
+    <Suspense fallback={<Skeleton className="h-72 rounded-card bg-card" />}>
       <AiSettings />
     </Suspense>
   );
@@ -33,7 +33,7 @@ async function AiSettings() {
   return (
     <div className="flex flex-col gap-5">
       {usage && (
-        <section className="flex flex-col gap-1 rounded-3xl bg-card p-5 shadow-soft sm:p-6">
+        <section className="flex flex-col gap-1 rounded-card bg-card p-5 shadow-soft sm:p-6">
           <h2 className="text-lg">{t('ai.usage.title', { name: MILA_NAME })}</h2>
           <p className="text-muted-foreground">
             {t('ai.usage.body', {

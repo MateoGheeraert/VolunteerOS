@@ -445,7 +445,7 @@ function Column({
       ref={setNodeRef}
       aria-label={t(`taskStatus.${status}`)}
       className={cn(
-        'flex min-h-40 flex-col gap-3 rounded-3xl bg-muted/60 p-3 transition-colors',
+        'flex min-h-40 flex-col gap-3 rounded-card bg-muted/60 p-3 transition-colors',
         isOver && 'bg-brand-tint ring-2 ring-brand-secondary',
       )}
     >
@@ -496,7 +496,7 @@ function EmptyState() {
         ? t('tasks.emptyBodyManager')
         : t('tasks.emptyBodyMember');
   return (
-    <section className="flex flex-col items-start gap-3 rounded-3xl bg-brand-tint p-6">
+    <section className="flex flex-col items-start gap-3 rounded-card bg-brand-tint p-6">
       <IconBlob icon={ListChecks} tone="accent" className="bg-card" />
       <h2 className="text-lg">{t('tasks.emptyTitle')}</h2>
       <p className="text-muted-foreground">{body}</p>

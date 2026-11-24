@@ -20,7 +20,7 @@ export async function EventList() {
 
   if (events.length === 0) {
     return (
-      <div className="flex flex-col items-center gap-4 rounded-3xl bg-card px-6 py-14 text-center shadow-soft">
+      <div className="flex flex-col items-center gap-4 rounded-card bg-card px-6 py-14 text-center shadow-soft">
         <IconBlob icon={CalendarPlus} size="lg" />
         <h2 className="text-xl">{t('events.emptyTitle')}</h2>
         <p className="max-w-md text-muted-foreground">{t('events.emptyBody')}</p>

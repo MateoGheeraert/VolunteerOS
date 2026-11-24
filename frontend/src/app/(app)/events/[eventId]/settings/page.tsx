@@ -13,7 +13,7 @@ export const metadata: Metadata = { title: 'Instellingen' };
 
 export default function EventSettingsPage({ params }: PageProps<'/events/[eventId]/settings'>) {
   return (
-    <Suspense fallback={<Skeleton className="h-96 max-w-3xl rounded-3xl bg-card" />}>
+    <Suspense fallback={<Skeleton className="h-96 max-w-3xl rounded-card bg-card" />}>
       <EventSettings params={params} />
     </Suspense>
   );
@@ -30,7 +30,7 @@ async function EventSettings({ params }: Pick<PageProps<'/events/[eventId]/setti
 
   return (
     <div className="flex max-w-3xl flex-col gap-5">
-      <section className="flex flex-col gap-5 rounded-3xl bg-card p-5 shadow-soft sm:p-8">
+      <section className="flex flex-col gap-5 rounded-card bg-card p-5 shadow-soft sm:p-8">
         <h2 className="text-lg">{t('eventForm.editTitle')}</h2>
         {archived && <FormError message={t('events.readOnly')} />}
         {/* key: a fresh form when the saved event changes */}

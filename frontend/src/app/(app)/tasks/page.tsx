@@ -15,7 +15,7 @@ export default async function MyTasksPage() {
   return (
     <>
       <PageHeader title={t('myTasks.title')} description={t('myTasks.description')} />
-      <Suspense fallback={<Skeleton className="h-96 rounded-3xl bg-card" />}>
+      <Suspense fallback={<Skeleton className="h-96 rounded-card bg-card" />}>
         <MyTasks />
       </Suspense>
     </>

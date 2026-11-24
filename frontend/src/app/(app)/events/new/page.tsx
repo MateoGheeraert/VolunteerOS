@@ -14,7 +14,7 @@ export default async function NewEventPage() {
   return (
     <div className="flex max-w-3xl flex-col gap-6">
       <PageHeader title={t('eventForm.createTitle')} description={t('eventForm.createSubtitle')} />
-      <div className="rounded-3xl bg-card p-5 shadow-soft sm:p-8">
+      <div className="rounded-card bg-card p-5 shadow-soft sm:p-8">
         <Suspense fallback={<Skeleton className="h-96" />}>
           <NewEventForm />
         </Suspense>

@@ -13,7 +13,7 @@ const countFormat = new Intl.NumberFormat(LOCALE);
 
 export default function EventOverviewPage({ params }: PageProps<'/events/[eventId]'>) {
   return (
-    <Suspense fallback={<Skeleton className="h-72 rounded-3xl bg-card" />}>
+    <Suspense fallback={<Skeleton className="h-72 rounded-card bg-card" />}>
       <EventOverview params={params} />
     </Suspense>
   );
@@ -37,7 +37,7 @@ async function EventOverview({ params }: Pick<PageProps<'/events/[eventId]'>, 'p
     <>
       <EventStatusBanner event={event} />
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
-        <section className="flex flex-col gap-5 rounded-3xl bg-card p-5 shadow-soft sm:p-6">
+        <section className="flex flex-col gap-5 rounded-card bg-card p-5 shadow-soft sm:p-6">
           <h2 className="text-lg">{t('eventOverview.details')}</h2>
           <dl className="grid gap-4">
             <Detail icon={<IconBlob icon={CalendarClock} />} label={t('eventOverview.when')}>
@@ -83,7 +83,7 @@ async function EventOverview({ params }: Pick<PageProps<'/events/[eventId]'>, 'p
           </dl>
         </section>
 
-        <Suspense fallback={<Skeleton className="h-72 rounded-3xl bg-brand-tint/60" />}>
+        <Suspense fallback={<Skeleton className="h-72 rounded-card bg-brand-tint/60" />}>
           <EventAiPanel eventId={event.id} />
         </Suspense>
       </div>

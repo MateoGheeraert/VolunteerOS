@@ -56,7 +56,7 @@ export function EmailSettings({ email, verified }: { email: string; verified: bo
   });
 
   return (
-    <section className="flex flex-col gap-5 rounded-3xl bg-card p-5 shadow-soft sm:p-8">
+    <section className="flex flex-col gap-5 rounded-card bg-card p-5 shadow-soft sm:p-8">
       <h2 className="text-lg">{t('settings.account.emailTitle')}</h2>
       <div className="flex flex-wrap items-center gap-3">
         <span className="font-bold break-all">{email}</span>

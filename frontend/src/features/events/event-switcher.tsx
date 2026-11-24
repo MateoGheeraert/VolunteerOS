@@ -45,7 +45,7 @@ export function EventSwitcher({ events }: { events: EventOption[] }) {
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger className="flex w-full items-center justify-between gap-2 rounded-2xl bg-card px-3.5 py-2.5 text-left shadow-soft outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50">
+      <DropdownMenuTrigger className="flex w-full items-center justify-between gap-2 rounded-card bg-card px-3.5 py-2.5 text-left shadow-soft outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50">
         <span className="min-w-0">
           <span className="block text-xs font-semibold text-muted-foreground">
             {t('nav.event')}

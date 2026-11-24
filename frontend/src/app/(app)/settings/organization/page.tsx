@@ -9,7 +9,7 @@ export const metadata: Metadata = { title: 'Organisatie' };
 
 export default function OrganizationSettingsPage() {
   return (
-    <Suspense fallback={<Skeleton className="h-96 rounded-3xl bg-card" />}>
+    <Suspense fallback={<Skeleton className="h-96 rounded-card bg-card" />}>
       <OrganizationSettings />
     </Suspense>
   );

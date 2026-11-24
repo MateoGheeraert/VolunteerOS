@@ -18,7 +18,7 @@ export async function EventStatusSettings({ event }: { event: Pick<Event, 'id' |
   if (!undo) return null;
 
   return (
-    <section className="flex flex-col gap-3 rounded-3xl bg-card p-5 shadow-soft sm:p-6">
+    <section className="flex flex-col gap-3 rounded-card bg-card p-5 shadow-soft sm:p-6">
       <h2 className="text-lg">{t('title')}</h2>
       <p className="text-muted-foreground">{undo.body}</p>
       <div>

@@ -14,7 +14,7 @@ export default function AuthLayout({ children }: LayoutProps<'/'>) {
       />
       <div className="relative flex w-full max-w-md flex-col items-center gap-6">
         <BrandLogo />
-        <div className="w-full rounded-3xl bg-card p-6 shadow-soft sm:p-8">{children}</div>
+        <div className="w-full rounded-card bg-card p-6 shadow-soft sm:p-8">{children}</div>
       </div>
     </main>
   );

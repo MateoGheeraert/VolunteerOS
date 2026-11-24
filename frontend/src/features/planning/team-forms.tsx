@@ -74,7 +74,7 @@ export function TeamQuickAdd({
   const suggestions = TEAM_SUGGESTIONS.filter((name) => !taken.has(name.toLocaleLowerCase('nl')));
 
   return (
-    <div className="flex flex-col gap-3 rounded-3xl bg-card p-4 shadow-soft sm:p-5">
+    <div className="flex flex-col gap-3 rounded-card bg-card p-4 shadow-soft sm:p-5">
       {onClose && (
         <div className="flex items-center justify-between gap-2">
           <h2 className="text-base">{t('planning.teams.add')}</h2>

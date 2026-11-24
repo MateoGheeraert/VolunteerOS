@@ -162,7 +162,7 @@ function DropZone({ onFiles, compact }: { onFiles: (files: File[]) => void; comp
       onDragLeave={() => setOver(false)}
       onDrop={onDrop}
       className={cn(
-        'flex flex-col items-center justify-center gap-2 rounded-3xl border-2 border-dashed border-border text-center transition-colors',
+        'flex flex-col items-center justify-center gap-2 rounded-card border-2 border-dashed border-border text-center transition-colors',
         compact ? 'p-4' : 'p-8',
         over && 'border-primary bg-brand-tint',
       )}

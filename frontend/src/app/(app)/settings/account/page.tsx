@@ -10,7 +10,7 @@ export const metadata: Metadata = { title: 'Account' };
 export default function AccountPage() {
   return (
     <div className="flex max-w-3xl flex-col gap-5">
-      <Suspense fallback={<Skeleton className="h-64 rounded-3xl bg-card" />}>
+      <Suspense fallback={<Skeleton className="h-64 rounded-card bg-card" />}>
         <Email />
       </Suspense>
       <PasswordForm />

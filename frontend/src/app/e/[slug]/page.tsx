@@ -62,7 +62,7 @@ async function Registration({ params }: Pick<PageProps<'/e/[slug]'>, 'params'>) 
         </div>
       </header>
       <div className="relative mx-auto -mt-10 w-full max-w-xl px-3 pb-10">
-        <div className="flex flex-col gap-6 rounded-3xl bg-card p-5 shadow-soft sm:p-7">
+        <div className="flex flex-col gap-6 rounded-card bg-card p-5 shadow-soft sm:p-7">
           {event.description && (
             <p className="whitespace-pre-wrap text-muted-foreground">{event.description}</p>
           )}
@@ -96,7 +96,7 @@ function PageSkeleton() {
     <>
       <div className="h-48 bg-primary" />
       <div className="mx-auto -mt-10 w-full max-w-xl px-3">
-        <Skeleton className="h-[28rem] rounded-3xl bg-card" />
+        <Skeleton className="h-[28rem] rounded-card bg-card" />
       </div>
     </>
   );

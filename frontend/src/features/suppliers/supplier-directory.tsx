@@ -96,7 +96,7 @@ export function SupplierDirectory({ suppliers }: { suppliers: SupplierListItem[]
         )}
       </div>
 
-      <section aria-label={t('suppliers.title')} className="rounded-3xl bg-card p-2 sm:p-3">
+      <section aria-label={t('suppliers.title')} className="rounded-card bg-card p-2 sm:p-3">
         {shown.length === 0 ? (
           <p className="px-3 py-8 text-center text-sm text-muted-foreground">
             {active === 0 && !filters.showArchived

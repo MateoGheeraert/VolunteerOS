@@ -135,7 +135,7 @@ function NavMenu({
         {items.map((item) => (
           <SidebarMenuItem key={item.href}>
             {item.soon ? (
-              <SidebarMenuButton disabled className="h-11 rounded-full px-4 font-semibold">
+              <SidebarMenuButton disabled className="h-11 rounded-card px-4 font-semibold">
                 <item.icon />
                 <span>{t(item.label)}</span>
                 <Badge variant="outline" className="ml-auto">
@@ -146,7 +146,7 @@ function NavMenu({
               <SidebarMenuButton
                 asChild
                 isActive={isActive(pathname, item)}
-                className="h-11 rounded-full px-4 font-semibold data-[active=true]:font-bold data-[active=true]:shadow-soft"
+                className="h-11 rounded-card px-4 font-semibold data-[active=true]:font-bold data-[active=true]:shadow-soft"
               >
                 <Link href={item.href} onClick={() => setOpenMobile(false)}>
                   <item.icon />

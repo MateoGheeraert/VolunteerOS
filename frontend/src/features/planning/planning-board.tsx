@@ -547,7 +547,7 @@ function Toolbar({
   const isOpen = planning.registrationClosedReason === null;
 
   return (
-    <div className="flex flex-col gap-3 rounded-3xl bg-card p-4 shadow-soft sm:flex-row sm:items-center sm:justify-between sm:p-5">
+    <div className="flex flex-col gap-3 rounded-card bg-card p-4 shadow-soft sm:flex-row sm:items-center sm:justify-between sm:p-5">
       <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
         <div className="flex items-center gap-2">
           <IconBlob icon={UsersRound} />
@@ -627,7 +627,7 @@ function PublishStep({
     return (
       <section
         className={cn(
-          'flex flex-col gap-3 rounded-3xl px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5',
+          'flex flex-col gap-3 rounded-card px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5',
           changes > 0 ? 'bg-status-warn-bg text-status-warn' : 'bg-status-ok-bg text-status-ok',
         )}
       >
@@ -653,7 +653,7 @@ function PublishStep({
 
   if (ready) {
     return (
-      <section className="flex flex-col gap-4 rounded-3xl bg-primary p-5 text-primary-foreground shadow-soft sm:flex-row sm:items-center sm:justify-between sm:p-6">
+      <section className="flex flex-col gap-4 rounded-card bg-primary p-5 text-primary-foreground shadow-soft sm:flex-row sm:items-center sm:justify-between sm:p-6">
         <div className="flex items-start gap-3">
           <CircleCheck className="mt-0.5 size-6 shrink-0" aria-hidden />
           <div className="flex flex-col gap-1">
@@ -670,7 +670,7 @@ function PublishStep({
   }
 
   return (
-    <section className="flex flex-col gap-3 rounded-3xl border-2 border-dashed border-border px-4 py-3 sm:px-5">
+    <section className="flex flex-col gap-3 rounded-card border-2 border-dashed border-border px-4 py-3 sm:px-5">
       <div className="flex flex-col gap-0.5">
         <h2 className="text-base">{t('planning.publish.stepTitle')}</h2>
         <p className="text-sm text-muted-foreground">{t('planning.publish.stepIntro')}</p>
@@ -727,7 +727,7 @@ function ChecklistItem({ children, action }: { children: ReactNode; action?: Rea
 function EmptyTeams({ eventId, editable }: { eventId: string; editable: boolean }) {
   const t = useTranslations();
   return (
-    <section className="flex flex-col items-start gap-3 rounded-3xl bg-brand-tint p-6">
+    <section className="flex flex-col items-start gap-3 rounded-card bg-brand-tint p-6">
       <IconBlob icon={UsersRound} tone="accent" className="bg-card" />
       <h2 className="text-lg">{t('planning.teams.emptyTitle')}</h2>
       <p className="text-muted-foreground">
@@ -789,7 +789,7 @@ function TeamLane({
     <section
       aria-label={team.name}
       className={cn(
-        'flex flex-col gap-3 rounded-3xl transition-colors',
+        'flex flex-col gap-3 rounded-card transition-colors',
         preferred && '-m-3 bg-brand-tint/70 p-3',
       )}
     >
@@ -1117,7 +1117,7 @@ function VolunteerPanel({
       aria-label={t('planning.volunteers.title')}
       className={cn(
         // Below lg it sits above the board and stays in view while scrolling, to drag from.
-        'sticky top-2 z-20 order-first flex max-h-[42vh] min-h-0 flex-col gap-3 rounded-3xl bg-card p-4 shadow-soft transition-colors lg:top-4 lg:order-none lg:max-h-[calc(100vh-2rem)]',
+        'sticky top-2 z-20 order-first flex max-h-[42vh] min-h-0 flex-col gap-3 rounded-card bg-card p-4 shadow-soft transition-colors lg:top-4 lg:order-none lg:max-h-[calc(100vh-2rem)]',
         isOver && 'ring-2 ring-brand-secondary',
       )}
     >

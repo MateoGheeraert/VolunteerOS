@@ -39,7 +39,7 @@ export function PasswordForm() {
   });
 
   return (
-    <section className="flex flex-col gap-5 rounded-3xl bg-card p-5 shadow-soft sm:p-8">
+    <section className="flex flex-col gap-5 rounded-card bg-card p-5 shadow-soft sm:p-8">
       <h2 className="text-lg">{t('settings.account.passwordTitle')}</h2>
       <form onSubmit={(event) => void onSubmit(event)} noValidate className="flex flex-col gap-4">
         <Field data-invalid={!!errors.currentPassword}>

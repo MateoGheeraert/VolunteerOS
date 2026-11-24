@@ -201,7 +201,7 @@ export function BudgetView({
         )}
       </div>
 
-      <section aria-label={t('budget.title')} className="overflow-hidden rounded-3xl bg-card">
+      <section aria-label={t('budget.title')} className="overflow-hidden rounded-card bg-card">
         <div className="flex items-center gap-2 border-b border-border px-4 py-1.5 text-xs font-bold text-muted-foreground sm:px-5">
           <SortButton
             label={t('budget.columnDescription')}
@@ -434,7 +434,7 @@ function Summary({ entries, filtered }: { entries: BudgetEntry[]; filtered: bool
     { key: 'result', label: t('budget.result'), pair: totals.result, result: true },
   ];
   return (
-    <section aria-labelledby="budget-summary" className="rounded-3xl bg-card p-5">
+    <section aria-labelledby="budget-summary" className="rounded-card bg-card p-5">
       <h2 id="budget-summary" className="mb-3 flex items-center gap-2 text-base font-bold">
         {t('budget.summary')}
         {filtered && <Badge variant="warn">{t('budget.filtered')}</Badge>}

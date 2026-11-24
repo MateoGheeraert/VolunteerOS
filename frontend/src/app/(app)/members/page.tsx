@@ -24,7 +24,7 @@ export const metadata: Metadata = { title: 'Leden' };
 
 export default function MembersPage() {
   return (
-    <Suspense fallback={<Skeleton className="h-96 max-w-4xl rounded-3xl bg-card" />}>
+    <Suspense fallback={<Skeleton className="h-96 max-w-4xl rounded-card bg-card" />}>
       <Members />
     </Suspense>
   );
@@ -55,7 +55,7 @@ async function Members() {
       />
 
       {admin && (
-        <section className="flex flex-col gap-4 rounded-3xl bg-card p-5 shadow-soft sm:p-6">
+        <section className="flex flex-col gap-4 rounded-card bg-card p-5 shadow-soft sm:p-6">
           <div className="flex flex-col gap-1">
             <h2 className="text-lg">{t('members.invite.title')}</h2>
             <p className="text-muted-foreground">{t('members.invite.body')}</p>
@@ -64,7 +64,7 @@ async function Members() {
         </section>
       )}
 
-      <section className="rounded-3xl bg-card p-2 shadow-soft sm:p-3">
+      <section className="rounded-card bg-card p-2 shadow-soft sm:p-3">
         <ul className="divide-y divide-border">
           {[...members].sort(byName).map((member) => (
             <li
@@ -112,7 +112,7 @@ async function Members() {
       </section>
 
       {admin && (
-        <section className="flex flex-col gap-3 rounded-3xl bg-card p-5 shadow-soft sm:p-6">
+        <section className="flex flex-col gap-3 rounded-card bg-card p-5 shadow-soft sm:p-6">
           <h2 className="text-lg">{t('members.invitations.title')}</h2>
           {invitations.length === 0 ? (
             <p className="text-muted-foreground">{t('members.invitations.empty')}</p>
