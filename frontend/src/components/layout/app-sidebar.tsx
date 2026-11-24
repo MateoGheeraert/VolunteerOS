@@ -1,11 +1,16 @@
 'use client';
 
 import {
+  ArrowLeft,
+  CalendarClock,
   CalendarDays,
+  FolderOpen,
+  LayoutDashboard,
   ListChecks,
   Settings,
   ShoppingBag,
   Users,
+  Wallet,
   type LucideIcon,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -27,23 +32,51 @@ import {
 } from '@/components/ui/sidebar';
 import { BrandLogo } from './brand-logo';
 
+type NavLabel =
+  | `nav.${'events' | 'myTasks' | 'suppliers' | 'members' | 'settings'}`
+  | `eventTabs.${'overview' | 'tasks' | 'planning' | 'files' | 'budget' | 'suppliers' | 'settings'}`;
+
 interface NavItem {
-  key: 'events' | 'myTasks' | 'suppliers' | 'members' | 'settings';
+  label: NavLabel;
   href: string;
   icon: LucideIcon;
+  /** Matches only the exact href, not its children (an event's overview). */
+  exact?: boolean;
   /** Shown but not clickable until the feature exists. */
   soon?: boolean;
 }
 
-const NAV: NavItem[] = [
-  { key: 'events', href: '/events', icon: CalendarDays },
-  { key: 'myTasks', href: '/tasks', icon: ListChecks },
-  { key: 'suppliers', href: '/suppliers', icon: ShoppingBag },
-  { key: 'members', href: '/members', icon: Users },
-  { key: 'settings', href: '/settings', icon: Settings, soon: true },
+const ORGANIZATION_NAV: NavItem[] = [
+  { label: 'nav.events', href: '/events', icon: CalendarDays },
+  { label: 'nav.myTasks', href: '/tasks', icon: ListChecks },
+  { label: 'nav.suppliers', href: '/suppliers', icon: ShoppingBag },
+  { label: 'nav.members', href: '/members', icon: Users },
+  { label: 'nav.settings', href: '/settings', icon: Settings, soon: true },
 ];
 
-/** Organization-level navigation. The user menu (which also switches organizations) streams in as a slot. */
+function eventNav(eventId: string): NavItem[] {
+  const base = `/events/${eventId}`;
+  return [
+    { label: 'eventTabs.overview', href: base, icon: LayoutDashboard, exact: true },
+    { label: 'eventTabs.tasks', href: `${base}/tasks`, icon: ListChecks },
+    { label: 'eventTabs.planning', href: `${base}/planning`, icon: CalendarClock },
+    { label: 'eventTabs.files', href: `${base}/files`, icon: FolderOpen },
+    { label: 'eventTabs.budget', href: `${base}/budget`, icon: Wallet },
+    { label: 'eventTabs.suppliers', href: `${base}/suppliers`, icon: ShoppingBag },
+    { label: 'eventTabs.settings', href: `${base}/settings`, icon: Settings },
+  ];
+}
+
+/** The event a pathname is inside, if any. `/events/new` is the create page, not an event. */
+function eventIdFrom(pathname: string | null): string | null {
+  const id = pathname?.match(/^\/events\/([^/]+)/)?.[1];
+  return id && id !== 'new' ? id : null;
+}
+
+/**
+ * Organization-level navigation, or an event's sections while inside that event. The user menu
+ * (which also switches organizations) streams in as a slot.
+ */
 export function AppSidebar({ user }: { user: ReactNode }) {
   const { setOpenMobile } = useSidebar();
 
@@ -76,33 +109,53 @@ function CurrentNavMenu() {
 function NavMenu({ pathname }: { pathname: string | null }) {
   const t = useTranslations();
   const { setOpenMobile } = useSidebar();
+  const eventId = eventIdFrom(pathname);
+  const items = eventId ? eventNav(eventId) : ORGANIZATION_NAV;
 
   return (
-    <SidebarMenu className="gap-1">
-      {NAV.map((item) => (
-        <SidebarMenuItem key={item.key}>
-          {item.soon ? (
-            <SidebarMenuButton disabled className="h-11 rounded-full px-4 font-semibold">
-              <item.icon />
-              <span>{t(`nav.${item.key}`)}</span>
-              <Badge variant="outline" className="ml-auto">
-                {t('common.comingSoon')}
-              </Badge>
-            </SidebarMenuButton>
-          ) : (
-            <SidebarMenuButton
-              asChild
-              isActive={pathname?.startsWith(item.href) ?? false}
-              className="h-11 rounded-full px-4 font-semibold data-[active=true]:font-bold data-[active=true]:shadow-soft"
-            >
-              <Link href={item.href} onClick={() => setOpenMobile(false)}>
+    <div className="flex flex-col gap-3">
+      {eventId && (
+        <Link
+          href="/events"
+          onClick={() => setOpenMobile(false)}
+          className="inline-flex w-fit items-center gap-1.5 rounded-full px-4 py-1 text-sm font-bold text-muted-foreground outline-none hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50"
+        >
+          <ArrowLeft className="size-4" aria-hidden />
+          {t('nav.events')}
+        </Link>
+      )}
+      <SidebarMenu className="gap-1">
+        {items.map((item) => (
+          <SidebarMenuItem key={item.href}>
+            {item.soon ? (
+              <SidebarMenuButton disabled className="h-11 rounded-full px-4 font-semibold">
                 <item.icon />
-                <span>{t(`nav.${item.key}`)}</span>
-              </Link>
-            </SidebarMenuButton>
-          )}
-        </SidebarMenuItem>
-      ))}
-    </SidebarMenu>
+                <span>{t(item.label)}</span>
+                <Badge variant="outline" className="ml-auto">
+                  {t('common.comingSoon')}
+                </Badge>
+              </SidebarMenuButton>
+            ) : (
+              <SidebarMenuButton
+                asChild
+                isActive={isActive(pathname, item)}
+                className="h-11 rounded-full px-4 font-semibold data-[active=true]:font-bold data-[active=true]:shadow-soft"
+              >
+                <Link href={item.href} onClick={() => setOpenMobile(false)}>
+                  <item.icon />
+                  <span>{t(item.label)}</span>
+                </Link>
+              </SidebarMenuButton>
+            )}
+          </SidebarMenuItem>
+        ))}
+      </SidebarMenu>
+    </div>
   );
+}
+
+function isActive(pathname: string | null, item: NavItem): boolean {
+  if (!pathname) return false;
+  if (item.exact) return pathname === item.href;
+  return pathname === item.href || pathname.startsWith(`${item.href}/`);
 }
