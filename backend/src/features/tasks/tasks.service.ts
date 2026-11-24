@@ -17,6 +17,7 @@ import type {
   TaskRow,
 } from '../../db/schema/index.js';
 import { isReadOnly } from '../events/event-status.js';
+import { UploadsService } from '../uploads/uploads.service.js';
 import { canSeeTask, isUnassigned, memberUpdateError } from './task-rules.js';
 import { TasksRepository, type TaskValues, type TaskView } from './tasks.repository.js';
 import type {
@@ -60,6 +61,7 @@ export class TasksService {
   constructor(
     @InjectDrizzle() private readonly db: Database,
     private readonly tasks: TasksRepository,
+    private readonly uploads: UploadsService,
   ) {}
 
   async list(org: OrgContext, access: EventAccess): Promise<TaskDto[]> {
@@ -186,13 +188,14 @@ export class TasksService {
     return this.view(org, access, taskId);
   }
 
-  /** Soft-deletes the task and declines the requests for it. */
+  /** Soft-deletes the task with its files, and declines the requests for it. */
   async remove(org: OrgContext, access: EventAccess, taskId: string): Promise<void> {
     const eventId = access.event.id;
     assertWritable(access.event);
     await this.findVisible(org, access, taskId);
     await this.db.transaction(async (tx) => {
       await this.declineRequests(tx, org, eventId, taskId);
+      await this.uploads.removeForTask(tx, org, eventId, taskId);
       const row = await this.tasks.updateTask(tx, taskId, { deletedAt: new Date() });
       await recordActivity(tx, org, {
         action: 'deleted',

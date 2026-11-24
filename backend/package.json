@@ -25,6 +25,8 @@
   },
   "dependencies": {
     "@ai-sdk/openai": "4.0.121",
+    "@aws-sdk/client-s3": "^3.1176.0",
+    "@aws-sdk/s3-request-presigner": "^3.1176.0",
     "@better-auth/core": "catalog:",
     "@nestjs/common": "^12.5.1",
     "@nestjs/core": "^12.5.1",

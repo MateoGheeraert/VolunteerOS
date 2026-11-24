@@ -124,6 +124,7 @@
     "overview": "Overzicht",
     "tasks": "Taken",
     "planning": "Planning",
+    "files": "Bestanden",
     "budget": "Budget",
     "suppliers": "Leveranciers",
     "settings": "Instellingen"
@@ -884,5 +885,33 @@
       "create": "{count, plural, =0 {Maak taken aan} one {Maak # taak aan} other {Maak # taken aan}}",
       "created": "{count, plural, one {# taak} other {# taken}} aangemaakt."
     }
+  },
+  "files": {
+    "title": "Bestanden",
+    "empty": "Nog geen bestanden.",
+    "dropHere": "Sleep bestanden hierheen",
+    "choose": "Kies bestanden",
+    "limits": "PDF, afbeeldingen, Office- en tekstbestanden tot 25 MB",
+    "storageUsed": "{used} van {limit} gebruikt door je organisatie",
+    "disabled": "Bestanden opladen en openen is nu niet beschikbaar.",
+    "readOnly": "Dit evenement is gearchiveerd: de bestanden zijn alleen nog te bekijken.",
+    "uploading": "{name} wordt opgeladen",
+    "uploadFailed": "Het opladen lukte niet.",
+    "couldNotUpload": "{name} niet opgeladen: {reason}",
+    "typeNotAllowed": "dit bestandstype is niet toegelaten.",
+    "emptyFile": "het bestand is leeg.",
+    "tooLarge": "het bestand is groter dan 25 MB.",
+    "storageFull": "Je organisatie heeft geen opslagruimte meer voor dit bestand.",
+    "notUploaded": "Het bestand is nog niet volledig opgeladen. Probeer opnieuw.",
+    "actions": "Acties voor {name}",
+    "rename": "Naam wijzigen",
+    "renameTitle": "Naam wijzigen",
+    "renameDescription": "De extensie blijft dezelfde.",
+    "name": "Naam",
+    "nameRequired": "Geef het bestand een naam.",
+    "delete": "Verwijderen",
+    "deleteTitle": "Bestand verwijderen?",
+    "deleteWarning": "{name} verdwijnt uit het evenement.",
+    "deleteConfirm": "Verwijderen"
   }
 }

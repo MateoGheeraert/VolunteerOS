@@ -20,10 +20,19 @@ export const QUEUES = {
     name: 'ai-run',
     options: { retryLimit: 3, retryDelay: 15, retryBackoff: true, expireInSeconds: 180 },
   },
+  /**
+   * Daily: removes deleted and abandoned files from storage (src/features/uploads). Safe to run
+   * twice; a failed run is retried, and the next day's run picks up what's left.
+   */
+  uploadCleanup: {
+    name: 'upload-cleanup',
+    options: { retryLimit: 2, retryDelay: 300, expireInSeconds: 900 },
+  },
 } as const satisfies Record<string, { name: string; options: Omit<Queue, 'name'> }>;
 
 export interface JobData {
   aiRun: { runId: string };
+  uploadCleanup: Record<string, never>;
 }
 export type QueueKey = keyof typeof QUEUES;
 
@@ -71,6 +80,20 @@ export class JobsService implements OnModuleInit, OnModuleDestroy {
     await this.boss.send(QUEUES[queue].name, data, {
       singletonKey,
       ...(tx ? { db: fromDrizzle(tx, sql) } : {}),
+    });
+  }
+
+  /**
+   * Adds a job to the queue on a cron schedule (Europe/Brussels). Schedules are stored by pg-boss,
+   * so calling this on every boot just keeps them up to date. Nothing is scheduled with
+   * JOB_WORKERS=off.
+   */
+  async schedule<K extends QueueKey>(queue: K, cron: string, data: JobData[K]): Promise<void> {
+    if (this.env.JOB_WORKERS === 'off') return;
+    await this.boss.schedule(QUEUES[queue].name, cron, data, {
+      tz: 'Europe/Brussels',
+      // A deploy during the run's minute shouldn't make it skip a day.
+      missed: 'once',
     });
   }
 

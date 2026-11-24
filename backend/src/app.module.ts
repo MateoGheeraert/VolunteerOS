@@ -13,6 +13,8 @@ import { JobsModule } from './jobs/jobs.module.js';
 import { PlanningModule } from './features/planning/planning.module.js';
 import { ProfileModule } from './features/profile/profile.module.js';
 import { TasksModule } from './features/tasks/tasks.module.js';
+import { UploadsModule } from './features/uploads/uploads.module.js';
+import { StorageModule } from './storage/storage.module.js';
 
 @Module({
   imports: [
@@ -35,11 +37,13 @@ import { TasksModule } from './features/tasks/tasks.module.js';
     }),
     DatabaseModule,
     JobsModule,
+    StorageModule,
     EmailModule,
     AuthModule,
     AuthzModule,
     EventsModule,
     TasksModule,
+    UploadsModule,
     PlanningModule,
     ProfileModule,
     AiModule,

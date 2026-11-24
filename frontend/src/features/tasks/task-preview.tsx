@@ -27,6 +27,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { TaskFiles } from '@/features/uploads/task-files';
 import { formatDay } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import {
@@ -202,6 +203,14 @@ export function TaskPreview({ task, onDeleted }: { task: ShownTask; onDeleted: (
           maxLength={5000}
         />
       </section>
+
+      <TaskFiles
+        key={task.id}
+        eventId={task.eventId}
+        taskId={task.id}
+        canAdd={canManage || mine}
+        readOnly={readOnly}
+      />
 
       {!readOnly && <PreviewActions task={task} mine={mine} onDeleted={onDeleted} />}
     </div>

@@ -220,6 +220,36 @@ Exceptions:
 - **Logs** (`activity_log`, `email_delivery`) are append-only: rows are never edited by users or removed.
 - **Organizations can't be deleted** (`disableOrganizationDeletion`): it would cascade into everything they own.
 - **GDPR erasure** (to be built): when a person asks to be forgotten, their personal data must really go. That workflow, and only that one, will anonymize or hard-delete personal data. Until it exists, don't add other hard deletes.
+- **Uploaded files**: the `upload` row is soft-deleted like any other, but the stored object is removed for good by the daily cleanup job, 30 days later (`purged_at` records when). See "File uploads".
+
+### File uploads
+
+Files live in Cloudflare R2, behind the [`FileStorage`](src/storage/file-storage.ts) interface (S3 API). Tests replace it with an in-memory fake ([test/fake-file-storage.ts](test/fake-file-storage.ts)); without the `R2_*` variables it is disabled and upload routes answer 503.
+
+The bytes never pass through Nest:
+
+1. `POST /events/:eventId/uploads` checks type, size, permission and the organization's 1 GB, adds a `pending` row and returns a signed PUT URL (5 minutes; `Content-Type` and `Content-Length` are signed).
+2. The browser PUTs the file to that URL.
+3. `POST /events/:eventId/uploads/:uploadId/confirm` checks the stored object matches, marks the row `ready` and logs `created`. Only `ready` files are listed.
+
+Downloads: `GET .../:uploadId/download` returns a 5-minute signed URL. The browser reaches it through a Next.js route that redirects ([frontend/src/app/api/events/[eventId]/uploads/[uploadId]/route.ts](../frontend/src/app/api/events/[eventId]/uploads/[uploadId]/route.ts)), the second place the browser gets something from Nest besides the AI stream.
+
+The rules (types, limits, who may do what) are plain functions in [upload-rules.ts](src/features/uploads/upload-rules.ts). The daily cleanup is [uploads-cleanup.service.ts](src/features/uploads/uploads-cleanup.service.ts).
+
+Setting up a bucket: create an R2 API token with Object Read & Write on the bucket, put its keys in `R2_*`, and add a CORS rule:
+
+```json
+[
+  {
+    "AllowedOrigins": ["http://localhost:3000"],
+    "AllowedMethods": ["PUT", "GET"],
+    "AllowedHeaders": ["content-type"],
+    "MaxAgeSeconds": 3600
+  }
+]
+```
+
+Use the app's public origin instead of localhost for the production bucket.
 
 ### Email
 
