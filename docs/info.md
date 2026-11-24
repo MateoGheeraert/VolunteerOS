@@ -1038,6 +1038,7 @@ How it is set up (`src/jobs`):
 - It connects over `DATABASE_URL_UNPOOLED`: Neon's pooler runs in transaction mode, which breaks the queue's session locks and LISTEN/NOTIFY.
 - Tests set `JOB_WORKERS=off`: jobs are still added, but nothing processes them.
 - Emails still go out inside the request, as decided above.
+- Scheduled jobs use pg-boss cron in Europe/Brussels time (`JobsService.schedule`). The first one is the daily file cleanup (`upload-cleanup`, 03:30): see "File storage" under Hosting.
 
 ### AI
 
@@ -1123,11 +1124,31 @@ Recommended initial approach:
 
 - Next.js and Nest on one platform with private networking.
 - Managed PostgreSQL: Neon.
-- Cloud object storage later if necessary.
+- Object storage: Cloudflare R2 (see below).
 - Managed email provider.
 - Managed background jobs.
 
 Keep deployment simple.
+
+**Decision (November 2026): Cloudflare R2 for files**, for attachments on events and tasks (quotes, floor plans, receipts). Chosen over AWS S3 because its free tier (10 GB stored, a million writes a month) covers the pilot and downloads are free. It is used only through the S3 API (`@aws-sdk/client-s3`), so moving to S3 or another S3-compatible store is a configuration change.
+
+How it works (`src/storage`, `src/features/uploads`):
+
+- **Buckets**: `volunteeros` (production) and `volunteeros-dev` (local development). Credentials are the `R2_*` variables; without them uploads are off and the app works without files. Each bucket needs a CORS rule allowing `PUT` from the app's origin.
+- **Files never pass through Nest or Next.js.** Nest checks the file and signs a 5-minute upload URL; the browser PUTs the file straight to R2 (type and size are signed, so anything else is refused); Nest then checks what arrived and lists it. A file that differs is thrown away.
+- **Downloads** go through a Next.js route (`/api/events/[eventId]/uploads/[uploadId]`) that asks Nest for a 5-minute signed link, after the access check, and redirects to it. Links are only made on click. Images and PDFs open in the browser; everything else downloads.
+- **Keys** are `orgs/{organizationId}/uploads/{uploadId}`: no file names (they can hold personal data) and one prefix per organization.
+- **Limits** (code constants, `upload-rules.ts`): 25 MB per file; PDF, JPEG, PNG, WebP, HEIC, Word, Excel, PowerPoint, OpenDocument text and spreadsheet, CSV and plain text, with an extension matching the type. SVG and HTML are refused: they can run scripts. 1 GB per organization, counting files still being uploaded.
+- **Who**: everyone who can see an event sees its files; managers add and change them. Task files follow the task: whoever sees the task sees them, its assignee may add them, and the uploader may change their own.
+- **Deleting** soft-deletes the row (logged) and frees the space at once. The daily cleanup job removes the object from R2 30 days later and sets `purged_at`; uploads never confirmed are removed after a day. Rows are never removed. Deleting a task deletes its files.
+
+Not built yet, on purpose:
+
+- **Virus scanning** (known debt). Only signed-in organization members upload, script-capable types are refused, and non-image files always download instead of opening. Revisit before volunteers can upload.
+- **Mila reading attachments** (e.g. amounts from receipts): a later AI feature.
+- **Budget entry files**: a `budget_entry_upload` link table, added with the budget feature.
+- **Removing an event's or organization's files**: events are archived, not deleted, and organizations can't be deleted, so nothing triggers it yet. It belongs with the GDPR erasure work (§14 Rule 6, §15).
+- Thumbnails, versions and moving a file to another task or event.
 
 ### Monitoring
 
@@ -1378,6 +1399,18 @@ Unassigning soft-deletes the assignment.
 - supplierId
 - notes
 
+### Upload
+
+Implemented as `upload`, with what a file is attached to in one link table per owner: `event_upload` and `task_upload` (`uploadId` is their primary key, so a file has one owner). See "File storage" under §11 Hosting.
+
+- id
+- organizationId
+- storageKey
+- name, mimeType, sizeBytes
+- status (pending / ready)
+- uploadedByUserId
+- deletedAt, purgedAt (the object was removed from storage)
+
 ### BudgetEntry
 
 - id
@@ -1511,7 +1544,7 @@ Essential requirements:
 - Rate limiting on public forms.
 - Protection against spam and automated abuse.
 - Personal data deletion workflows.
-- Data retention policies.
+- Data retention policies. Deleted files stay 30 days in storage, then are removed (see "File storage" under §11).
 - Secure storage and transmission.
 - Minimal data collection.
 - Audit logging for consequential actions.
