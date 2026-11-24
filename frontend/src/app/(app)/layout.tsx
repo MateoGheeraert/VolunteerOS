@@ -5,24 +5,18 @@ import { BrandLogo } from '@/components/layout/brand-logo';
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { UserMenu } from '@/features/auth/user-menu';
-import { OrganizationSwitcher } from '@/features/organizations/organization-switcher';
 import { missingProfileFields } from '@/features/settings/profile-rules';
 import { getMyProfile } from '@/server/profile/queries';
 
 /**
  * The organizer app. The chrome is static; the session-dependent parts stream in behind Suspense.
- * The organization slot is also the real session check: no session → /login, no active
+ * The user slot is also the real session check: no session → /login, no active
  * organization → /onboarding (proxy.ts only checked that a cookie exists).
  */
 export default function AppLayout({ children }: LayoutProps<'/'>) {
   return (
     <SidebarProvider>
       <AppSidebar
-        organization={
-          <Suspense fallback={<Skeleton className="h-15 w-full rounded-2xl bg-card" />}>
-            <ActiveOrganization />
-          </Suspense>
-        }
         user={
           <Suspense fallback={<Skeleton className="h-12 w-full rounded-full bg-card" />}>
             <CurrentUser />
@@ -42,13 +36,15 @@ export default function AppLayout({ children }: LayoutProps<'/'>) {
   );
 }
 
-async function ActiveOrganization() {
-  const { organization, organizations } = await requireActiveOrganization();
-  return <OrganizationSwitcher active={organization} organizations={organizations} />;
-}
-
 async function CurrentUser() {
-  const { user } = await requireActiveOrganization();
+  const { user, organization, organizations } = await requireActiveOrganization();
   const profile = await getMyProfile();
-  return <UserMenu user={user} profileIncomplete={missingProfileFields(profile).length > 0} />;
+  return (
+    <UserMenu
+      user={user}
+      organization={organization}
+      organizations={organizations}
+      profileIncomplete={missingProfileFields(profile).length > 0}
+    />
+  );
 }

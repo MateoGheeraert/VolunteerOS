@@ -43,17 +43,16 @@ const NAV: NavItem[] = [
   { key: 'settings', href: '/settings', icon: Settings, soon: true },
 ];
 
-/** Organization-level navigation. The organization switcher and user menu stream in as slots. */
-export function AppSidebar({ organization, user }: { organization: ReactNode; user: ReactNode }) {
+/** Organization-level navigation. The user menu (which also switches organizations) streams in as a slot. */
+export function AppSidebar({ user }: { user: ReactNode }) {
   const { setOpenMobile } = useSidebar();
 
   return (
     <Sidebar>
-      <SidebarHeader className="gap-4 px-3 pt-5">
+      <SidebarHeader className="px-3 pt-5">
         <Link href="/events" className="px-2" onClick={() => setOpenMobile(false)}>
           <BrandLogo />
         </Link>
-        {organization}
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>

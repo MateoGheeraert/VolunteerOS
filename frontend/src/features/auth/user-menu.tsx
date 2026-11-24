@@ -1,10 +1,10 @@
 'use client';
 
-import { LogOut, Settings } from 'lucide-react';
+import { Building2, Check, LogOut, Plus, Settings } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import type { SessionUser } from '@/server/auth';
+import type { OrganizationSummary, SessionUser } from '@/server/auth';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
   DropdownMenu,
@@ -17,16 +17,30 @@ import {
 import { authClient } from '@/lib/auth-client';
 import { initials } from '@/lib/initials';
 
-/** `profileIncomplete` marks the menu with a dot, nudging toward the profile settings. */
+/**
+ * The user's menu, which also switches organizations. `profileIncomplete` marks the menu with a
+ * dot, nudging toward the profile settings.
+ */
 export function UserMenu({
   user,
+  organization,
+  organizations,
   profileIncomplete = false,
 }: {
   user: SessionUser;
+  organization: OrganizationSummary;
+  organizations: OrganizationSummary[];
   profileIncomplete?: boolean;
 }) {
   const t = useTranslations();
   const router = useRouter();
+
+  async function switchTo(organizationId: string) {
+    if (organizationId === organization.id) return;
+    await authClient.organization.setActive({ organizationId });
+    router.push('/events');
+    router.refresh();
+  }
 
   async function logout() {
     await authClient.signOut();
@@ -51,12 +65,35 @@ export function UserMenu({
         </span>
         <span className="min-w-0">
           <span className="block truncate text-sm font-bold">{user.name}</span>
-          <span className="block truncate text-xs text-muted-foreground">{user.email}</span>
+          <span className="block truncate text-xs text-muted-foreground">{organization.name}</span>
         </span>
       </DropdownMenuTrigger>
       <DropdownMenuContent side="top" align="start" className="min-w-56">
         <DropdownMenuLabel className="truncate">{user.email}</DropdownMenuLabel>
         <DropdownMenuSeparator />
+        <DropdownMenuLabel className="text-xs text-muted-foreground">
+          {t('nav.switchOrganization')}
+        </DropdownMenuLabel>
+        {organizations.map((item) => (
+          <DropdownMenuItem key={item.id} onSelect={() => void switchTo(item.id)}>
+            <Building2 aria-hidden />
+            <span className="truncate">{item.name}</span>
+            {item.id === organization.id && <Check className="ml-auto" aria-hidden />}
+          </DropdownMenuItem>
+        ))}
+        <DropdownMenuItem asChild>
+          <Link href="/onboarding">
+            <Plus aria-hidden />
+            {t('nav.newOrganization')}
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem asChild>
+          <Link href="/settings/organization">
+            <Settings aria-hidden />
+            {t('nav.organizationSettings')}
+          </Link>
+        </DropdownMenuItem>
         <DropdownMenuItem asChild>
           <Link href="/settings/profile">
             <Settings aria-hidden />
