@@ -17,7 +17,6 @@ import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Suspense, type ReactNode } from 'react';
-import { Badge } from '@/components/ui/badge';
 import {
   Sidebar,
   SidebarContent,
@@ -33,7 +32,7 @@ import {
 import { BrandLogo } from './brand-logo';
 
 type NavLabel =
-  | `nav.${'events' | 'myTasks' | 'suppliers' | 'members' | 'settings'}`
+  | `nav.${'events' | 'myTasks' | 'suppliers' | 'members'}`
   | `eventTabs.${'overview' | 'tasks' | 'planning' | 'files' | 'budget' | 'suppliers' | 'settings'}`;
 
 interface NavItem {
@@ -42,8 +41,6 @@ interface NavItem {
   icon: LucideIcon;
   /** Matches only the exact href, not its children (an event's overview). */
   exact?: boolean;
-  /** Shown but not clickable until the feature exists. */
-  soon?: boolean;
 }
 
 const ORGANIZATION_NAV: NavItem[] = [
@@ -51,7 +48,6 @@ const ORGANIZATION_NAV: NavItem[] = [
   { label: 'nav.myTasks', href: '/tasks', icon: ListChecks },
   { label: 'nav.suppliers', href: '/suppliers', icon: ShoppingBag },
   { label: 'nav.members', href: '/members', icon: Users },
-  { label: 'nav.settings', href: '/settings', icon: Settings, soon: true },
 ];
 
 function eventNav(eventId: string): NavItem[] {
@@ -134,26 +130,16 @@ function NavMenu({
       <SidebarMenu className="gap-1">
         {items.map((item) => (
           <SidebarMenuItem key={item.href}>
-            {item.soon ? (
-              <SidebarMenuButton disabled className="h-11 rounded-card px-4 font-semibold">
+            <SidebarMenuButton
+              asChild
+              isActive={isActive(pathname, item)}
+              className="h-11 rounded-card px-4 font-semibold data-[active=true]:font-bold data-[active=true]:shadow-soft"
+            >
+              <Link href={item.href} onClick={() => setOpenMobile(false)}>
                 <item.icon />
                 <span>{t(item.label)}</span>
-                <Badge variant="outline" className="ml-auto">
-                  {t('common.comingSoon')}
-                </Badge>
-              </SidebarMenuButton>
-            ) : (
-              <SidebarMenuButton
-                asChild
-                isActive={isActive(pathname, item)}
-                className="h-11 rounded-card px-4 font-semibold data-[active=true]:font-bold data-[active=true]:shadow-soft"
-              >
-                <Link href={item.href} onClick={() => setOpenMobile(false)}>
-                  <item.icon />
-                  <span>{t(item.label)}</span>
-                </Link>
-              </SidebarMenuButton>
-            )}
+              </Link>
+            </SidebarMenuButton>
           </SidebarMenuItem>
         ))}
       </SidebarMenu>
