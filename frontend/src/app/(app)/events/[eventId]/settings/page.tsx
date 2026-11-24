@@ -5,6 +5,7 @@ import { FormError } from '@/components/form-error';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ArchiveEvent } from '@/features/events/archive-event';
 import { EventForm } from '@/features/events/event-form';
+import { EventStatusSettings } from '@/features/events/event-status-settings';
 import { editionOptions, toEventFormValues } from '@/features/events/schemas';
 import { getEvent, listEvents } from '@/server/events/queries';
 
@@ -41,6 +42,7 @@ async function EventSettings({ params }: Pick<PageProps<'/events/[eventId]/setti
           readOnly={archived}
         />
       </section>
+      <EventStatusSettings event={event} />
       {!archived && <ArchiveEvent eventId={event.id} />}
     </div>
   );

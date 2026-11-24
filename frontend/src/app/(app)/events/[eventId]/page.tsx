@@ -5,7 +5,7 @@ import { Suspense, type ReactNode } from 'react';
 import { IconBlob } from '@/components/layout/icon-blob';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EventAiPanel } from '@/features/ai/event-ai-panel';
-import { EventStatusActions } from '@/features/events/event-status-actions';
+import { EventStatusBanner } from '@/features/events/event-status-banner';
 import { getEvent } from '@/server/events/queries';
 import { formatEventRange, LOCALE } from '@/lib/format';
 
@@ -34,60 +34,60 @@ async function EventOverview({ params }: Pick<PageProps<'/events/[eventId]'>, 'p
           : null;
 
   return (
-    <div className="grid gap-5 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
-      <section className="flex flex-col gap-5 rounded-3xl bg-card p-5 shadow-soft sm:p-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
+    <>
+      <EventStatusBanner event={event} />
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
+        <section className="flex flex-col gap-5 rounded-3xl bg-card p-5 shadow-soft sm:p-6">
           <h2 className="text-lg">{t('eventOverview.details')}</h2>
-          <EventStatusActions eventId={event.id} status={event.status} />
-        </div>
-        <dl className="grid gap-4">
-          <Detail icon={<IconBlob icon={CalendarClock} />} label={t('eventOverview.when')}>
-            {formatEventRange(event.startsAt, event.endsAt)}
-          </Detail>
-          <Detail icon={<IconBlob icon={MapPin} />} label={t('eventOverview.where')}>
-            {event.location ?? (
-              <span className="text-muted-foreground">{t('events.noLocation')}</span>
-            )}
-          </Detail>
-          <Detail icon={<IconBlob icon={Tag} />} label={t('eventOverview.type')}>
-            {t(`eventType.${event.eventType}`)}
-          </Detail>
-          <Detail icon={<IconBlob icon={Users} />} label={t('eventOverview.attendance')}>
-            {attendance ?? (
-              <span className="text-muted-foreground">{t('eventOverview.noAttendance')}</span>
-            )}
-          </Detail>
-          <Detail icon={<IconBlob icon={Text} />} label={t('eventOverview.description')}>
-            {event.description ? (
-              <span className="whitespace-pre-line">{event.description}</span>
-            ) : (
-              <span className="text-muted-foreground">{t('eventOverview.noDescription')}</span>
-            )}
-          </Detail>
-          {(event.previousEdition || event.nextEdition) && (
-            <Detail icon={<IconBlob icon={History} />} label={t('events.editions')}>
-              <span className="flex flex-col gap-0.5">
-                {event.previousEdition && (
-                  <EditionLink label={t('events.continues')} edition={event.previousEdition} />
-                )}
-                {event.nextEdition && (
-                  <EditionLink label={t('events.continuedBy')} edition={event.nextEdition} />
-                )}
-              </span>
+          <dl className="grid gap-4">
+            <Detail icon={<IconBlob icon={CalendarClock} />} label={t('eventOverview.when')}>
+              {formatEventRange(event.startsAt, event.endsAt)}
             </Detail>
-          )}
-          {event.retrospective && (
-            <Detail icon={<IconBlob icon={Lightbulb} />} label={t('eventOverview.retrospective')}>
-              <span className="whitespace-pre-line">{event.retrospective}</span>
+            <Detail icon={<IconBlob icon={MapPin} />} label={t('eventOverview.where')}>
+              {event.location ?? (
+                <span className="text-muted-foreground">{t('events.noLocation')}</span>
+              )}
             </Detail>
-          )}
-        </dl>
-      </section>
+            <Detail icon={<IconBlob icon={Tag} />} label={t('eventOverview.type')}>
+              {t(`eventType.${event.eventType}`)}
+            </Detail>
+            <Detail icon={<IconBlob icon={Users} />} label={t('eventOverview.attendance')}>
+              {attendance ?? (
+                <span className="text-muted-foreground">{t('eventOverview.noAttendance')}</span>
+              )}
+            </Detail>
+            <Detail icon={<IconBlob icon={Text} />} label={t('eventOverview.description')}>
+              {event.description ? (
+                <span className="whitespace-pre-line">{event.description}</span>
+              ) : (
+                <span className="text-muted-foreground">{t('eventOverview.noDescription')}</span>
+              )}
+            </Detail>
+            {(event.previousEdition || event.nextEdition) && (
+              <Detail icon={<IconBlob icon={History} />} label={t('events.editions')}>
+                <span className="flex flex-col gap-0.5">
+                  {event.previousEdition && (
+                    <EditionLink label={t('events.continues')} edition={event.previousEdition} />
+                  )}
+                  {event.nextEdition && (
+                    <EditionLink label={t('events.continuedBy')} edition={event.nextEdition} />
+                  )}
+                </span>
+              </Detail>
+            )}
+            {event.retrospective && (
+              <Detail icon={<IconBlob icon={Lightbulb} />} label={t('eventOverview.retrospective')}>
+                <span className="whitespace-pre-line">{event.retrospective}</span>
+              </Detail>
+            )}
+          </dl>
+        </section>
 
-      <Suspense fallback={<Skeleton className="h-72 rounded-3xl bg-brand-tint/60" />}>
-        <EventAiPanel eventId={event.id} />
-      </Suspense>
-    </div>
+        <Suspense fallback={<Skeleton className="h-72 rounded-3xl bg-brand-tint/60" />}>
+          <EventAiPanel eventId={event.id} />
+        </Suspense>
+      </div>
+    </>
   );
 }
 

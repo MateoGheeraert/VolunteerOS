@@ -144,11 +144,24 @@
     "attendanceActual": "{actual} bezoekers",
     "noAttendance": "Nog niet ingevuld.",
     "retrospective": "Wat leerden we?",
-    "publish": "Publiceren",
-    "unpublish": "Terug naar concept",
-    "complete": "Markeer als afgelopen",
-    "reopen": "Heropenen",
     "edit": "Bewerken"
+  },
+  "eventStatusBanner": {
+    "publishMessage": "Zullen we dit evenement publiceren?",
+    "publishDetail": "Staat alles klaar? Publiceer het. Nog niet zeker? Ik maak het binnenkort samen met jou publicatieklaar.",
+    "publish": "Publiceer het evenement",
+    "makeReady": "Maak het publicatieklaar",
+    "comingSoon": "Binnenkort",
+    "completeMessage": "Dit evenement is voorbij. Zullen we het afsluiten?",
+    "completeDetail": "Markeer het als afgelopen, dan staat het bij je vorige edities.",
+    "complete": "Markeer als afgelopen"
+  },
+  "eventStatusSettings": {
+    "title": "Status",
+    "publishedBody": "Dit evenement is gepubliceerd. Nog niet klaar? Zet het terug naar concept.",
+    "completedBody": "Dit evenement is afgelopen. Toch nog niet voorbij? Heropen het.",
+    "unpublish": "Terug naar concept",
+    "reopen": "Heropenen"
   },
   "eventForm": {
     "createTitle": "Nieuw evenement",
