@@ -5,22 +5,22 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import type { UploadList } from '@/api/generated/types.gen';
 import { Skeleton } from '@/components/ui/skeleton';
-import { listTaskUploads } from '@/server/uploads/actions';
-import { FilesPanel } from './files-panel';
+import { listBudgetEntryUploads, listTaskUploads } from '@/server/uploads/actions';
+import { FilesPanel, type FileOwner } from './files-panel';
 
 /**
- * A task's files in the task pane. The pane is a client component, so the list is fetched when
- * it opens, and again after each change. Managers and the task's assignee add files. Mount it
- * keyed by the task, so switching tasks starts from an empty list.
+ * The files of one task or budget entry, in its pane. The pane is a client component, so the
+ * list is fetched when it opens, and again after each change. Mount it keyed by the owner, so
+ * switching starts from an empty list.
  */
-export function TaskFiles({
+export function AttachedFiles({
   eventId,
-  taskId,
+  owner,
   canAdd,
   readOnly,
 }: {
   eventId: string;
-  taskId: string;
+  owner: FileOwner;
   canAdd: boolean;
   readOnly: boolean;
 }) {
@@ -30,20 +30,23 @@ export function TaskFiles({
   const [failed, setFailed] = useState(false);
   /** Bumped after a change, to fetch the list again. */
   const [version, setVersion] = useState(0);
+  const ownerId = 'taskId' in owner ? owner.taskId : owner.budgetEntryId;
+  const isTask = 'taskId' in owner;
 
   useEffect(() => {
     let current = true;
-    void listTaskUploads
-      .bind(null, eventId, taskId)()
-      .then((result) => {
-        if (!current) return;
-        if (result?.data) setList(result.data);
-        else setFailed(true);
-      });
+    const load = isTask
+      ? listTaskUploads.bind(null, eventId, ownerId)
+      : listBudgetEntryUploads.bind(null, eventId, ownerId);
+    void load().then((result) => {
+      if (!current) return;
+      if (result?.data) setList(result.data);
+      else setFailed(true);
+    });
     return () => {
       current = false;
     };
-  }, [eventId, taskId, version]);
+  }, [eventId, ownerId, isTask, version]);
 
   return (
     <section className="flex flex-col gap-2">
@@ -53,14 +56,14 @@ export function TaskFiles({
       ) : list ? (
         <FilesPanel
           eventId={eventId}
-          taskId={taskId}
+          owner={owner}
           uploads={list.uploads}
           canAdd={canAdd}
           enabled={list.enabled}
           readOnly={readOnly}
           onChanged={() => {
             setVersion((v) => v + 1);
-            // The event's file tab lists task files too.
+            // The event's file tab lists these files too, and the budget shows a file count.
             router.refresh();
           }}
         />

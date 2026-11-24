@@ -23,10 +23,13 @@ import { msg } from '@/i18n/keys';
 import { actionClient } from '../action-client';
 
 const id = z.uuid();
-/** After a change: the event's task page, and "my tasks", which shows the same tasks. */
+/** After a change: the event's task page, "my tasks" with the same tasks, and what refers to them. */
 function revalidateTasks(eventId: string) {
   revalidatePath(`/events/${eventId}/tasks`);
   revalidatePath('/tasks');
+  // Budget lines show their task's title, and deleting a task deletes its files.
+  revalidatePath(`/events/${eventId}/budget`);
+  revalidatePath(`/events/${eventId}/files`);
 }
 
 /** Bind the event: `createTask.bind(null, eventId)`. */

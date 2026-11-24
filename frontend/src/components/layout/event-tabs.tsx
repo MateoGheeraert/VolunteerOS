@@ -13,7 +13,7 @@ const TABS: { key: TabKey; segment: string | null; soon?: boolean }[] = [
   { key: 'tasks', segment: 'tasks' },
   { key: 'planning', segment: 'planning' },
   { key: 'files', segment: 'files' },
-  { key: 'budget', segment: 'budget', soon: true },
+  { key: 'budget', segment: 'budget' },
   { key: 'suppliers', segment: 'suppliers', soon: true },
   { key: 'settings', segment: 'settings' },
 ];

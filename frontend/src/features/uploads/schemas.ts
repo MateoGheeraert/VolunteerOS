@@ -57,6 +57,7 @@ export const startUploadSchema = z.object({
   mimeType: z.string().min(1),
   sizeBytes: z.number().int().positive().max(MAX_FILE_BYTES),
   taskId: z.uuid().optional(),
+  budgetEntryId: z.uuid().optional(),
 });
 export type StartUploadInput = z.infer<typeof startUploadSchema>;
 

@@ -5,6 +5,7 @@ import { useCallback, useState } from 'react';
 import { toast } from 'sonner';
 import type { PendingUpload } from '@/api/generated/types.gen';
 import { confirmUpload, startUpload } from '@/server/uploads/actions';
+import type { FileOwner } from './files-panel';
 import { mimeTypeOf, pickedFileError } from './schemas';
 
 /** A file on its way up, for the progress list. */
@@ -24,11 +25,11 @@ class UploadFailed extends Error {}
  */
 export function useFileUpload({
   eventId,
-  taskId,
+  owner,
   onUploaded,
 }: {
   eventId: string;
-  taskId?: string;
+  owner?: FileOwner;
   onUploaded: () => void;
 }) {
   const t = useTranslations();
@@ -41,7 +42,7 @@ export function useFileUpload({
       if (problem || !mimeType) throw new UploadFailed(t(problem ?? 'files.typeNotAllowed'));
 
       const start = startUpload.bind(null, eventId);
-      const started = await start({ name: file.name, mimeType, sizeBytes: file.size, taskId });
+      const started = await start({ name: file.name, mimeType, sizeBytes: file.size, ...owner });
       if (!started?.data) {
         throw new UploadFailed(t(started?.serverError?.message ?? 'common.genericError'));
       }
@@ -55,7 +56,7 @@ export function useFileUpload({
         throw new UploadFailed(t(confirmed?.serverError?.message ?? 'files.uploadFailed'));
       }
     },
-    [eventId, taskId, t],
+    [eventId, owner, t],
   );
 
   const upload = useCallback(

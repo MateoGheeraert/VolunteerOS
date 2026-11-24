@@ -29,7 +29,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { LabelChip } from '@/features/labels/label-chip';
 import { LABEL_NAME_MAX, nextLabelColor } from '@/features/labels/schemas';
-import { TaskFiles } from '@/features/uploads/task-files';
+import { AttachedFiles } from '@/features/uploads/attached-files';
 import { createLabel } from '@/server/labels/actions';
 import { formatDay } from '@/lib/format';
 import { cn } from '@/lib/utils';
@@ -205,10 +205,10 @@ export function TaskPreview({ task, onDeleted }: { task: ShownTask; onDeleted: (
         />
       </section>
 
-      <TaskFiles
+      <AttachedFiles
         key={task.id}
         eventId={task.eventId}
-        taskId={task.id}
+        owner={{ taskId: task.id }}
         canAdd={canManage || mine}
         readOnly={readOnly}
       />
