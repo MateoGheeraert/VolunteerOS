@@ -14,6 +14,7 @@ import { deletedAt } from '../soft-delete.js';
 import { user } from './auth.js';
 import { event } from './events.js';
 import { label } from './labels.js';
+import { supplier } from './suppliers.js';
 import { task } from './tasks.js';
 
 export const budgetEntryTypeEnum = pgEnum('budget_entry_type', ['income', 'expense']);
@@ -32,6 +33,9 @@ const createdAt = timestamp('created_at', { withTimezone: true }).notNull().defa
  * `task_id` links the entry to one of the event's tasks ("Tent huren" → the tent's cost). Tasks
  * are soft-deleted, so deleting a task clears the link in the service; the `set null` only
  * covers a hard delete.
+ *
+ * `supplier_id` says which of the organization's suppliers the money goes to or comes from; it is
+ * how a supplier is linked to an event. Suppliers are archived, never deleted, so the link stays.
  */
 export const budgetEntry = pgTable(
   'budget_entry',
@@ -46,6 +50,7 @@ export const budgetEntry = pgTable(
     actualCents: integer('actual_cents'),
     notes: text('notes'),
     taskId: uuid('task_id').references(() => task.id, { onDelete: 'set null' }),
+    supplierId: uuid('supplier_id').references(() => supplier.id),
     createdByUserId: text('created_by_user_id')
       .notNull()
       .references(() => user.id),
@@ -59,6 +64,7 @@ export const budgetEntry = pgTable(
   (t) => [
     index('budget_entry_event_id_idx').on(t.eventId),
     index('budget_entry_task_id_idx').on(t.taskId),
+    index('budget_entry_supplier_id_idx').on(t.supplierId),
     check(
       'budget_entry_has_amount',
       sql`${t.estimatedCents} is not null or ${t.actualCents} is not null`,
