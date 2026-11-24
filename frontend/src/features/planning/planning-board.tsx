@@ -55,13 +55,6 @@ import {
 import { Input } from '@/components/ui/input';
 import { NativeSelect } from '@/components/ui/native-select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from '@/components/ui/sheet';
 import { formatDateTime, formatShiftTime, formatShortDay } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import {
@@ -398,7 +391,7 @@ export function PlanningBoard({
         )}
       </DragOverlay>
 
-      {/* Creating opens a modal; the side sheet is for viewing and editing what exists. */}
+      {/* Creating and editing both open a modal: a short one to create, a wider one to edit. */}
       <Dialog open={creating} onOpenChange={(open) => !open && close()}>
         <DialogContent>
           {pane?.kind === 'newShift' && (
@@ -435,8 +428,8 @@ export function PlanningBoard({
         </DialogContent>
       </Dialog>
 
-      <Sheet open={pane !== null && !creating} onOpenChange={(open) => !open && close()}>
-        <SheetContent className="w-full overflow-y-auto sm:max-w-lg">
+      <Dialog open={pane !== null && !creating} onOpenChange={(open) => !open && close()}>
+        <DialogContent size="md">
           {paneTeam && (
             <PaneBody title={t('planning.teams.editTitle')} description={paneTeam.name}>
               <TeamForm
@@ -502,8 +495,8 @@ export function PlanningBoard({
               <PublishPanel eventId={event.id} planning={planning} onDone={close} />
             </PaneBody>
           )}
-        </SheetContent>
-      </Sheet>
+        </DialogContent>
+      </Dialog>
     </DndContext>
   );
 }
@@ -519,11 +512,11 @@ function PaneBody({
 }) {
   return (
     <>
-      <SheetHeader>
-        <SheetTitle className="pr-8 text-lg">{title}</SheetTitle>
-        <SheetDescription>{description}</SheetDescription>
-      </SheetHeader>
-      <div className="px-6 pb-6">{children}</div>
+      <DialogHeader>
+        <DialogTitle>{title}</DialogTitle>
+        <DialogDescription>{description}</DialogDescription>
+      </DialogHeader>
+      {children}
     </>
   );
 }

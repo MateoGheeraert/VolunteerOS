@@ -25,18 +25,18 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from '@/components/ui/sheet';
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { archiveSupplier, unarchiveSupplier, updateSupplier } from '@/server/suppliers/actions';
 import { supplierToForm } from './schemas';
 import { SupplierForm } from './supplier-form';
 
 /**
- * On a supplier's page: edit it in a side sheet (every member), archive or unarchive it
+ * On a supplier's page: edit it in a modal (every member), archive or unarchive it
  * (owners and admins). There is no delete: the budget keeps referring to it.
  */
 export function SupplierActions({
@@ -102,13 +102,13 @@ export function SupplierActions({
         </DropdownMenu>
       )}
 
-      <Sheet open={editing} onOpenChange={setEditing}>
-        <SheetContent className="w-full overflow-y-auto sm:max-w-lg">
-          <SheetHeader>
-            <SheetTitle className="text-lg">{t('suppliers.editTitle')}</SheetTitle>
-            <SheetDescription>{t('suppliers.editDescription')}</SheetDescription>
-          </SheetHeader>
-          <div className="px-4 pb-6">
+      <Dialog open={editing} onOpenChange={setEditing}>
+        <DialogContent size="md">
+          <DialogHeader>
+            <DialogTitle>{t('suppliers.editTitle')}</DialogTitle>
+            <DialogDescription>{t('suppliers.editDescription')}</DialogDescription>
+          </DialogHeader>
+          <div>
             <SupplierForm
               key={supplier.updatedAt}
               action={updateSupplier.bind(null, supplier.id)}
@@ -121,8 +121,8 @@ export function SupplierActions({
               onCancel={() => setEditing(false)}
             />
           </div>
-        </SheetContent>
-      </Sheet>
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog open={archiving} onOpenChange={setArchiving}>
         <AlertDialogContent>

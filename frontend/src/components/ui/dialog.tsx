@@ -8,19 +8,25 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 /**
- * A centered modal for creating something (a new shift, a new task). Creating happens in a modal;
- * the side Sheet is for looking at and editing what already exists (see docs/info.md, "Visual
- * Style"). Unlike AlertDialog it closes on Escape or a click outside.
+ * A centered modal, for creating something and for looking at or editing what already exists (see
+ * docs/info.md, "Visual Style"). Unlike AlertDialog it closes on Escape or a click outside.
  */
 function Dialog({ ...props }: React.ComponentProps<typeof DialogPrimitive.Root>) {
   return <DialogPrimitive.Root data-slot="dialog" {...props} />;
 }
 
+/** `default` for a short create form, `md` for an edit form (a task, a budget line, a supplier). */
+const DIALOG_SIZES = {
+  default: 'max-w-lg',
+  md: 'max-w-2xl',
+} as const;
+
 function DialogContent({
   className,
   children,
+  size = 'default',
   ...props
-}: React.ComponentProps<typeof DialogPrimitive.Content>) {
+}: React.ComponentProps<typeof DialogPrimitive.Content> & { size?: keyof typeof DIALOG_SIZES }) {
   const t = useTranslations();
   return (
     <DialogPrimitive.Portal>
@@ -31,7 +37,8 @@ function DialogContent({
       <DialogPrimitive.Content
         data-slot="dialog-content"
         className={cn(
-          'fixed top-1/2 left-1/2 z-50 flex max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 flex-col gap-5 overflow-y-auto rounded-card bg-popover p-6 text-popover-foreground shadow-lg duration-150 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95',
+          DIALOG_SIZES[size],
+          'fixed top-1/2 left-1/2 z-50 flex max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 flex-col gap-5 overflow-y-auto rounded-card bg-popover p-6 text-popover-foreground shadow-lg duration-150 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95',
           className,
         )}
         {...props}

@@ -30,19 +30,19 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { NativeSelect } from '@/components/ui/native-select';
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from '@/components/ui/sheet';
 import { LabelChip, labelsOf } from '@/features/labels/label-chip';
 import { LabelManager } from '@/features/labels/label-manager';
 import { LabelPopover } from '@/features/labels/label-popover';
@@ -71,11 +71,14 @@ import { BudgetEntryForm } from './budget-entry-form';
 import { BudgetQuickAdd } from './budget-quick-add';
 import { budgetEntryToForm, type BudgetEntryType } from './schemas';
 
+/** Links the save button at the bottom of the entry modal to the form above the files. */
+const ENTRY_FORM_ID = 'budget-entry-form';
+
 /**
  * An event's budget: the totals, then one list of income (green, +) and costs (red, −), newest
  * first. Managers type new lines into the row on top (Enter adds one), tag lines in place, and
- * open a line in a side sheet for its task, notes and files; everyone else reads. The backend decides what is
- * allowed; `canManage` only decides which controls show.
+ * open a line in a modal for its task, notes and files; everyone else reads. The backend decides
+ * what is allowed; `canManage` only decides which controls show.
  */
 export function BudgetView({
   eventId,
@@ -94,7 +97,7 @@ export function BudgetView({
   tasks: { id: string; title: string }[];
   /** The organization's suppliers, archived ones marked, to pick one (managers only). */
   suppliers: PickableSupplier[];
-  /** An entry to open in the sheet straight away (from a supplier's page). */
+  /** An entry to open in the modal straight away (from a supplier's page). */
   initialOpenId?: string;
   canManage: boolean;
   /** Archived events: everything is shown, nothing can change. */
@@ -106,6 +109,7 @@ export function BudgetView({
     initialOpenId && entries.some((entry) => entry.id === initialOpenId) ? initialOpenId : null,
   );
   const [deleting, setDeleting] = useState<BudgetEntry | null>(null);
+  const [saving, setSaving] = useState(false);
   const [labelsOpen, setLabelsOpen] = useState(false);
   const mayEdit = canManage && !readOnly;
 
@@ -126,7 +130,7 @@ export function BudgetView({
   const shown = sortEntries(filterEntries(entries, activeFilters), sort);
   const sortBy = (key: Exclude<BudgetSortKey, 'created'>) =>
     setSort((current) => nextSort(current, key));
-  // The pane reads the entry from fresh page data, so it updates after every change.
+  // The modal reads the entry from fresh page data, so it updates after every change.
   const openEntry = openId ? entries.find((entry) => entry.id === openId) : undefined;
 
   return (
@@ -244,28 +248,29 @@ export function BudgetView({
         </ul>
       </section>
 
-      <Sheet open={openId !== null} onOpenChange={(isOpen) => !isOpen && setOpenId(null)}>
-        <SheetContent className="w-full overflow-y-auto sm:max-w-lg">
-          <SheetHeader>
-            <SheetTitle className="text-lg">{openEntry?.title ?? t('budget.editTitle')}</SheetTitle>
-            <SheetDescription>
+      <Dialog open={openId !== null} onOpenChange={(isOpen) => !isOpen && setOpenId(null)}>
+        <DialogContent size={openEntry ? 'md' : 'default'}>
+          <DialogHeader>
+            <DialogTitle>{openEntry?.title ?? t('budget.editTitle')}</DialogTitle>
+            <DialogDescription>
               {openEntry ? t('budget.editDescription') : t('budget.gone')}
-            </SheetDescription>
-          </SheetHeader>
+            </DialogDescription>
+          </DialogHeader>
           {openEntry && (
-            <div className="flex flex-col gap-6 px-4 pb-6">
+            <div className="flex flex-col gap-6">
               {mayEdit ? (
                 <BudgetEntryForm
                   // Fresh form values after each save.
                   key={`${openEntry.id}-${openEntry.updatedAt}`}
+                  id={ENTRY_FORM_ID}
                   eventId={eventId}
                   action={updateBudgetEntry.bind(null, eventId, openEntry.id)}
                   defaultValues={budgetEntryToForm(openEntry)}
                   labels={labels}
                   tasks={withLinkedTask(tasks, openEntry)}
                   suppliers={withCurrentSupplier(suppliers, openEntry)}
-                  submitLabel={t('common.save')}
                   onDone={() => toast.success(t('budget.saved'))}
+                  onPendingChange={setSaving}
                 />
               ) : (
                 <EntryDetails entry={openEntry} labels={labels} />
@@ -278,19 +283,25 @@ export function BudgetView({
                 readOnly={readOnly}
               />
               {mayEdit && (
-                <Button
-                  variant="ghost"
-                  className="w-fit text-destructive"
-                  onClick={() => setDeleting(openEntry)}
-                >
-                  <Trash2 data-icon="inline-start" aria-hidden />
-                  {t('budget.delete')}
-                </Button>
+                // Outside the form on purpose: the files above have forms of their own.
+                <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-5">
+                  <Button type="submit" form={ENTRY_FORM_ID} disabled={saving}>
+                    {t('common.save')}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    className="text-destructive"
+                    onClick={() => setDeleting(openEntry)}
+                  >
+                    <Trash2 data-icon="inline-start" aria-hidden />
+                    {t('budget.delete')}
+                  </Button>
+                </div>
               )}
             </div>
           )}
-        </SheetContent>
-      </Sheet>
+        </DialogContent>
+      </Dialog>
 
       {deleting && (
         <DeleteEntryDialog
@@ -594,7 +605,7 @@ function EntryRow({
   );
 }
 
-/** What members see in the sheet: the entry, read-only. */
+/** What members see in the modal: the entry, read-only. */
 function EntryDetails({ entry, labels }: { entry: BudgetEntry; labels: Label[] }) {
   const t = useTranslations();
   const entryLabels = labelsOf(labels, entry.labelIds);
