@@ -44,7 +44,7 @@ export function TaskCard({
       {...props}
       onClick={onOpen}
       className={cn(
-        'flex w-full cursor-pointer flex-col gap-3 rounded-2xl border-2 border-transparent bg-card p-4 text-left shadow-soft outline-none select-none hover:border-brand-tint-strong/50 focus-visible:ring-[3px] focus-visible:ring-ring/50',
+        'flex w-full cursor-pointer flex-col gap-3 rounded-card border-2 border-transparent bg-card p-4 text-left shadow-soft outline-none select-none hover:border-brand-tint-strong/50 focus-visible:ring-[3px] focus-visible:ring-ring/50',
         overdue && 'border-status-bad/40 hover:border-status-bad/60',
         className,
       )}

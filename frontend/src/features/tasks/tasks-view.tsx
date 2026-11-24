@@ -147,7 +147,7 @@ function Tasks({ tasks }: { tasks: ShownTask[] }) {
             </li>
           ))}
           {visible.length === 0 && (
-            <li className="rounded-2xl bg-card p-6 text-center text-muted-foreground">
+            <li className="rounded-card bg-card p-6 text-center text-muted-foreground">
               {t('tasks.noMatches')}
             </li>
           )}

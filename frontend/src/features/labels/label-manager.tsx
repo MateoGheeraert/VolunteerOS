@@ -128,7 +128,7 @@ function LabelRow({ eventId, label }: { eventId: string; label: Label }) {
   const busy = save.isPending || remove.isPending || usage.isPending;
 
   return (
-    <li className="flex flex-col gap-2 rounded-2xl bg-muted/50 p-3">
+    <li className="flex flex-col gap-2 rounded-card bg-muted/50 p-3">
       <div className="flex items-center justify-between gap-2">
         <LabelChip label={{ name: name.trim() || label.name, color }} />
         {confirming ? (

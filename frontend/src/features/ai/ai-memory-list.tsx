@@ -31,7 +31,7 @@ function MemoryRow({ memory }: { memory: AiMemory }) {
   const remove = useAction(deleteAiMemory.bind(null, memory.id), feedback);
 
   return (
-    <li className="flex items-start justify-between gap-3 rounded-2xl bg-card p-4 shadow-soft">
+    <li className="flex items-start justify-between gap-3 rounded-card bg-card p-4 shadow-soft">
       <div className="flex min-w-0 flex-col gap-1">
         <p>{memory.content}</p>
         <div className="flex flex-wrap items-center gap-2 text-xs">

@@ -4,7 +4,7 @@ import { ArrowRight, Check, Hand, Trash2, UserMinus, X } from 'lucide-react';
 import { useAction } from 'next-safe-action/hooks';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
-import { useEffect, useState, type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { toast } from 'sonner';
 import {
   AlertDialog,
@@ -16,6 +16,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { ModalActions, useOutsideSave } from '@/components/layout/modal-actions';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -55,10 +56,10 @@ export function TaskPreview({ task, onDeleted }: { task: ShownTask; onDeleted: (
   const [saving, setSaving] = useState(false);
   const overdue = isOverdue(task, today);
   const mine = assigneeUserId(task) === userId;
-  const canEdit = canManage && !readOnly;
   const canChangeStatus = !canManage && mine && !readOnly;
   const taskEvent = event ?? task.event ?? null;
-  const formerAssignee =
+  const canEdit = canManage && !readOnly && taskEvent !== null;
+  const currentAssignee =
     task.assignee?.type === 'member'
       ? { userId: task.assignee.userId, name: task.assignee.name }
       : undefined;
@@ -89,16 +90,21 @@ export function TaskPreview({ task, onDeleted }: { task: ShownTask; onDeleted: (
         <TaskForm
           // Fresh form values after each save.
           key={`${task.id}-${task.updatedAt}`}
-          id={TASK_FORM_ID}
+          outsideSave={{ formId: TASK_FORM_ID, onPendingChange: setSaving }}
           event={{ id: taskEvent.id, endsAt: taskEvent.endsAt }}
           action={updateTask.bind(null, task.eventId, task.id)}
           defaultValues={taskToForm(task)}
-          currentAssignee={formerAssignee}
+          currentAssignee={currentAssignee}
           onDone={() => toast.success(t('tasks.saved'))}
-          onPendingChange={setSaving}
         />
       ) : (
-        <TaskDetails task={task} canChangeStatus={canChangeStatus} onPendingChange={setSaving} />
+        <TaskDetails
+          // Fresh status select when the task changes elsewhere.
+          key={`${task.id}-${task.updatedAt}`}
+          task={task}
+          canChangeStatus={canChangeStatus}
+          onPendingChange={setSaving}
+        />
       )}
 
       <AttachedFiles
@@ -235,7 +241,7 @@ function StatusForm({
     },
   });
 
-  useEffect(() => onPendingChange(change.isPending), [change.isPending, onPendingChange]);
+  useOutsideSave({ formId: STATUS_FORM_ID, onPendingChange }, change.isPending);
 
   return (
     <form
@@ -290,61 +296,48 @@ function TaskActions({
   const canRequest = !canManage && task.assignee === null && !myRequest;
 
   return (
-    <div className="flex flex-wrap items-center gap-2 border-t border-border pt-5">
-      {saveForm && (
-        <Button type="submit" form={saveForm} disabled={saving}>
-          {t('common.save')}
+    <ModalActions formId={saveForm} saving={saving}>
+      {mine && (
+        <>
+          <Button variant="ghost" onClick={() => setConfirmingUnassign(true)}>
+            <UserMinus data-icon="inline-start" aria-hidden />
+            {t('tasks.unassignSelf')}
+          </Button>
+          <ConfirmUnassign
+            task={task}
+            open={confirmingUnassign}
+            onOpenChange={setConfirmingUnassign}
+          />
+        </>
+      )}
+      {canRequest && (
+        <Button variant="secondary" disabled={busy} onClick={() => request.execute()}>
+          <Hand data-icon="inline-start" aria-hidden />
+          {t('tasks.request')}
         </Button>
       )}
-      <div className="ml-auto flex flex-wrap items-center gap-2">
-        {mine && (
-          <>
-            <Button variant="ghost" onClick={() => setConfirmingUnassign(true)}>
-              <UserMinus data-icon="inline-start" aria-hidden />
-              {t('tasks.unassignSelf')}
-            </Button>
-            <ConfirmUnassign
-              task={task}
-              mine
-              open={confirmingUnassign}
-              onOpenChange={setConfirmingUnassign}
-            />
-          </>
-        )}
-        {canRequest && (
-          <Button variant="secondary" disabled={busy} onClick={() => request.execute()}>
-            <Hand data-icon="inline-start" aria-hidden />
-            {t('tasks.request')}
+      {myRequest && (
+        <>
+          <Badge variant="brand" className="h-11 px-4">
+            {t('tasks.requestPending')}
+          </Badge>
+          <Button variant="ghost" disabled={busy} onClick={() => cancel.execute()}>
+            {t('tasks.cancelRequest')}
           </Button>
-        )}
-        {myRequest && (
-          <>
-            <Badge variant="brand" className="h-11 px-4">
-              {t('tasks.requestPending')}
-            </Badge>
-            <Button variant="ghost" disabled={busy} onClick={() => cancel.execute()}>
-              {t('tasks.cancelRequest')}
-            </Button>
-          </>
-        )}
-        {canManage && <DeleteTask task={task} onDeleted={onDeleted} />}
-      </div>
-    </div>
+        </>
+      )}
+      {canManage && <DeleteTask task={task} onDeleted={onDeleted} />}
+    </ModalActions>
   );
 }
 
-/**
- * Removing an assignment means someone has to be found again, so it asks first. The assignee
- * taking themselves off gets other wording than a manager removing someone.
- */
+/** Taking yourself off a task means someone has to be found again, so it asks first. */
 function ConfirmUnassign({
   task,
-  mine,
   open,
   onOpenChange,
 }: {
   task: ShownTask;
-  mine: boolean;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
@@ -361,13 +354,9 @@ function ConfirmUnassign({
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>
-            {mine ? t('tasks.unassignSelfTitle') : t('tasks.unassignTitle')}
-          </AlertDialogTitle>
+          <AlertDialogTitle>{t('tasks.unassignSelfTitle')}</AlertDialogTitle>
           <AlertDialogDescription>
-            {mine
-              ? t('tasks.unassignSelfWarning', { title: task.title })
-              : t('tasks.unassignWarning', { name: task.assignee?.name ?? '', title: task.title })}
+            {t('tasks.unassignSelfWarning', { title: task.title })}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
@@ -381,7 +370,7 @@ function ConfirmUnassign({
               unassign.execute();
             }}
           >
-            {mine ? t('tasks.unassignSelfConfirm') : t('tasks.unassignConfirm')}
+            {t('tasks.unassignSelfConfirm')}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

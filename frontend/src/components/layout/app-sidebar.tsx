@@ -29,6 +29,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from '@/components/ui/sidebar';
+import { parseEventPath } from '@/lib/event-path';
 import { BrandLogo } from './brand-logo';
 
 type NavLabel =
@@ -61,12 +62,6 @@ function eventNav(eventId: string): NavItem[] {
     { label: 'eventTabs.suppliers', href: `${base}/suppliers`, icon: ShoppingBag },
     { label: 'eventTabs.settings', href: `${base}/settings`, icon: Settings },
   ];
-}
-
-/** The event a pathname is inside, if any. `/events/new` is the create page, not an event. */
-function eventIdFrom(pathname: string | null): string | null {
-  const id = pathname?.match(/^\/events\/([^/]+)/)?.[1];
-  return id && id !== 'new' ? id : null;
 }
 
 /**
@@ -111,7 +106,7 @@ function NavMenu({
 }) {
   const t = useTranslations();
   const { setOpenMobile } = useSidebar();
-  const eventId = eventIdFrom(pathname);
+  const eventId = parseEventPath(pathname)?.eventId ?? null;
   const items = eventId ? eventNav(eventId) : ORGANIZATION_NAV;
 
   return (

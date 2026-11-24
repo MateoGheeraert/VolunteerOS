@@ -8,7 +8,7 @@ export const metadata: Metadata = { title: 'Je organisatie' };
 
 export default function OnboardingPage() {
   return (
-    <Suspense fallback={<Skeleton className="h-64 w-full rounded-2xl" />}>
+    <Suspense fallback={<Skeleton className="h-64 w-full rounded-card" />}>
       <Onboarding />
     </Suspense>
   );

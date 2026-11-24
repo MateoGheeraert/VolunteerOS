@@ -67,7 +67,7 @@ export function EmailSettings({ email, verified }: { email: string; verified: bo
         )}
       </div>
       {!verified && (
-        <div className="flex flex-col items-start gap-3 rounded-2xl bg-status-warn-bg p-4 text-sm">
+        <div className="flex flex-col items-start gap-3 rounded-card bg-status-warn-bg p-4 text-sm">
           <p>{t('settings.account.unverifiedBody')}</p>
           <Button
             type="button"
@@ -83,7 +83,7 @@ export function EmailSettings({ email, verified }: { email: string; verified: bo
       )}
 
       {pendingEmail && (
-        <output className="flex items-start gap-2 rounded-2xl bg-brand-tint p-4 text-sm font-semibold">
+        <output className="flex items-start gap-2 rounded-card bg-brand-tint p-4 text-sm font-semibold">
           <MailCheck className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
           {t('settings.account.changeSent', { email: pendingEmail })}
         </output>

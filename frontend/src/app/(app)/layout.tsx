@@ -20,7 +20,7 @@ export default function AppLayout({ children }: LayoutProps<'/'>) {
     <SidebarProvider>
       <AppSidebar
         eventSwitcher={
-          <Suspense fallback={<Skeleton className="h-15 w-full rounded-2xl bg-card" />}>
+          <Suspense fallback={<Skeleton className="h-15 w-full rounded-card bg-card" />}>
             <CurrentEventSwitcher />
           </Suspense>
         }

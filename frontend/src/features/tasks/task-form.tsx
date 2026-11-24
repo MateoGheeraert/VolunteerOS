@@ -4,9 +4,9 @@ import { TriangleAlert } from 'lucide-react';
 import type { SingleInputActionFn } from 'next-safe-action/hooks';
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
 import { Controller, useWatch } from 'react-hook-form';
 import { FormError, FormFieldError } from '@/components/form-error';
+import { useOutsideSave, type OutsideSave } from '@/components/layout/modal-actions';
 import { Button } from '@/components/ui/button';
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
@@ -34,8 +34,8 @@ type TaskFormAction = SingleInputActionFn<ActionError, typeof taskFormSchema, un
 /**
  * Creates a task of the event, or edits one in its modal. Only managers get here. Accepting an AI
  * task suggestion uses it too, with the suggestion filled in and its own `action`.
- * Creating, it has its own buttons. Editing (`id` given), it has none: the modal puts its save
- * button (`<Button type="submit" form={id}>`) at the bottom, below the files.
+ * Creating, it has its own buttons. Editing with `outsideSave`, it has none: the modal saves it
+ * from its bottom row (`ModalActions`), below the files.
  */
 export function TaskForm({
   event,
@@ -44,8 +44,7 @@ export function TaskForm({
   action,
   defaultValues = EMPTY_TASK,
   submitLabel,
-  id,
-  onPendingChange,
+  outsideSave,
   currentAssignee,
 }: {
   event: { id: string; endsAt: string };
@@ -54,10 +53,8 @@ export function TaskForm({
   action?: TaskFormAction;
   defaultValues?: TaskFormValues;
   submitLabel?: string;
-  /** Editing: the form's id, for the save button outside it. */
-  id?: string;
-  /** Editing: tells the save button outside the form when a save starts and ends. */
-  onPendingChange?: (pending: boolean) => void;
+  /** Editing in a modal: saved by the button in its bottom row. */
+  outsideSave?: OutsideSave;
   /** Editing: the assignee now, so someone who left the organization stays selectable. */
   currentAssignee?: { userId: string; name: string };
 }) {
@@ -83,10 +80,15 @@ export function TaskForm({
   const { errors } = form.formState;
   const [assignee, dueDate] = useWatch({ control: form.control, name: ['assignee', 'dueDate'] });
 
-  useEffect(() => onPendingChange?.(pending), [pending, onPendingChange]);
+  useOutsideSave(outsideSave, pending);
 
   return (
-    <form id={id} onSubmit={(e) => void onSubmit(e)} noValidate className="flex flex-col gap-6">
+    <form
+      id={outsideSave?.formId}
+      onSubmit={(e) => void onSubmit(e)}
+      noValidate
+      className="flex flex-col gap-6"
+    >
       <FieldGroup className="gap-5">
         <Field data-invalid={!!errors.title}>
           <FieldLabel htmlFor="title">{t('taskForm.title')}</FieldLabel>
@@ -205,7 +207,7 @@ export function TaskForm({
       </FieldGroup>
 
       <FormError message={formError} />
-      {!id && (
+      {!outsideSave && (
         <div className="flex flex-wrap gap-2">
           <Button type="submit" disabled={pending}>
             {submitLabel ?? t('taskForm.createButton')}

@@ -267,9 +267,6 @@
     "gone": "Taak niet meer zichtbaar",
     "goneBody": "Ze werd verwijderd of is niet meer aan jou toegewezen.",
     "emptyBodyMine": "Je hebt nog geen taken. Taken die aan jou toegewezen worden, verschijnen hier, over alle evenementen heen.",
-    "unassignTitle": "Toewijzing verwijderen?",
-    "unassignWarning": "{name} is dan niet meer verantwoordelijk voor „{title}”. De taak staat weer open: er moet iemand anders gezocht worden om ze te doen.",
-    "unassignConfirm": "Ja, verwijder toewijzing",
     "unassignSelf": "Mezelf uitschrijven",
     "unassignSelfTitle": "Jezelf uitschrijven voor deze taak?",
     "unassignSelfWarning": "Je bent dan niet meer verantwoordelijk voor „{title}”. De organisatoren moeten iemand anders zoeken om ze te doen.",
@@ -775,7 +772,9 @@
         "updated": "Gewijzigd sinds de e-mail",
         "removed": "Niet meer ingepland sinds de e-mail"
       }
-    }
+    },
+    "gone": "Niet meer beschikbaar",
+    "goneBody": "Dit werd ondertussen verwijderd."
   },
   "register": {
     "title": "Schrijf je in als vrijwilliger",

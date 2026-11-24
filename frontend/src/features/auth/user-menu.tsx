@@ -4,6 +4,7 @@ import { Building2, Check, LogOut, Plus, Settings } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 import type { OrganizationSummary, SessionUser } from '@/server/auth';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
@@ -14,6 +15,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { useSidebar } from '@/components/ui/sidebar';
 import { authClient } from '@/lib/auth-client';
 import { initials } from '@/lib/initials';
 
@@ -34,10 +36,18 @@ export function UserMenu({
 }) {
   const t = useTranslations();
   const router = useRouter();
+  // On a phone the sidebar is a sheet: close it when the menu takes you somewhere.
+  const { setOpenMobile } = useSidebar();
+  const close = () => setOpenMobile(false);
 
   async function switchTo(organizationId: string) {
     if (organizationId === organization.id) return;
-    await authClient.organization.setActive({ organizationId });
+    const { error } = await authClient.organization.setActive({ organizationId });
+    if (error) {
+      toast.error(t('common.genericError'));
+      return;
+    }
+    close();
     router.push('/events');
     router.refresh();
   }
@@ -82,20 +92,20 @@ export function UserMenu({
           </DropdownMenuItem>
         ))}
         <DropdownMenuItem asChild>
-          <Link href="/onboarding">
+          <Link href="/onboarding" onClick={close}>
             <Plus aria-hidden />
             {t('nav.newOrganization')}
           </Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
-          <Link href="/settings/organization">
+          <Link href="/settings/organization" onClick={close}>
             <Settings aria-hidden />
             {t('nav.organizationSettings')}
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
-          <Link href="/settings/profile">
+          <Link href="/settings/profile" onClick={close}>
             <Settings aria-hidden />
             <span className="flex flex-col">
               {t('nav.settings')}

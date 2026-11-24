@@ -8,13 +8,12 @@ import { EventStatusButton } from './event-status-button';
 /**
  * Mila suggests the event's next step under its title: publish a draft, or mark a published event
  * as done once it's over. Nothing to suggest otherwise. Undoing a step lives in the settings.
+ * Only for those who may change the status.
  */
 export async function EventStatusBanner({
   event,
-  now = new Date(),
 }: {
   event: Pick<Event, 'id' | 'status' | 'endsAt'>;
-  now?: Date;
 }) {
   const t = await getTranslations('eventStatusBanner');
 
@@ -40,7 +39,7 @@ export async function EventStatusBanner({
     );
   }
 
-  if (event.status === 'published' && new Date(event.endsAt) < now) {
+  if (event.status === 'published' && new Date(event.endsAt) < new Date()) {
     return (
       <MilaBar
         message={t('completeMessage')}

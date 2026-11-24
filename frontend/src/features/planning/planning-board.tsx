@@ -263,6 +263,11 @@ export function PlanningBoard({
     pane?.kind === 'shift' ? planning.shifts.find((x) => x.id === pane.shiftId) : null;
   const paneApplication =
     pane?.kind === 'volunteer' ? applicationById.get(pane.applicationId) : null;
+  // Deleted (here or by someone else) while its modal was open.
+  const paneGone =
+    (pane?.kind === 'team' && !paneTeam) ||
+    (pane?.kind === 'shift' && !paneShift) ||
+    (pane?.kind === 'volunteer' && !paneApplication);
 
   const newShiftValues = (team: Team): ShiftFormValues => {
     const last = planning.shifts.filter((s) => s.teamId === team.id).at(-1);
@@ -429,7 +434,13 @@ export function PlanningBoard({
       </Dialog>
 
       <Dialog open={pane !== null && !creating} onOpenChange={(open) => !open && close()}>
-        <DialogContent size="md">
+        <DialogContent size={paneGone ? 'default' : 'md'}>
+          {paneGone && (
+            <DialogHeader>
+              <DialogTitle>{t('planning.gone')}</DialogTitle>
+              <DialogDescription>{t('planning.goneBody')}</DialogDescription>
+            </DialogHeader>
+          )}
           {paneTeam && (
             <PaneBody title={t('planning.teams.editTitle')} description={paneTeam.name}>
               <TeamForm
@@ -893,7 +904,7 @@ function ShiftCard({
     <article
       ref={setNodeRef}
       className={cn(
-        'flex flex-col gap-2.5 rounded-2xl border border-border bg-card p-3 transition-all',
+        'flex flex-col gap-2.5 rounded-card border border-border bg-card p-3 transition-all',
         dragged && (marked ? 'border-status-ok ring-2 ring-status-ok/30' : 'opacity-70'),
         isOver && 'scale-[1.01] ring-2 ring-brand-secondary',
       )}
@@ -1157,7 +1168,7 @@ function VolunteerPanel({
       )}
       <ul className="-mx-1 flex min-h-0 flex-col gap-2 overflow-y-auto px-1 pb-1">
         {planning.applications.length === 0 && (
-          <li className="rounded-2xl bg-muted/60 p-4 text-sm text-muted-foreground">
+          <li className="rounded-card bg-muted/60 p-4 text-sm text-muted-foreground">
             {t('planning.volunteers.empty')}
           </li>
         )}
@@ -1217,7 +1228,7 @@ function VolunteerCard({
   return (
     <div
       className={cn(
-        'flex flex-wrap items-start gap-2 rounded-2xl border-2 border-transparent bg-muted/50 p-2.5 transition-opacity',
+        'flex flex-wrap items-start gap-2 rounded-card border-2 border-transparent bg-muted/50 p-2.5 transition-opacity',
         done && !application.pendingNotice && 'opacity-60',
         application.pendingNotice && 'border-status-warn-bg bg-status-warn-bg/40',
         isDragging && 'opacity-30',

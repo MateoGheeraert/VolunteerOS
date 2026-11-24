@@ -21,7 +21,7 @@ export function MilaSuggestion({
   children: ReactNode;
 }) {
   return (
-    <li className={cn('flex flex-col gap-3 rounded-2xl bg-card p-4 shadow-soft', className)}>
+    <li className={cn('flex flex-col gap-3 rounded-card bg-card p-4 shadow-soft', className)}>
       {children}
       {reason && <p className="text-sm text-mila-ink">{reason}</p>}
       {sources}

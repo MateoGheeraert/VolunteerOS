@@ -14,6 +14,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useSidebar } from '@/components/ui/sidebar';
+import { parseEventPath } from '@/lib/event-path';
 import { formatDate } from '@/lib/format';
 
 type EventOption = Pick<Event, 'id' | 'name' | 'startsAt' | 'status'>;
@@ -28,8 +29,8 @@ export function EventSwitcher({ events }: { events: EventOption[] }) {
   const pathname = usePathname();
   const { setOpenMobile } = useSidebar();
 
-  const [, , currentId, section] = pathname.split('/');
-  const current = events.find((event) => event.id === currentId);
+  const place = parseEventPath(pathname);
+  const current = events.find((event) => event.id === place?.eventId);
   if (!current) return null;
 
   // Archived events stay out of the list, unless it's the one you're in.
@@ -40,7 +41,7 @@ export function EventSwitcher({ events }: { events: EventOption[] }) {
   function switchTo(eventId: string) {
     if (eventId === current?.id) return;
     setOpenMobile(false);
-    router.push(section ? `/events/${eventId}/${section}` : `/events/${eventId}`);
+    router.push(place?.section ? `/events/${eventId}/${place.section}` : `/events/${eventId}`);
   }
 
   return (

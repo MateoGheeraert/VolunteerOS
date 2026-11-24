@@ -64,8 +64,8 @@ export function PublishPanel({
       <FormError message={preview.result.serverError.message} />
     ) : (
       <div className="flex flex-col gap-3">
-        <Skeleton className="h-16 rounded-2xl" />
-        <Skeleton className="h-32 rounded-2xl" />
+        <Skeleton className="h-16 rounded-card" />
+        <Skeleton className="h-32 rounded-card" />
       </div>
     );
   }
@@ -146,7 +146,7 @@ export function PublishPanel({
       )}
 
       {withoutEmail.length > 0 && (
-        <section className="flex flex-col gap-2 rounded-2xl border-2 border-status-warn-bg p-3">
+        <section className="flex flex-col gap-2 rounded-card border-2 border-status-warn-bg p-3">
           <h3 className="text-sm font-bold">
             {t('planning.publish.withoutEmail', { count: withoutEmail.length })}
           </h3>
@@ -254,7 +254,7 @@ function Result({ result, onDone }: { result: PublishResult; onDone: () => void 
   const t = useTranslations();
   return (
     <div className="flex flex-col gap-4">
-      <output className="flex flex-col gap-2 rounded-2xl bg-brand-tint px-4 py-3 text-sm font-semibold">
+      <output className="flex flex-col gap-2 rounded-card bg-brand-tint px-4 py-3 text-sm font-semibold">
         <span className="flex items-center gap-2">
           <MailCheck className="size-4" aria-hidden />
           {t('planning.publish.result', { sent: result.sent, failed: result.failed.length })}

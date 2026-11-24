@@ -205,7 +205,7 @@ function DraftRow({
   const assignee = row.assigneeUserId ?? (row.assigneeName ? EXTERNAL : '');
 
   return (
-    <li className="flex flex-col gap-2 rounded-2xl bg-card p-3 shadow-soft">
+    <li className="flex flex-col gap-2 rounded-card bg-card p-3 shadow-soft">
       <div className="flex items-center gap-3">
         <input
           type="checkbox"

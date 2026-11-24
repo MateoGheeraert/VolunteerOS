@@ -22,7 +22,7 @@ export function MilaBar({
   return (
     <section
       className={cn(
-        'flex flex-wrap items-center justify-between gap-x-4 gap-y-3 rounded-2xl border border-mila-tint-strong/60 bg-mila-tint px-4 py-3',
+        'flex flex-wrap items-center justify-between gap-x-4 gap-y-3 rounded-card border border-mila-tint-strong/60 bg-mila-tint px-4 py-3',
         className,
       )}
     >

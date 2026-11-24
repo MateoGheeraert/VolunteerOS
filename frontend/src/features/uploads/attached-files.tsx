@@ -68,7 +68,7 @@ export function AttachedFiles({
           }}
         />
       ) : (
-        <Skeleton className="h-16 rounded-2xl" />
+        <Skeleton className="h-16 rounded-card" />
       )}
     </section>
   );

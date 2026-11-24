@@ -6,7 +6,7 @@ import { IconBlob } from '@/components/layout/icon-blob';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EventAiPanel } from '@/features/ai/event-ai-panel';
 import { EventStatusBanner } from '@/features/events/event-status-banner';
-import { getEvent } from '@/server/events/queries';
+import { canManageEvent, getEvent } from '@/server/events/queries';
 import { formatEventRange, LOCALE } from '@/lib/format';
 
 const countFormat = new Intl.NumberFormat(LOCALE);
@@ -21,7 +21,11 @@ export default function EventOverviewPage({ params }: PageProps<'/events/[eventI
 
 async function EventOverview({ params }: Pick<PageProps<'/events/[eventId]'>, 'params'>) {
   const { eventId } = await params;
-  const [event, t] = await Promise.all([getEvent(eventId), getTranslations()]);
+  const [event, canManage, t] = await Promise.all([
+    getEvent(eventId),
+    canManageEvent(eventId),
+    getTranslations(),
+  ]);
   const count = (value: number) => countFormat.format(value);
   const { expectedAttendance: expected, actualAttendance: actual } = event;
   const attendance =
@@ -35,7 +39,8 @@ async function EventOverview({ params }: Pick<PageProps<'/events/[eventId]'>, 'p
 
   return (
     <>
-      <EventStatusBanner event={event} />
+      {/* Only those who may change the status get Mila's suggestion to. */}
+      {canManage && <EventStatusBanner event={event} />}
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
         <section className="flex flex-col gap-5 rounded-card bg-card p-5 shadow-soft sm:p-6">
           <h2 className="text-lg">{t('eventOverview.details')}</h2>

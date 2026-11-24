@@ -17,6 +17,7 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import type { BudgetEntry, Label } from '@/api/generated/types.gen';
+import { ModalActions } from '@/components/layout/modal-actions';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -262,7 +263,7 @@ export function BudgetView({
                 <BudgetEntryForm
                   // Fresh form values after each save.
                   key={`${openEntry.id}-${openEntry.updatedAt}`}
-                  id={ENTRY_FORM_ID}
+                  outsideSave={{ formId: ENTRY_FORM_ID, onPendingChange: setSaving }}
                   eventId={eventId}
                   action={updateBudgetEntry.bind(null, eventId, openEntry.id)}
                   defaultValues={budgetEntryToForm(openEntry)}
@@ -270,7 +271,6 @@ export function BudgetView({
                   tasks={withLinkedTask(tasks, openEntry)}
                   suppliers={withCurrentSupplier(suppliers, openEntry)}
                   onDone={() => toast.success(t('budget.saved'))}
-                  onPendingChange={setSaving}
                 />
               ) : (
                 <EntryDetails entry={openEntry} labels={labels} />
@@ -283,11 +283,7 @@ export function BudgetView({
                 readOnly={readOnly}
               />
               {mayEdit && (
-                // Outside the form on purpose: the files above have forms of their own.
-                <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-5">
-                  <Button type="submit" form={ENTRY_FORM_ID} disabled={saving}>
-                    {t('common.save')}
-                  </Button>
+                <ModalActions formId={ENTRY_FORM_ID} saving={saving}>
                   <Button
                     variant="ghost"
                     className="text-destructive"
@@ -296,7 +292,7 @@ export function BudgetView({
                     <Trash2 data-icon="inline-start" aria-hidden />
                     {t('budget.delete')}
                   </Button>
-                </div>
+                </ModalActions>
               )}
             </div>
           )}

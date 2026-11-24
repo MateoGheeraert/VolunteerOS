@@ -3,10 +3,10 @@
 import type { SingleInputActionFn } from 'next-safe-action/hooks';
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
 import { Controller, type FieldError, type UseFormRegisterReturn } from 'react-hook-form';
 import type { Label } from '@/api/generated/types.gen';
 import { FormError, FormFieldError } from '@/components/form-error';
+import { useOutsideSave, type OutsideSave } from '@/components/layout/modal-actions';
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { NativeSelect } from '@/components/ui/native-select';
@@ -27,11 +27,11 @@ type BudgetEntryAction = SingleInputActionFn<
 
 /**
  * Edits a budget entry in its modal. Only managers get here. Amounts are typed as text and become
- * cents when saved. The form has no buttons of its own: the modal puts its save button
- * (`<Button type="submit" form={id}>`) at the bottom, below the files and next to delete.
+ * cents when saved. The form has no buttons of its own: the modal saves it from its bottom row
+ * (`ModalActions`), below the files.
  */
 export function BudgetEntryForm({
-  id,
+  outsideSave,
   eventId,
   action,
   defaultValues,
@@ -39,10 +39,8 @@ export function BudgetEntryForm({
   tasks,
   suppliers,
   onDone,
-  onPendingChange,
 }: {
-  /** The form's id, for the save button outside it. */
-  id: string;
+  outsideSave: OutsideSave;
   eventId: string;
   action: BudgetEntryAction;
   defaultValues: BudgetEntryFormValues;
@@ -52,8 +50,6 @@ export function BudgetEntryForm({
   /** The organization's suppliers, archived ones marked (only shown, not offered). */
   suppliers: PickableSupplier[];
   onDone: () => void;
-  /** Tells the save button outside the form when a save starts and ends. */
-  onPendingChange: (pending: boolean) => void;
 }) {
   const t = useTranslations();
   const router = useRouter();
@@ -67,10 +63,15 @@ export function BudgetEntryForm({
   const { errors } = form.formState;
   const isIncome = form.watch('type') === 'income';
 
-  useEffect(() => onPendingChange(pending), [pending, onPendingChange]);
+  useOutsideSave(outsideSave, pending);
 
   return (
-    <form id={id} onSubmit={(e) => void onSubmit(e)} noValidate className="flex flex-col gap-6">
+    <form
+      id={outsideSave.formId}
+      onSubmit={(e) => void onSubmit(e)}
+      noValidate
+      className="flex flex-col gap-6"
+    >
       <FieldGroup className="gap-5">
         <div className="grid gap-5 sm:grid-cols-[9rem_minmax(0,1fr)]">
           <Field>
