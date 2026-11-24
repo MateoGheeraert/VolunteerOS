@@ -14,6 +14,7 @@ import { JobsModule } from './jobs/jobs.module.js';
 import { LabelsModule } from './features/labels/labels.module.js';
 import { PlanningModule } from './features/planning/planning.module.js';
 import { ProfileModule } from './features/profile/profile.module.js';
+import { SuppliersModule } from './features/suppliers/suppliers.module.js';
 import { TasksModule } from './features/tasks/tasks.module.js';
 import { UploadsModule } from './features/uploads/uploads.module.js';
 import { StorageModule } from './storage/storage.module.js';
@@ -48,6 +49,7 @@ import { StorageModule } from './storage/storage.module.js';
     TasksModule,
     UploadsModule,
     BudgetModule,
+    SuppliersModule,
     PlanningModule,
     ProfileModule,
     AiModule,

@@ -26,6 +26,7 @@ const entry = (overrides: Partial<BudgetEntry>): BudgetEntry => ({
   actualCents: null,
   notes: null,
   task: null,
+  supplier: null,
   labelIds: [],
   fileCount: 0,
   createdAt: '2026-11-24T10:00:00.000Z',
@@ -95,13 +96,20 @@ describe('filterEntries', () => {
   });
 
   it('filters by type and by label, together', () => {
-    expect(titles(filterEntries(entries, { type: 'income', labelId: 'all' }))).toEqual([
-      'Tickets',
-      'Bar',
-    ]);
-    expect(titles(filterEntries(entries, { type: 'all', labelId: bar }))).toEqual(['Drank', 'Bar']);
-    expect(titles(filterEntries(entries, { type: 'expense', labelId: bar }))).toEqual(['Drank']);
-    expect(isFiltered({ type: 'all', labelId: bar })).toBe(true);
+    const by = (filters: Partial<typeof NO_BUDGET_FILTERS>) =>
+      titles(filterEntries(entries, { ...NO_BUDGET_FILTERS, ...filters }));
+    expect(by({ type: 'income' })).toEqual(['Tickets', 'Bar']);
+    expect(by({ labelId: bar })).toEqual(['Drank', 'Bar']);
+    expect(by({ type: 'expense', labelId: bar })).toEqual(['Drank']);
+    expect(isFiltered({ ...NO_BUDGET_FILTERS, labelId: bar })).toBe(true);
+  });
+
+  it('filters by supplier', () => {
+    const brewery = { id: 'b5b1c1d0-0000-4000-8000-0000000000cc', name: 'Brouwer', archived: true };
+    const withSupplier = [...entries, entry({ title: 'Vaten', supplier: brewery })];
+    const filters = { ...NO_BUDGET_FILTERS, supplierId: brewery.id };
+    expect(titles(filterEntries(withSupplier, filters))).toEqual(['Vaten']);
+    expect(isFiltered(filters)).toBe(true);
   });
 });
 
@@ -142,6 +150,7 @@ describe('toBudgetEntryBody', () => {
       actualCents: null,
       notes: null,
       taskId: null,
+      supplierId: null,
       labelIds: [],
     });
   });
@@ -152,6 +161,7 @@ describe('toBudgetEntryBody', () => {
       actualCents: 44950,
       notes: 'Offerte',
       task: { id: 'b5b1c1d0-0000-4000-8000-0000000000bb', title: 'Tent zoeken' },
+      supplier: { id: 'b5b1c1d0-0000-4000-8000-0000000000cc', name: 'Tenten', archived: false },
     });
     const values = budgetEntryFormSchema.parse(budgetEntryToForm(existing));
     expect(toBudgetEntryBody(values)).toMatchObject({
@@ -159,6 +169,7 @@ describe('toBudgetEntryBody', () => {
       actualCents: 44950,
       notes: 'Offerte',
       taskId: existing.task!.id,
+      supplierId: existing.supplier!.id,
     });
   });
 });

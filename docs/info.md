@@ -230,7 +230,7 @@ Can:
 - Manage permissions.
 - Create and manage events.
 - Access all organization events.
-- Manage organization suppliers.
+- Archive organization suppliers (every member creates and edits them).
 - Access organization financial information.
 
 ### 5.2 Event Manager
@@ -246,7 +246,7 @@ Can:
 - Generate and approve assignments.
 - Publish volunteer schedules.
 - Manage event budget entries.
-- Manage event supplier associations.
+- Pick suppliers on event budget entries.
 - View event dashboards.
 
 Access should be limited to assigned events unless additional permissions are granted.
@@ -622,6 +622,7 @@ Budget entry fields:
 - Estimated amount and actual amount: both optional, but an entry has at least one.
 - Labels: the event's labels, the same ones its tasks use (there is no separate category).
 - Optional linked task of the same event. Deleting the task clears the link; the entry stays.
+- Optional supplier of the organization (§7.10).
 - Notes.
 - Files: invoices, receipts, quotes (see "File storage" under §11 Hosting).
 
@@ -639,43 +640,37 @@ Do not build full accounting functionality: no VAT, invoices or bookkeeping.
 
 Not built yet, on purpose:
 
-- **Supplier link**: added with §7.10 Supplier Management.
 - **Variance per entry**: the totals already show estimated against actual.
 - **Budget on the event overview**, and the entries linked to a task in the task pane.
 - **Mila and the budget** (reading it, proposing entries): the next AI step once this model has settled.
 
 ### 7.10 Basic Supplier Management
 
-Organization-level supplier directory.
+One organization-level list of suppliers (the brewery, the sound and light company, the tent rental), so nobody has to search old emails every year, and so every edition shows who delivered what and at which cost.
 
 Supplier fields:
 
-- Name.
-- Category.
-- Contact person.
-- Email.
-- Phone.
-- Website.
-- Notes.
+- Name: required, at most 120 characters, unique within the organization ignoring case (archived suppliers count: creating a name that exists as archived suggests unarchiving it).
+- Category: required, one of a fixed list: drinks, food, sound and light, tents and furniture, sanitation, security, printing, transport, rental, other.
+- Contact person, email (must be valid), phone (free text), website (`https://` is added when no scheme is typed), notes: all optional.
 
-Example categories:
-
-- Beverages.
-- Food.
-- Lighting.
-- Sound.
-- Equipment rental.
-- Decorations.
-- Security.
+A supplier is linked to an event only through the budget: a budget entry (income or expense) can reference one supplier. There is no separate event–supplier link; an invoice for two suppliers is two entries.
 
 Features:
 
-- Create supplier.
-- Edit supplier.
-- Delete or archive supplier.
-- Link supplier to event.
-- Link supplier to budget entry.
-- View which events used a supplier.
+- `/suppliers`: a list with search (name, contact, email), a category filter and a "show archived" toggle. A new supplier opens in a dialog.
+- `/suppliers/[id]`: the contact card and the usage history: every event whose budget references the supplier, newest first, with the actual total (the estimate, marked as such, when an entry has no actual amount yet), income and expenses apart, the entries, and their files (most likely the invoices). Deleted entries do not count; archived events do. Editing is in a side sheet.
+- Budget entry: a supplier picker over the active suppliers, with "+ New supplier" (a dialog with name and category) inside it. The budget can be filtered by supplier.
+- Event Suppliers tab: read-only, derived from the budget: each supplier used in the event with its category, contact, total, number of entries and files. An entry opens in the budget.
+- Archive and unarchive, never delete. An archived supplier disappears from the list and the picker, but stays on the entries that already reference it (marked "archived") and keeps its page.
+- Every org member sees suppliers and creates or edits them; owners and admins archive and unarchive. Every write is in the activity log (`supplier`).
+
+Not built yet, on purpose:
+
+- More than one contact per supplier.
+- Files on the supplier itself (contracts, price lists): its page only gathers the files of its budget entries.
+- Comparing a supplier across one chain of editions; the history is a flat list by date.
+- Mila and suppliers.
 
 MVP does not require order management, contract management, or invoice processing.
 
@@ -740,7 +735,6 @@ Avoid implementing a fully customizable RBAC engine unless customer requirements
 - Purchases.
 - Supplier quotes.
 - Payment status.
-- Historical supplier costs.
 - Task-to-supplier relationships.
 - Task-to-budget relationships.
 
@@ -839,10 +833,8 @@ No account required.
 1. Organizer creates a budget item.
 2. Organizer enters expected expense.
 3. Organizer labels it (e.g. "Catering") and optionally links a preparation task.
-4. Organizer records the actual expense and attaches the invoice.
-5. The budget tab shows estimated against actual income, expenses and result.
-
-(Linking a supplier follows with §7.10.)
+4. Organizer picks the supplier, records the actual expense and attaches the invoice.
+5. The budget tab shows estimated against actual income, expenses and result; the supplier's page shows the cost and the invoice next to earlier editions.
 
 ### Journey E — Repeat an Event (P1)
 
@@ -1391,22 +1383,15 @@ Unassigning soft-deletes the assignment.
 
 ### Supplier
 
+Implemented as `supplier`. Never deleted: archived instead.
+
 - id
 - organizationId
-- name
-- category
-- contactName
-- email
-- phone
-- website
-- notes
-
-### EventSupplier
-
-- id
-- eventId
-- supplierId
-- notes
+- name (unique per organization, ignoring case)
+- category (fixed enum)
+- contactName, email, phone, website, notes
+- createdByUserId
+- createdAt, updatedAt, archivedAt
 
 ### Upload
 
@@ -1427,6 +1412,7 @@ Implemented as `budget_entry`. Labels through `budget_entry_label_link`, files t
 - id
 - eventId
 - taskId (nullable)
+- supplierId (nullable)
 - title
 - type (income / expense)
 - estimatedCents (nullable integer)
@@ -1834,7 +1820,7 @@ Build:
 - Basic budgets.
 - Income and expenses.
 - Supplier directory.
-- Supplier/event associations.
+- Suppliers on budget entries.
 - Financial dashboard.
 - AI preference extraction.
 - Automatic scheduling suggestions.

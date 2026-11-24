@@ -32,6 +32,18 @@ export const actionClient = createSafeActionClient({
       apiFields: z.record(z.string(), z.string()).optional(),
       /** What a 409 means for this action, when it's more specific than "changed meanwhile". */
       conflictMessage: z.custom<MessageKey>((value) => typeof value === 'string').optional(),
+      /**
+       * A 409 that Nest explains: the first entry whose `prefix` starts Nest's message wins over
+       * `conflictMessage` (e.g. a name taken by an archived item, which can be restored).
+       */
+      conflictMessages: z
+        .array(
+          z.object({
+            prefix: z.string(),
+            message: z.custom<MessageKey>((value) => typeof value === 'string'),
+          }),
+        )
+        .optional(),
     }),
   handleServerError: (error, { metadata }) => toActionError(error, metadata),
 });
@@ -39,7 +51,12 @@ export const actionClient = createSafeActionClient({
 /** Every failed action ends here: API errors become messages for the form, the rest is logged. */
 export function toActionError(
   error: unknown,
-  metadata: { name: string; apiFields?: Record<string, string>; conflictMessage?: MessageKey },
+  metadata: {
+    name: string;
+    apiFields?: Record<string, string>;
+    conflictMessage?: MessageKey;
+    conflictMessages?: { prefix: string; message: MessageKey }[];
+  },
 ): ActionError {
   if (error instanceof ApiError) {
     if (error.status === 401) return { message: msg('common.sessionExpired') };
@@ -51,7 +68,10 @@ export function toActionError(
     if (error.archivedEvent) return { message: msg('events.readOnly') };
     if (error.status === 429) return { message: msg('common.tooManyRequests') };
     if (error.status === 409) {
-      return { message: metadata.conflictMessage ?? msg('common.conflict') };
+      const explained = metadata.conflictMessages?.find(({ prefix }) =>
+        error.detail?.startsWith(prefix),
+      );
+      return { message: explained?.message ?? metadata.conflictMessage ?? msg('common.conflict') };
     }
     if (error.status === 400) {
       const fields = error.invalidFields.map((field) => metadata.apiFields?.[field] ?? field);

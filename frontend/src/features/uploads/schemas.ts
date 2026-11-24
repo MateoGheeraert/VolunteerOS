@@ -68,6 +68,10 @@ export const renameFileSchema = z.object({
 const sizeFormat = new Intl.NumberFormat(LOCALE, { maximumFractionDigits: 1 });
 
 /** "840 kB", "2,4 MB", "1 GB". */
+/** Where a file opens: a route that mints a short-lived link and redirects there. */
+export const uploadHref = (eventId: string, uploadId: string) =>
+  `/api/events/${eventId}/uploads/${uploadId}`;
+
 export function formatBytes(bytes: number): string {
   const units = ['B', 'kB', 'MB', 'GB'];
   let value = bytes;

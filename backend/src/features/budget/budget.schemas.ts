@@ -26,6 +26,7 @@ const editableFields = {
   actualCents: true,
   notes: true,
   taskId: true,
+  supplierId: true,
 } as const;
 
 /** An entry needs at least one amount: the estimate, the actual amount, or both. */
@@ -56,11 +57,13 @@ export const budgetEntrySchema = createSelectSchema(budgetEntry, {
   createdAt: dateTimeOutput,
   updatedAt: dateTimeOutput,
 })
-  // Soft deletion is internal; the task is returned resolved below.
-  .omit({ deletedAt: true, createdByUserId: true, taskId: true })
+  // Soft deletion is internal; the task and the supplier are returned resolved below.
+  .omit({ deletedAt: true, createdByUserId: true, taskId: true, supplierId: true })
   .extend({
     /** The linked task, when there is one the caller may see. */
     task: z.object({ id: z.uuid(), title: z.string() }).nullable(),
+    /** The supplier, archived or not. */
+    supplier: z.object({ id: z.uuid(), name: z.string(), archived: z.boolean() }).nullable(),
     labelIds: z.array(z.uuid()),
     /** How many files (invoices, receipts) are attached. */
     fileCount: z.number().int(),

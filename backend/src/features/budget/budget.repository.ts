@@ -7,6 +7,7 @@ import {
   budgetEntryLabelLink,
   budgetEntryUpload,
   label,
+  supplier,
   task,
   upload,
   type BudgetEntryRow,
@@ -18,13 +19,14 @@ import { notDeleted } from '../../db/soft-delete.js';
 export interface BudgetEntryView {
   entry: BudgetEntryRow;
   task: Pick<TaskRow, 'id' | 'title' | 'assigneeUserId' | 'assigneeName'> | null;
+  supplier: { id: string; name: string; archivedAt: Date | null } | null;
   labelIds: string[];
   fileCount: number;
 }
 
 export type BudgetEntryValues = Pick<
   BudgetEntryRow,
-  'type' | 'title' | 'estimatedCents' | 'actualCents' | 'notes' | 'taskId'
+  'type' | 'title' | 'estimatedCents' | 'actualCents' | 'notes' | 'taskId' | 'supplierId'
 >;
 
 /**
@@ -46,9 +48,11 @@ export class BudgetRepository {
           assigneeUserId: task.assigneeUserId,
           assigneeName: task.assigneeName,
         },
+        supplier: { id: supplier.id, name: supplier.name, archivedAt: supplier.archivedAt },
       })
       .from(budgetEntry)
       .leftJoin(task, and(eq(task.id, budgetEntry.taskId), notDeleted(task)))
+      .leftJoin(supplier, and(eq(supplier.id, budgetEntry.supplierId), notDeleted(supplier)))
       .where(
         and(
           eq(budgetEntry.eventId, eventId),
@@ -64,6 +68,7 @@ export class BudgetRepository {
     return rows.map((row) => ({
       entry: row.entry,
       task: row.task?.id ? row.task : null,
+      supplier: row.supplier?.id ? row.supplier : null,
       labelIds: links.filter((l) => l.entryId === row.entry.id).map((l) => l.labelId),
       fileCount: files.find((f) => f.entryId === row.entry.id)?.n ?? 0,
     }));

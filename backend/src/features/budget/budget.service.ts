@@ -12,6 +12,7 @@ import type { Database, Transaction } from '../../db/database.js';
 import type { BudgetEntryRow, EventRow } from '../../db/schema/index.js';
 import { isReadOnly } from '../events/event-status.js';
 import { LabelsService } from '../labels/labels.service.js';
+import { SuppliersService } from '../suppliers/suppliers.service.js';
 import { canSeeTask, type TaskViewer } from '../tasks/task-rules.js';
 import { UploadsService } from '../uploads/uploads.service.js';
 import {
@@ -36,6 +37,7 @@ const ROW_LOGGED_VALUES = [
   'estimatedCents',
   'actualCents',
   'taskId',
+  'supplierId',
   'createdByUserId',
 ] as const;
 const ENTRY_LOGGED_VALUES = [...ROW_LOGGED_VALUES, 'labelIds'] as const;
@@ -54,6 +56,7 @@ export class BudgetService {
     private readonly budget: BudgetRepository,
     private readonly labels: LabelsService,
     private readonly uploads: UploadsService,
+    private readonly suppliers: SuppliersService,
   ) {}
 
   async list(org: OrgContext, access: EventAccess): Promise<BudgetEntryDto[]> {
@@ -69,6 +72,7 @@ export class BudgetService {
     const eventId = access.event.id;
     assertWritable(access.event);
     if (input.taskId) await this.assertTask(eventId, input.taskId);
+    if (input.supplierId) await this.suppliers.assertPickable(org.organizationId, input.supplierId);
     const labelIds = await this.labels.assertLabels(eventId, input.labelIds ?? []);
 
     const created = await this.db.transaction(async (tx) => {
@@ -79,6 +83,7 @@ export class BudgetService {
         actualCents: input.actualCents ?? null,
         notes: input.notes || null,
         taskId: input.taskId ?? null,
+        supplierId: input.supplierId ?? null,
       });
       await this.budget.setLabels(tx, row.id, labelIds);
       await recordActivity(tx, org, {
@@ -110,6 +115,10 @@ export class BudgetService {
     if (!hasAmount({ ...current, ...patch })) throw new BadRequestException(AMOUNT_REQUIRED);
     if (patch.taskId && patch.taskId !== current.taskId) {
       await this.assertTask(eventId, patch.taskId);
+    }
+    // An entry keeps an archived supplier it already has; a new choice must be pickable.
+    if (patch.supplierId && patch.supplierId !== current.supplierId) {
+      await this.suppliers.assertPickable(org.organizationId, patch.supplierId);
     }
     const labelIds = newLabelIds && (await this.labels.assertLabels(eventId, newLabelIds));
 
@@ -217,6 +226,13 @@ export function toBudgetEntryDto(viewer: TaskViewer, view: BudgetEntryView): Bud
     actualCents: entry.actualCents,
     notes: entry.notes,
     task: task ? { id: task.id, title: task.title } : null,
+    supplier: view.supplier
+      ? {
+          id: view.supplier.id,
+          name: view.supplier.name,
+          archived: view.supplier.archivedAt !== null,
+        }
+      : null,
     labelIds: view.labelIds,
     fileCount: view.fileCount,
     createdAt: entry.createdAt.toISOString(),

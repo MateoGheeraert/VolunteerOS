@@ -33,6 +33,28 @@ describe('toActionError', () => {
     expect(toActionError(apiError(status, message), meta).message).toBe(key);
   });
 
+  it('picks the 409 message whose prefix starts what Nest said, else the general one', () => {
+    const supplierMeta = {
+      name: 'createSupplier',
+      conflictMessage: 'suppliers.validation.nameTaken' as const,
+      conflictMessages: [
+        {
+          prefix: 'name: an archived supplier',
+          message: 'suppliers.validation.nameTakenArchived' as const,
+        },
+      ],
+    };
+    const archived = apiError(
+      409,
+      'name: an archived supplier has this name, unarchive it instead',
+    );
+    expect(toActionError(archived, supplierMeta).message).toBe(
+      'suppliers.validation.nameTakenArchived',
+    );
+    const active = apiError(409, 'name: a supplier with this name already exists');
+    expect(toActionError(active, supplierMeta).message).toBe('suppliers.validation.nameTaken');
+  });
+
   it('logs a contract violation and shows a generic error', () => {
     const log = vi.spyOn(console, 'error').mockImplementation(() => {});
     const violation = z.object({ id: z.uuid() }).safeParse({ id: 1 }).error;

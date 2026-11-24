@@ -959,7 +959,9 @@
       "notes": "Notities",
       "task": "Taak",
       "noTask": "Geen taak",
-      "taskHelp": "Optioneel: de taak waar deze post bij hoort."
+      "taskHelp": "Optioneel: de taak waar deze post bij hoort.",
+      "supplier": "Leverancier",
+      "supplierHelp": "Optioneel: wie levert of betaalt. Zo verschijnt deze post op de pagina van de leverancier."
     },
     "validation": {
       "titleRequired": "Geef een omschrijving.",
@@ -982,10 +984,97 @@
     },
     "empty": "Nog geen inkomsten of kosten.",
     "columnDescription": "Omschrijving",
-    "sortBy": "Sorteren op {column}"
+    "sortBy": "Sorteren op {column}",
+    "supplier": "Leverancier",
+    "allSuppliers": "Alle leveranciers"
   },
   "budgetEntryType": {
     "income": "Inkomst",
     "expense": "Uitgave"
+  },
+  "suppliers": {
+    "title": "Leveranciers",
+    "description": "Wie levert wat, en hoe je ze bereikt: van de brouwer tot de geluidsman. Wat ze per evenement kostten, volgt uit het budget.",
+    "new": "Nieuwe leverancier",
+    "create": "Leverancier toevoegen",
+    "createTitle": "Nieuwe leverancier",
+    "createDescription": "Een naam en een categorie volstaan; contactgegevens kun je later aanvullen.",
+    "edit": "Bewerken",
+    "editTitle": "Leverancier bewerken",
+    "editDescription": "Contactgegevens en notities voor de hele organisatie.",
+    "saved": "Opgeslagen",
+    "actions": "Acties voor {name}",
+    "search": "Zoeken",
+    "searchPlaceholder": "Naam, contactpersoon of e-mail",
+    "category": "Categorie",
+    "allCategories": "Alle categorieën",
+    "showArchived": "Toon gearchiveerde ({count})",
+    "archived": "Gearchiveerd",
+    "empty": "Nog geen leveranciers. Voeg de brouwer, de tentenverhuurder of de drukker toe die je elk jaar opnieuw zoekt.",
+    "emptyFiltered": "Geen leveranciers voor deze zoekopdracht.",
+    "usedIn": "{count, plural, one {# evenement} other {# evenementen}}, recentste op {date}",
+    "neverUsed": "Nog niet gebruikt",
+    "contact": "Contactgegevens",
+    "noContact": "Nog geen contactgegevens. Vul ze aan via Bewerken.",
+    "usage": "Gebruikt bij",
+    "usageEmpty": "Nog in geen enkel budget. Kies deze leverancier bij een budgetpost van een evenement.",
+    "cost": "Kost",
+    "income": "Inkomst",
+    "partlyEstimated": "deels geraamd",
+    "estimated": "geraamd",
+    "entryCount": "{count, plural, one {# budgetpost} other {# budgetposten}}",
+    "archive": "Archiveren",
+    "unarchive": "Terugzetten",
+    "archiveTitle": "{name} archiveren?",
+    "archiveWarning": "De leverancier verdwijnt uit de lijst en kan niet meer gekozen worden bij nieuwe budgetposten. Bestaande budgetposten en deze pagina blijven bewaard; je kunt hem later terugzetten.",
+    "archivedToast": "{name} is gearchiveerd",
+    "unarchivedToast": "{name} is teruggezet",
+    "form": {
+      "name": "Naam",
+      "namePlaceholder": "Bv. Drankenhandel Peeters",
+      "category": "Categorie",
+      "chooseCategory": "Kies een categorie",
+      "contactName": "Contactpersoon",
+      "email": "E-mail",
+      "phone": "Telefoon",
+      "website": "Website",
+      "notes": "Notities",
+      "notesPlaceholder": "Bv. levert op vrijdag voor 14u"
+    },
+    "picker": {
+      "none": "Geen leverancier",
+      "clear": "Leverancier wissen",
+      "search": "Zoek een leverancier",
+      "noMatch": "Geen leverancier gevonden.",
+      "createNamed": "\"{name}\" toevoegen als leverancier",
+      "archivedMatch": "{name} is gearchiveerd. Een beheerder kan hem terugzetten via Leveranciers."
+    },
+    "eventTab": {
+      "description": "Wie levert voor dit evenement en wat het kost, volgens het <budget>budget</budget>. Kies bij een budgetpost een leverancier om hem hier te zien.",
+      "empty": "Nog geen leveranciers: geen enkele budgetpost verwijst naar een leverancier."
+    },
+    "validation": {
+      "nameRequired": "Geef de leverancier een naam.",
+      "nameTooLong": "De naam is te lang.",
+      "nameTaken": "Er bestaat al een leverancier met deze naam.",
+      "categoryRequired": "Kies een categorie.",
+      "emailInvalid": "Dit is geen e-mailadres.",
+      "websiteInvalid": "Dit is geen website. Schrijf bv. www.voorbeeld.be.",
+      "tooLong": "Dit is te lang.",
+      "notesTooLong": "De notities zijn te lang.",
+      "nameTakenArchived": "Er bestaat al een gearchiveerde leverancier met deze naam. Een beheerder kan hem terugzetten via Leveranciers > Toon gearchiveerde."
+    }
+  },
+  "supplierCategory": {
+    "drinks": "Drank",
+    "food": "Eten",
+    "sound_and_light": "Geluid en licht",
+    "tents_and_furniture": "Tenten en meubilair",
+    "sanitation": "Sanitair",
+    "security": "Veiligheid",
+    "printing": "Drukwerk",
+    "transport": "Transport",
+    "rental": "Verhuur",
+    "other": "Andere"
   }
 }

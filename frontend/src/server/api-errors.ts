@@ -16,6 +16,11 @@ export class ApiError extends Error {
     this.name = 'ApiError';
   }
 
+  /** Nest's own message, when it sent one string (e.g. a 409's reason). */
+  get detail(): string | undefined {
+    return messageOf(this.body);
+  }
+
   /** Top-level fields that a 400 validation answer points at (`endsAt: must be after startsAt`). */
   get invalidFields(): string[] {
     if (this.status !== 400) return [];
