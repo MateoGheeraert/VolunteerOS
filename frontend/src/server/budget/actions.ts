@@ -17,10 +17,15 @@ import { actionClient } from '../action-client';
 
 const id = z.uuid();
 
-/** Budget entries show on the budget, and their files on the event's file tab. */
+/**
+ * Budget entries show on the budget, their files on the event's file tab, and entries with a
+ * supplier on the event's suppliers tab and on the supplier's pages.
+ */
 function revalidateBudget(eventId: string) {
   revalidatePath(`/events/${eventId}/budget`);
   revalidatePath(`/events/${eventId}/files`);
+  revalidatePath(`/events/${eventId}/suppliers`);
+  revalidatePath('/suppliers', 'layout');
 }
 
 /** Bind the event. */

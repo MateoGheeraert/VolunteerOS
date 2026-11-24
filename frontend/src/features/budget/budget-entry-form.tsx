@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { NativeSelect } from '@/components/ui/native-select';
 import { Textarea } from '@/components/ui/textarea';
 import { LabelPicker } from '@/features/labels/label-picker';
+import { SupplierPicker, type PickableSupplier } from '@/features/suppliers/supplier-picker';
 import { useActionForm } from '@/hooks/use-action-form';
 import type { ActionError } from '@/server/action-client';
 import { BUDGET_ENTRY_TYPES, budgetEntryFormSchema, type BudgetEntryFormValues } from './schemas';
@@ -34,6 +35,7 @@ export function BudgetEntryForm({
   defaultValues,
   labels,
   tasks,
+  suppliers,
   submitLabel,
   onDone,
   onCancel,
@@ -44,6 +46,8 @@ export function BudgetEntryForm({
   labels: Label[];
   /** The event's tasks, to link one. */
   tasks: { id: string; title: string }[];
+  /** The organization's suppliers, archived ones marked (only shown, not offered). */
+  suppliers: PickableSupplier[];
   submitLabel: string;
   onDone: () => void;
   onCancel?: () => void;
@@ -119,6 +123,23 @@ export function BudgetEntryForm({
             />
           )}
         />
+
+        <Field>
+          <FieldLabel htmlFor="budget-supplier">{t('budget.form.supplier')}</FieldLabel>
+          <Controller
+            control={form.control}
+            name="supplierId"
+            render={({ field }) => (
+              <SupplierPicker
+                id="budget-supplier"
+                suppliers={suppliers}
+                value={field.value}
+                onChange={field.onChange}
+              />
+            )}
+          />
+          <FieldDescription>{t('budget.form.supplierHelp')}</FieldDescription>
+        </Field>
 
         {tasks.length > 0 && (
           <Field>

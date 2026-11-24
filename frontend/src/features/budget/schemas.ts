@@ -76,6 +76,8 @@ export const budgetEntryFormSchema = z
     notes: z.string().trim().max(limits.notes, msg('budget.validation.notesTooLong')),
     /** '' for no task. */
     taskId: z.string(),
+    /** '' for no supplier. */
+    supplierId: z.string(),
     labelIds: z.array(z.uuid()).max(MAX_LABELS_PER_ITEM),
   })
   .refine((value) => hasAmount(value.estimated) || hasAmount(value.actual), {
@@ -99,6 +101,7 @@ export const emptyBudgetEntry = (type: BudgetEntryType): BudgetEntryFormValues =
   actual: '',
   notes: '',
   taskId: '',
+  supplierId: '',
   labelIds: [],
 });
 
@@ -110,6 +113,7 @@ export const budgetEntryToForm = (entry: BudgetEntry): BudgetEntryFormValues => 
   actual: centsToInput(entry.actualCents),
   notes: entry.notes ?? '',
   taskId: entry.task?.id ?? '',
+  supplierId: entry.supplier?.id ?? '',
   labelIds: entry.labelIds,
 });
 
@@ -128,6 +132,7 @@ export function toBudgetEntryBody(values: BudgetEntryFormValues): Required<Creat
     actualCents: centsOf(values.actual),
     notes: values.notes || null,
     taskId: values.taskId || null,
+    supplierId: values.supplierId || null,
     labelIds: values.labelIds,
   };
 }

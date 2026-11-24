@@ -5,12 +5,14 @@ import {
   ArrowUp,
   ArrowUpDown,
   MoreHorizontal,
+  Truck,
   Paperclip,
   Tags,
   Trash2,
 } from 'lucide-react';
 import { useAction } from 'next-safe-action/hooks';
 import { useTranslations } from 'next-intl';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -44,6 +46,7 @@ import {
 import { LabelChip, labelsOf } from '@/features/labels/label-chip';
 import { LabelManager } from '@/features/labels/label-manager';
 import { LabelPopover } from '@/features/labels/label-popover';
+import type { PickableSupplier } from '@/features/suppliers/supplier-picker';
 import { AttachedFiles } from '@/features/uploads/attached-files';
 import { formatCents } from '@/lib/money';
 import { cn } from '@/lib/utils';
@@ -79,6 +82,8 @@ export function BudgetView({
   entries,
   labels,
   tasks,
+  suppliers,
+  initialOpenId,
   canManage,
   readOnly,
 }: {
@@ -87,22 +92,37 @@ export function BudgetView({
   labels: Label[];
   /** The event's tasks, to link an entry to (managers only). */
   tasks: { id: string; title: string }[];
+  /** The organization's suppliers, archived ones marked, to pick one (managers only). */
+  suppliers: PickableSupplier[];
+  /** An entry to open in the sheet straight away (from a supplier's page). */
+  initialOpenId?: string;
   canManage: boolean;
   /** Archived events: everything is shown, nothing can change. */
   readOnly: boolean;
 }) {
   const t = useTranslations();
   const [filters, setFilters] = useState<BudgetFilters>(NO_BUDGET_FILTERS);
-  const [openId, setOpenId] = useState<string | null>(null);
+  const [openId, setOpenId] = useState<string | null>(
+    initialOpenId && entries.some((entry) => entry.id === initialOpenId) ? initialOpenId : null,
+  );
   const [deleting, setDeleting] = useState<BudgetEntry | null>(null);
   const [labelsOpen, setLabelsOpen] = useState(false);
   const mayEdit = canManage && !readOnly;
 
   const [sort, setSort] = useState<BudgetSort>(DEFAULT_BUDGET_SORT);
-  // A label deleted meanwhile no longer filters (its option is gone from the select too).
-  const activeFilters: BudgetFilters = labels.some((label) => label.id === filters.labelId)
-    ? filters
-    : { ...filters, labelId: 'all' };
+  // The suppliers the entries use, to filter by: archived ones included.
+  const usedSuppliers = [
+    ...new Map(
+      entries.flatMap((e) => (e.supplier ? [[e.supplier.id, e.supplier] as const] : [])),
+    ).values(),
+  ].sort((a, b) => a.name.localeCompare(b.name, 'nl'));
+  // A label deleted meanwhile no longer filters (its option is gone from the select too); nor
+  // does a supplier no entry uses anymore.
+  const activeFilters: BudgetFilters = {
+    ...filters,
+    labelId: labels.some((label) => label.id === filters.labelId) ? filters.labelId : 'all',
+    supplierId: usedSuppliers.some((s) => s.id === filters.supplierId) ? filters.supplierId : 'all',
+  };
   const shown = sortEntries(filterEntries(entries, activeFilters), sort);
   const sortBy = (key: Exclude<BudgetSortKey, 'created'>) =>
     setSort((current) => nextSort(current, key));
@@ -146,6 +166,25 @@ export function BudgetView({
                 {labels.map((label) => (
                   <option key={label.id} value={label.id}>
                     {label.name}
+                  </option>
+                ))}
+              </NativeSelect>
+            </div>
+          )}
+          {usedSuppliers.length > 0 && (
+            <div className="w-52">
+              <NativeSelect
+                aria-label={t('budget.supplier')}
+                value={activeFilters.supplierId}
+                className="h-9 bg-card"
+                onChange={(event) =>
+                  setFilters((current) => ({ ...current, supplierId: event.target.value }))
+                }
+              >
+                <option value="all">{t('budget.allSuppliers')}</option>
+                {usedSuppliers.map((supplier) => (
+                  <option key={supplier.id} value={supplier.id}>
+                    {supplier.name}
                   </option>
                 ))}
               </NativeSelect>
@@ -224,6 +263,7 @@ export function BudgetView({
                   defaultValues={budgetEntryToForm(openEntry)}
                   labels={labels}
                   tasks={withLinkedTask(tasks, openEntry)}
+                  suppliers={withCurrentSupplier(suppliers, openEntry)}
                   submitLabel={t('common.save')}
                   onDone={() => toast.success(t('budget.saved'))}
                 />
@@ -378,6 +418,12 @@ function withLinkedTask(tasks: { id: string; title: string }[], entry: BudgetEnt
   return [entry.task, ...tasks];
 }
 
+/** An archived supplier the entry already has stays shown in the picker. */
+function withCurrentSupplier(suppliers: PickableSupplier[], entry: BudgetEntry) {
+  if (!entry.supplier || suppliers.some((s) => s.id === entry.supplier!.id)) return suppliers;
+  return [entry.supplier, ...suppliers];
+}
+
 /** Income, expenses and the result, estimated against actual. */
 function Summary({ entries, filtered }: { entries: BudgetEntry[]; filtered: boolean }) {
   const t = useTranslations();
@@ -502,6 +548,13 @@ function EntryRow({
                 <LabelChip key={label.id} label={label} />
               ))
             )}
+            {entry.supplier && (
+              <span className="inline-flex min-w-0 items-center gap-1">
+                <Truck className="size-3.5 shrink-0" aria-hidden />
+                <span className="sr-only">{t('budget.supplier')}: </span>
+                <span className="truncate">{entry.supplier.name}</span>
+              </span>
+            )}
             {entry.task && <span className="truncate">{entry.task.title}</span>}
             {entry.fileCount > 0 && (
               <span className="inline-flex items-center gap-1">
@@ -558,6 +611,22 @@ function EntryDetails({ entry, labels }: { entry: BudgetEntry; labels: Label[] }
           {entryLabels.map((label) => (
             <LabelChip key={label.id} label={label} />
           ))}
+        </span>
+      ),
+    });
+  }
+  if (entry.supplier) {
+    rows.push({
+      label: t('budget.supplier'),
+      value: (
+        <span className="flex flex-wrap items-center gap-2">
+          <Link
+            href={`/suppliers/${entry.supplier.id}`}
+            className="font-semibold underline-offset-4 hover:underline"
+          >
+            {entry.supplier.name}
+          </Link>
+          {entry.supplier.archived && <Badge variant="outline">{t('suppliers.archived')}</Badge>}
         </span>
       ),
     });

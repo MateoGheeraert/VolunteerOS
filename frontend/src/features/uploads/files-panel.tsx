@@ -45,7 +45,7 @@ import { formatDay, utcIsoToBrussels } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import type { ActionError } from '@/server/action-client';
 import { deleteUpload, renameUpload } from '@/server/uploads/actions';
-import { ACCEPT, extensionOf, formatBytes } from './schemas';
+import { ACCEPT, extensionOf, formatBytes, uploadHref } from './schemas';
 import { useFileUpload } from './use-file-upload';
 
 /** What new files are attached to, when not the event itself. */
@@ -189,7 +189,7 @@ function DropZone({ onFiles, compact }: { onFiles: (files: File[]) => void; comp
   );
 }
 
-function FileTypeIcon({ mimeType }: { mimeType: string }) {
+export function FileTypeIcon({ mimeType }: { mimeType: string }) {
   const className = 'size-5 shrink-0 text-muted-foreground';
   if (mimeType.startsWith('image/')) return <FileImage className={className} aria-hidden />;
   if (mimeType.includes('sheet') || mimeType.includes('excel') || mimeType === 'text/csv') {
@@ -219,7 +219,7 @@ function FileRow({
   const t = useTranslations();
   const [renaming, setRenaming] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const href = `/api/events/${eventId}/uploads/${file.id}`;
+  const href = uploadHref(eventId, file.id);
 
   return (
     <li className="flex items-center gap-3 rounded-2xl bg-card px-3 py-2.5">

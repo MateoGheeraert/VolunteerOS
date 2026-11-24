@@ -42,21 +42,24 @@ export interface BudgetFilters {
   type: 'all' | BudgetEntry['type'];
   /** 'all', or one label's id. */
   labelId: string;
+  /** 'all', or one supplier's id. */
+  supplierId: string;
 }
 
-export const NO_BUDGET_FILTERS: BudgetFilters = { type: 'all', labelId: 'all' };
+export const NO_BUDGET_FILTERS: BudgetFilters = { type: 'all', labelId: 'all', supplierId: 'all' };
 
 export const isFiltered = (filters: BudgetFilters) =>
-  filters.type !== 'all' || filters.labelId !== 'all';
+  filters.type !== 'all' || filters.labelId !== 'all' || filters.supplierId !== 'all';
 
-export function filterEntries<E extends Pick<BudgetEntry, 'type' | 'labelIds'>>(
+export function filterEntries<E extends Pick<BudgetEntry, 'type' | 'labelIds' | 'supplier'>>(
   entries: E[],
   filters: BudgetFilters,
 ): E[] {
   return entries.filter(
     (entry) =>
       (filters.type === 'all' || entry.type === filters.type) &&
-      (filters.labelId === 'all' || entry.labelIds.includes(filters.labelId)),
+      (filters.labelId === 'all' || entry.labelIds.includes(filters.labelId)) &&
+      (filters.supplierId === 'all' || entry.supplier?.id === filters.supplierId),
   );
 }
 
