@@ -2,7 +2,14 @@ import { Injectable } from '@nestjs/common';
 import { InjectDrizzle } from '@nestjs/drizzle';
 import { and, asc, count, eq, inArray, sql } from 'drizzle-orm';
 import type { Database, DbExecutor } from '../../db/database.js';
-import { label, task, taskLabelLink, type LabelRow } from '../../db/schema/index.js';
+import {
+  budgetEntry,
+  budgetEntryLabelLink,
+  label,
+  task,
+  taskLabelLink,
+  type LabelRow,
+} from '../../db/schema/index.js';
 import { notDeleted } from '../../db/soft-delete.js';
 import type { CreateLabelInput, LabelUsageDto, UpdateLabelInput } from './labels.schemas.js';
 
@@ -50,8 +57,18 @@ export class LabelsRepository {
       .from(taskLabelLink)
       .innerJoin(task, eq(task.id, taskLabelLink.taskId))
       .where(and(eq(taskLabelLink.labelId, labelId), notDeleted(taskLabelLink), notDeleted(task)));
-    // Budget entries carry labels once the budget exists.
-    return { tasks: tasks!.n, budgetEntries: 0 };
+    const [entries] = await this.db
+      .select({ n: count() })
+      .from(budgetEntryLabelLink)
+      .innerJoin(budgetEntry, eq(budgetEntry.id, budgetEntryLabelLink.budgetEntryId))
+      .where(
+        and(
+          eq(budgetEntryLabelLink.labelId, labelId),
+          notDeleted(budgetEntryLabelLink),
+          notDeleted(budgetEntry),
+        ),
+      );
+    return { tasks: tasks!.n, budgetEntries: entries!.n };
   }
 
   async insert(tx: DbExecutor, eventId: string, input: CreateLabelInput): Promise<LabelRow> {
@@ -82,5 +99,9 @@ export class LabelsRepository {
       .update(taskLabelLink)
       .set({ deletedAt })
       .where(and(eq(taskLabelLink.labelId, labelId), notDeleted(taskLabelLink)));
+    await tx
+      .update(budgetEntryLabelLink)
+      .set({ deletedAt })
+      .where(and(eq(budgetEntryLabelLink.labelId, labelId), notDeleted(budgetEntryLabelLink)));
   }
 }

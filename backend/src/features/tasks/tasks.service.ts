@@ -13,6 +13,7 @@ import type { Database, Transaction } from '../../db/database.js';
 import type { EventRow, TaskAssignmentRequestRow, TaskRow } from '../../db/schema/index.js';
 import { rethrowUnique } from '../../db/unique-violation.js';
 import { isReadOnly } from '../events/event-status.js';
+import { BudgetService } from '../budget/budget.service.js';
 import { LabelsService } from '../labels/labels.service.js';
 import { UploadsService } from '../uploads/uploads.service.js';
 import { canSeeTask, isUnassigned, memberUpdateError } from './task-rules.js';
@@ -55,6 +56,7 @@ export class TasksService {
     private readonly tasks: TasksRepository,
     private readonly labels: LabelsService,
     private readonly uploads: UploadsService,
+    private readonly budget: BudgetService,
   ) {}
 
   async list(org: OrgContext, access: EventAccess): Promise<TaskDto[]> {
@@ -181,7 +183,10 @@ export class TasksService {
     return this.view(org, access, taskId);
   }
 
-  /** Soft-deletes the task with its files, and declines the requests for it. */
+  /**
+   * Soft-deletes the task with its files, declines the requests for it, and unlinks it from
+   * budget entries (which stay).
+   */
   async remove(org: OrgContext, access: EventAccess, taskId: string): Promise<void> {
     const eventId = access.event.id;
     assertWritable(access.event);
@@ -189,6 +194,7 @@ export class TasksService {
     await this.db.transaction(async (tx) => {
       await this.declineRequests(tx, org, eventId, taskId);
       await this.uploads.removeForTask(tx, org, eventId, taskId);
+      await this.budget.unlinkTask(tx, org, eventId, taskId);
       const row = await this.tasks.updateTask(tx, taskId, { deletedAt: new Date() });
       await recordActivity(tx, org, {
         action: 'deleted',

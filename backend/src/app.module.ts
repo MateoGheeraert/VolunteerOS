@@ -7,6 +7,7 @@ import { HealthController } from './common/health.controller.js';
 import { ConfigModule } from './config/config.module.js';
 import { ENV, type Env } from './config/env.js';
 import { DatabaseModule } from './db/database.module.js';
+import { BudgetModule } from './features/budget/budget.module.js';
 import { EmailModule } from './email/email.module.js';
 import { EventsModule } from './features/events/events.module.js';
 import { JobsModule } from './jobs/jobs.module.js';
@@ -46,6 +47,7 @@ import { StorageModule } from './storage/storage.module.js';
     LabelsModule,
     TasksModule,
     UploadsModule,
+    BudgetModule,
     PlanningModule,
     ProfileModule,
     AiModule,

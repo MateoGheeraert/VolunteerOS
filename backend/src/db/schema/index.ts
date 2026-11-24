@@ -1,6 +1,7 @@
 export * from './activity-log.js';
 export * from './ai.js';
 export * from './auth.js';
+export * from './budget.js';
 export * from './email-delivery.js';
 export * from './events.js';
 export * from './labels.js';

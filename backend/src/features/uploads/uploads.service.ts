@@ -29,7 +29,7 @@ import {
   storageKeyFor,
   type UploadOwner,
 } from './upload-rules.js';
-import { UploadsRepository, type UploadView } from './uploads.repository.js';
+import { UploadsRepository, type UploadOwnerRef, type UploadView } from './uploads.repository.js';
 import type {
   CreateUploadInput,
   DownloadUrlDto,
@@ -43,7 +43,7 @@ import type {
 const UPLOAD_LOGGED_VALUES = ['mimeType', 'sizeBytes', 'status', 'uploadedByUserId'] as const;
 
 /**
- * Files attached to an event or one of its tasks. The browser uploads straight to storage:
+ * Files attached to an event, one of its tasks or one of its budget entries. The browser uploads straight to storage:
  * `create` announces the file and returns a signed upload URL, `confirm` checks what arrived and
  * lists it. Only confirmed files are logged and shown.
  *
@@ -59,11 +59,21 @@ export class UploadsService {
     private readonly storage: FileStorage,
   ) {}
 
-  async list(org: OrgContext, access: EventAccess, taskId?: string): Promise<UploadListDto> {
+  async list(
+    org: OrgContext,
+    access: EventAccess,
+    filter: { taskId?: string; budgetEntryId?: string } = {},
+  ): Promise<UploadListDto> {
     const viewer = viewerOf(org, access);
+    const { taskId, budgetEntryId } = filter;
+    if (taskId && budgetEntryId) {
+      throw new BadRequestException('Filter by taskId or budgetEntryId, not both');
+    }
     if (taskId) await this.findTaskOwner(viewer, access.event.id, taskId);
+    if (budgetEntryId) await this.findBudgetEntryOwner(access.event.id, budgetEntryId);
     const views = await this.uploads.listViews(org.organizationId, access.event.id, {
       taskId,
+      budgetEntryId,
       readyOnly: true,
     });
     return {
@@ -91,9 +101,15 @@ export class UploadsService {
     const error = fileError(input);
     if (error) throw new BadRequestException(error);
 
-    const owner: UploadOwner = input.taskId
-      ? await this.findTaskOwner(viewer, access.event.id, input.taskId)
-      : { type: 'event' };
+    let owner: UploadOwner = { type: 'event' };
+    let ownerRef: UploadOwnerRef = { eventId: access.event.id };
+    if (input.taskId) {
+      owner = await this.findTaskOwner(viewer, access.event.id, input.taskId);
+      ownerRef = { taskId: input.taskId };
+    } else if (input.budgetEntryId) {
+      owner = await this.findBudgetEntryOwner(access.event.id, input.budgetEntryId);
+      ownerRef = { budgetEntryId: input.budgetEntryId };
+    }
     if (!canAddUpload(viewer, owner)) throw new ForbiddenException();
 
     const id = randomUUID();
@@ -114,7 +130,7 @@ export class UploadsService {
           sizeBytes: input.sizeBytes,
           uploadedByUserId: org.userId,
         },
-        input.taskId ? { taskId: input.taskId } : { eventId: access.event.id },
+        ownerRef,
       );
     });
 
@@ -251,6 +267,27 @@ export class UploadsService {
     }
   }
 
+  /**
+   * Deletes a budget entry's files with the entry, in the entry's transaction. Only listed (ready)
+   * files were logged as created, so only they are logged as deleted.
+   */
+  async removeForBudgetEntry(
+    tx: Transaction,
+    scope: ActivityScope,
+    eventId: string,
+    budgetEntryId: string,
+  ): Promise<void> {
+    for (const row of await this.uploads.deleteForBudgetEntry(tx, budgetEntryId, new Date())) {
+      if (row.status !== 'ready') continue;
+      await recordActivity(tx, scope, {
+        action: 'deleted',
+        entityType: 'upload',
+        entity: row,
+        eventId,
+      });
+    }
+  }
+
   private assertEnabled(): void {
     if (!this.storage.enabled) {
       throw new ServiceUnavailableException('File uploads are not available');
@@ -267,6 +304,13 @@ export class UploadsService {
     const owner: UploadOwner | null = found ? { type: 'task', task: found } : null;
     if (!owner || !canSeeUpload(viewer, owner)) throw new NotFoundException('Task not found');
     return owner;
+  }
+
+  /** The budget entry as owner; 404 when the event has no such live entry. */
+  private async findBudgetEntryOwner(eventId: string, budgetEntryId: string): Promise<UploadOwner> {
+    const found = await this.uploads.findBudgetEntry(eventId, budgetEntryId);
+    if (!found) throw new NotFoundException('Budget entry not found');
+    return { type: 'budgetEntry' };
   }
 
   /** The file, if the caller may see it; 404 otherwise, so hidden files don't leak. */
@@ -317,8 +361,11 @@ const viewerOf = (org: OrgContext, access: EventAccess): TaskViewer => ({
   canManage: access.canManage,
 });
 
-const ownerOf = (view: UploadView): UploadOwner =>
-  view.task ? { type: 'task', task: view.task } : { type: 'event' };
+function ownerOf(view: UploadView): UploadOwner {
+  if (view.task) return { type: 'task', task: view.task };
+  if (view.budgetEntry) return { type: 'budgetEntry' };
+  return { type: 'event' };
+}
 
 const expiresAt = () => new Date(Date.now() + SIGNED_URL_SECONDS * 1000);
 
@@ -339,6 +386,7 @@ function toUploadDto(viewer: TaskViewer, view: UploadView): UploadDto {
     createdAt: upload.createdAt.toISOString(),
     uploadedBy: { userId: upload.uploadedByUserId, name: view.uploaderName },
     task: view.task ? { id: view.task.id, title: view.task.title } : null,
+    budgetEntry: view.budgetEntry,
     canChange: canChangeUpload(viewer, ownerOf(view), upload),
   };
 }
