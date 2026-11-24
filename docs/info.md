@@ -618,28 +618,31 @@ Each event should support basic financial tracking.
 Budget entry fields:
 
 - Title.
-- Category.
 - Type: income or expense.
-- Estimated amount.
-- Actual amount.
-- Optional supplier.
-- Optional linked task.
+- Estimated amount and actual amount: both optional, but an entry has at least one.
+- Labels: the event's labels, the same ones its tasks use (there is no separate category).
+- Optional linked task of the same event. Deleting the task clears the link; the entry stays.
 - Notes.
+- Files: invoices, receipts, quotes (see "File storage" under §11 Hosting).
 
 Features:
 
-- Add budget entry.
-- Edit budget entry.
-- Delete budget entry.
-- Calculate total estimated expenses.
-- Calculate total actual expenses.
-- Calculate estimated and actual income.
-- Calculate event balance.
-- Display budget variance.
+- One list of income (green, +) and costs (red, −), newest first. A row on top adds a line without a dialog: + or −, description, labels, estimated and/or actual amount, Enter; the cursor goes back to the description for the next line. A sign typed before an amount wins over the + / − choice: "-500" makes a cost, "+500" an income (a + in one amount and a − in the other is refused). The column titles sort the list (description A–Z, amounts by what they do to the result, lines without that amount last); clicking a third time goes back to newest first. Lines are tagged in place; the task, notes and files are in the line's side sheet. No colored side stripes: the amount's color and sign show income or cost. Deleting is confirmed and takes its files along.
+- Totals: income, expenses and the result (income minus expenses), each estimated and actual. A missing amount counts as 0 in its own column; an estimate is never used in place of an actual amount.
+- Filter the list by type and by label; the totals follow the filters.
+- Every org member reads the budget; owners, admins and the event's managers change it. Archived events are read-only.
+- Every write is in the activity log (`budget_entry`): amounts, type, task and labels with their values, title and notes by name only.
 
-Do not build full accounting functionality.
+Amounts are whole euro cents in an `integer` column, from 0 to € 9.999.999,99, never floats. The type says which way the money goes, so amounts are never negative. People type amounts as "12,50", "12.50" or "1.234,56" (`parseEuro` in `frontend/src/lib/money.ts`) and see them through `Intl.NumberFormat('nl-BE', EUR)`.
 
-Use exact decimal/integer monetary representations rather than floating-point calculations.
+Do not build full accounting functionality: no VAT, invoices or bookkeeping.
+
+Not built yet, on purpose:
+
+- **Supplier link**: added with §7.10 Supplier Management.
+- **Variance per entry**: the totals already show estimated against actual.
+- **Budget on the event overview**, and the entries linked to a task in the task pane.
+- **Mila and the budget** (reading it, proposing entries): the next AI step once this model has settled.
 
 ### 7.10 Basic Supplier Management
 
@@ -835,11 +838,11 @@ No account required.
 
 1. Organizer creates a budget item.
 2. Organizer enters expected expense.
-3. Organizer links supplier.
-4. Organizer optionally links a preparation task.
-5. Organizer records actual expense.
-6. System calculates variance.
-7. Event dashboard updates totals.
+3. Organizer labels it (e.g. "Catering") and optionally links a preparation task.
+4. Organizer records the actual expense and attaches the invoice.
+5. The budget tab shows estimated against actual income, expenses and result.
+
+(Linking a supplier follows with §7.10.)
 
 ### Journey E — Repeat an Event (P1)
 
@@ -1139,14 +1142,13 @@ How it works (`src/storage`, `src/features/uploads`):
 - **Downloads** go through a Next.js route (`/api/events/[eventId]/uploads/[uploadId]`) that asks Nest for a 5-minute signed link, after the access check, and redirects to it. Links are only made on click. Images and PDFs open in the browser; everything else downloads.
 - **Keys** are `orgs/{organizationId}/uploads/{uploadId}`: no file names (they can hold personal data) and one prefix per organization.
 - **Limits** (code constants, `upload-rules.ts`): 25 MB per file; PDF, JPEG, PNG, WebP, HEIC, Word, Excel, PowerPoint, OpenDocument text and spreadsheet, CSV and plain text, with an extension matching the type. SVG and HTML are refused: they can run scripts. 1 GB per organization, counting files still being uploaded.
-- **Who**: everyone who can see an event sees its files; managers add and change them. Task files follow the task: whoever sees the task sees them, its assignee may add them, and the uploader may change their own.
-- **Deleting** soft-deletes the row (logged) and frees the space at once. The daily cleanup job removes the object from R2 30 days later and sets `purged_at`; uploads never confirmed are removed after a day. Rows are never removed. Deleting a task deletes its files.
+- **Who**: everyone who can see an event sees its files; managers add and change them. Budget entry files follow the same rule. Task files follow the task: whoever sees the task sees them, its assignee may add them, and the uploader may change their own.
+- **Deleting** soft-deletes the row (logged) and frees the space at once. The daily cleanup job removes the object from R2 30 days later and sets `purged_at`; uploads never confirmed are removed after a day. Rows are never removed. Deleting a task or a budget entry deletes its files.
 
 Not built yet, on purpose:
 
 - **Virus scanning** (known debt). Only signed-in organization members upload, script-capable types are refused, and non-image files always download instead of opening. Revisit before volunteers can upload.
 - **Mila reading attachments** (e.g. amounts from receipts): a later AI feature.
-- **Budget entry files**: a `budget_entry_upload` link table, added with the budget feature.
 - **Removing an event's or organization's files**: events are archived, not deleted, and organizations can't be deleted, so nothing triggers it yet. It belongs with the GDPR erasure work (§14 Rule 6, §15).
 - Thumbnails, versions and moving a file to another task or event.
 
@@ -1301,7 +1303,9 @@ Implemented as `user_profile`: personal details, one row per user (`userId` is t
 - createdAt
 - updatedAt
 
-### TaskLabel
+### Label
+
+Implemented as `label`: an event's labels, shared by its tasks and budget entries (one list per event, managed from both pages). Deleting a label takes it off everything that carries it; the app says how many tasks and budget entries that are first.
 
 - id
 - eventId
@@ -1311,6 +1315,11 @@ Implemented as `user_profile`: personal details, one row per user (`userId` is t
 ### TaskLabelLink
 
 - taskId
+- labelId
+
+### BudgetEntryLabelLink
+
+- budgetEntryId
 - labelId
 
 ### TaskAssignmentRequest
@@ -1401,7 +1410,7 @@ Unassigning soft-deletes the assignment.
 
 ### Upload
 
-Implemented as `upload`, with what a file is attached to in one link table per owner: `event_upload` and `task_upload` (`uploadId` is their primary key, so a file has one owner). See "File storage" under §11 Hosting.
+Implemented as `upload`, with what a file is attached to in one link table per owner: `event_upload`, `task_upload` and `budget_entry_upload` (`uploadId` is their primary key, so a file has one owner). See "File storage" under §11 Hosting.
 
 - id
 - organizationId
@@ -1413,16 +1422,18 @@ Implemented as `upload`, with what a file is attached to in one link table per o
 
 ### BudgetEntry
 
+Implemented as `budget_entry`. Labels through `budget_entry_label_link`, files through `budget_entry_upload`.
+
 - id
 - eventId
-- supplierId (nullable)
 - taskId (nullable)
 - title
-- category
-- type
-- estimatedAmount
-- actualAmount
+- type (income / expense)
+- estimatedCents (nullable integer)
+- actualCents (nullable integer; at least one of the two is set)
 - notes
+- createdByUserId
+- createdAt, updatedAt, deletedAt
 
 ### EmailDelivery
 
