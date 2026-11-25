@@ -362,13 +362,29 @@ Statuses:
 - Completed.
 - Archived.
 
-Dashboard should display:
+**Event overview (dashboard, decided 24 November 2026).** One page per event that shows at a glance what still needs attention.
 
-- Event overview.
-- Upcoming tasks.
-- Overdue tasks.
-- Volunteer coverage.
-- Budget summary.
+- **Header:** the event name, then one compact line: dates · location · "Vorige editie" (only when there is one). An "Bewerken" action for the other fields, and an "Vraag Mila" button that opens the agent in a large modal (her open questions are counted on the button). The status banner (Mila proposing to publish or complete the event) stays above the cards.
+- **Cards, in a fixed order** (they never reorder by urgency; the status colors draw the eye). Compact cards with only what needs attention. On desktop the small cards (Countdown, Budget) stack in the left column and the large ones (Tasks, Planning) in the right two columns, so no card stretches to its neighbour's height; on mobile they stack as Countdown, Tasks, Planning, Budget. Each card's title and its "Bekijk …" link open the module.
+- **Phases follow the dates:** before the start, during (start to end) and after the end.
+  - **Countdown:** days to go, a ring of the time elapsed since the event was created, and at most two upcoming milestones (registration closes, setup starts). During: "Nu bezig", with the end. After, it becomes **Wrap-up**: expected against actual attendance (asking for the actual number when it's missing), tasks left open, and a link to write the retrospective. This card has no status color.
+  - **Tasks:** "8 van 12 taken klaar" with a stacked bar (done, in progress, to do); unassigned, in progress and overdue counts; the next three tasks (overdue first, then by due date); open assignment requests. Red when something is overdue; amber when an unfinished task is due within 7 days or a high-priority task is unassigned; green otherwise.
+  - **Planning:** "12 van 15 plaatsen ingevuld" (proposed and confirmed both count, confirmed shown darker), applications, assigned and not yet assigned, a bar per team when there is more than one (filled against capacity), and whether the schedule is published. For whole-event commitment there are no positions: the card shows how many of the volunteers are placed, and its color follows that share (with the same thresholds). Green when full; amber when partly filled, or empty more than 21 days before the start; red when under half filled (or empty) within 21 days. Volunteers but no shifts yet: nothing to measure, so neutral. After the event: neutral.
+  - **Budget:** "€420 uitgegeven van €600" (actual against estimated expenses), income estimated and actual, the projected result, and how many suppliers are linked. After the event it shows the result: actual income against actual costs. Before and during: red when actual expenses exceed the estimate (also when money is spent without any estimate), amber from 90%, green otherwise. After: red when the result is negative, green otherwise.
+- **Status** shows as a badge in the card header ("Op schema", "Aandacht nodig", "Risico") and the icon circle's tone; the budget bar takes the status color too. Done tasks and filled places are always green. No colored side borders.
+- **Empty states** have one clear next step. An empty Tasks or Budget card is neutral; an empty Planning card follows its colors, because no volunteers close to the event is a real risk.
+- **Charts** are shadcn charts (Recharts), bars and one ring only: they stay readable at card size.
+- **Data:** one endpoint, `GET /events/:id/overview`, returns the stats, the statuses and Mila's hints, all decided in the backend.
+- **Who:** everyone who can open the event sees the cards; Mila's hints and their buttons only show for owners, admins and the event's managers.
+
+**Mila on the overview: a balance, not a bombardment.**
+
+- Mila only shows where she can act. Today that is the Tasks card; Planning and Budget have a slot for her that stays empty until she can help there.
+- In an empty card she *is* the empty state ("Zal ik de eerste taken voor je opstellen?"), so a new event gets her help everywhere she can give it. This follows from the data, not from counting visits.
+- In a card with data she only speaks when she has something concrete: pending suggestions to review, or a check for missing tasks that hasn't run in 14 days (only more than 7 days before the event). Never a generic "I can help".
+- Her setup offer in an empty card is always shown in full (it is the empty state). Of her other hints at most one on the page is highlighted, chosen by priority, and none while the status banner shows; the rest are a small chip.
+- A dismissed hint stays away for that user and event until its situation changes (`mila_hint_dismissal`: user, event, hint key and a fingerprint of the situation).
+- Her task suggestions are reviewed on the task page; her questions in the "Vraag Mila" modal.
 
 ### 7.3 Task Management
 
@@ -402,7 +418,7 @@ Features:
 - Show overdue tasks: due before today (Europe/Brussels) and not done, in the red status color.
 - Warn (without blocking) when a due date falls after the event.
 - Every write is in the activity log.
-- Display tasks on the event dashboard (P1, not built yet).
+- The event overview shows the task progress, the overdue and unassigned tasks and the next ones due (§7.2).
 
 Who does what:
 
@@ -641,7 +657,7 @@ Do not build full accounting functionality: no VAT, invoices or bookkeeping.
 Not built yet, on purpose:
 
 - **Variance per entry**: the totals already show estimated against actual.
-- **Budget on the event overview**, and the entries linked to a task in the task pane.
+- The entries linked to a task in the task pane. (The budget is on the event overview since 24 November 2026, §7.2.)
 - **Mila and the budget** (reading it, proposing entries): the next AI step once this model has settled.
 
 ### 7.10 Basic Supplier Management
@@ -1062,7 +1078,7 @@ AI features should use:
 
 - **"Zoek ontbrekende taken":** a task-suggestion run in the background. Mila compares the event with last year and with events like it, and her suggestions are decided on one by one.
 - **"Help me taken maken":** the organizer types or pastes their own list. Mila turns it into tasks while they wait (`task_drafting`, `POST /events/:id/ai/task-drafts`): titles, deadlines resolved from "tegen 1 dec", members matched by name, and tasks that already exist flagged. The organizer checks and edits them in the dialog, and nothing is created until they click "Maak N taken aan". The created tasks carry the drafting run as their source in the activity log.
-- **On the task page** Mila is one line above the board (`MilaBar`), and her suggestions open in a side panel, so the board stays first. **On the overview** her panel scrolls on its own.
+- **On the task page** Mila is one line above the board (`MilaBar`), and her suggestions open in a side panel, so the board stays first. **On the overview** she speaks inside the cards, at most one highlighted hint at a time, and opens in full from "Vraag Mila" (§7.2).
 
 How the agent works (`backend/src/ai`):
 
@@ -1457,6 +1473,16 @@ Implemented as `activity_log`; see "Activity log" in the backend README.
 - changes (field names; values only for non-personal fields)
 - createdAt
 
+### MilaHintDismissal
+
+Implemented as `mila_hint_dismissal`: a Mila hint on the event overview that a user put away (§7.2). UI state, not domain data, so it is hard-deleted along with its user or event.
+
+- userId
+- eventId
+- hintKey
+- fingerprint (the situation it was dismissed in; a new one brings the hint back)
+- dismissedAt
+
 Every deletion is a soft delete (`deleted_at`). The only planned exception is GDPR erasure of personal data.
 
 This is an initial conceptual model.
@@ -1726,7 +1752,7 @@ Friendly and community-like, deliberately not the default shadcn / Linear / Noti
 - **Status colors are separate from the brand colors:** green `#2E9E5B` = done or filled, amber `#B7791F` = due soon or partly filled, red `#C2453D` = overdue or unfilled (each with a light background tint).
 - **Type:** Nunito everywhere (via `next/font`), headings at weight 800.
 - **Shape:** one radius for cards, panels, dialogs and the sidebar's menu items: `--card-radius` in `globals.css` (`rounded-card`), so they can all be rounded more or less in one place. Floating menus (dropdowns, popovers, tooltips), small tiles and selectable options keep their own rounding. Pill-shaped buttons, tabs and badges, soft shadows instead of hard borders, 44px buttons and inputs, generous padding. One primary action per screen. Tables only where they really pay off.
-- **Modals for creating and editing (decided November 2026, revised 24 November 2026):** creating something new and looking at or editing something that exists both open a centered modal (`components/ui/dialog.tsx`); side sheets were too narrow for a task's or a budget line's details. Sizes: `default` for a short create form, `md` for an edit form (a task, a budget line, a supplier, a team, a shift, a volunteer, labels). An edit modal is one scrolling column: the form, then the files, then one row with "Opslaan" on the left and the other actions (delete, …) on the right. No inline editing and no side columns in modals: every record saves the same way. The side sheet stays only for Mila's suggestions next to the task board and the mobile sidebar.
+- **Modals for creating and editing (decided November 2026, revised 24 November 2026):** creating something new and looking at or editing something that exists both open a centered modal (`components/ui/dialog.tsx`); side sheets were too narrow for a task's or a budget line's details. Sizes: `default` for a short create form, `md` for an edit form (a task, a budget line, a supplier, a team, a shift, a volunteer, labels), `lg` for a whole workspace (Mila, opened from the event overview). An edit modal is one scrolling column: the form, then the files, then one row with "Opslaan" on the left and the other actions (delete, …) on the right. No inline editing and no side columns in modals: every record saves the same way. The side sheet stays only for Mila's suggestions next to the task board and the mobile sidebar.
 - **Icons:** Lucide, placed in soft colored circles for empty states, dashboard cards and section headers. No custom illustrations in the MVP.
 - **Public volunteer pages:** same tokens, lighter feel. A colored header with soft circles and the form on a rounded sheet, large touch targets, a coral submit button.
 - Reference prototype: https://claude.ai/artifact/VNcfaPKRXKhxBER4zfvJ6a (variant A).
