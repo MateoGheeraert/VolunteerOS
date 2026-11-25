@@ -15,10 +15,14 @@ function Dialog({ ...props }: React.ComponentProps<typeof DialogPrimitive.Root>)
   return <DialogPrimitive.Root data-slot="dialog" {...props} />;
 }
 
-/** `default` for a short create form, `md` for an edit form (a task, a budget line, a supplier). */
+/**
+ * `default` for a short create form, `md` for an edit form (a task, a budget line, a supplier),
+ * `lg` for a whole workspace (Mila, opened from the overview).
+ */
 const DIALOG_SIZES = {
   default: 'max-w-lg',
   md: 'max-w-2xl',
+  lg: 'max-w-4xl',
 } as const;
 
 function DialogContent({
