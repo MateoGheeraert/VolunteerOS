@@ -36,5 +36,7 @@ import { TaskSuggestionsRunner } from './task-suggestions/task-suggestions.runne
     TaskSuggestionsRunner,
     TaskDraftsService,
   ],
+  // The overview asks whether Mila is available.
+  exports: [AI_MODEL_RESOLVER],
 })
 export class AiModule {}

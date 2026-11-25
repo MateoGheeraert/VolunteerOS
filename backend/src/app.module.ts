@@ -10,6 +10,7 @@ import { DatabaseModule } from './db/database.module.js';
 import { BudgetModule } from './features/budget/budget.module.js';
 import { EmailModule } from './email/email.module.js';
 import { EventsModule } from './features/events/events.module.js';
+import { OverviewModule } from './features/overview/overview.module.js';
 import { JobsModule } from './jobs/jobs.module.js';
 import { LabelsModule } from './features/labels/labels.module.js';
 import { PlanningModule } from './features/planning/planning.module.js';
@@ -53,6 +54,7 @@ import { StorageModule } from './storage/storage.module.js';
     PlanningModule,
     ProfileModule,
     AiModule,
+    OverviewModule,
   ],
   controllers: [HealthController],
 })

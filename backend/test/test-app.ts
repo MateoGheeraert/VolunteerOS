@@ -4,6 +4,7 @@ import type { NestExpressApplication } from '@nestjs/platform-express';
 import { Test } from '@nestjs/testing';
 import { sql } from 'drizzle-orm';
 import request from 'supertest';
+import { AI_MODEL_RESOLVER, type AiModelResolver } from '../src/ai/ai-models.js';
 import { AppModule } from '../src/app.module.js';
 import { configureApp } from '../src/app.setup.js';
 import type { Database } from '../src/db/database.js';
@@ -71,17 +72,30 @@ export interface TestApp {
   close: () => Promise<void>;
 }
 
-export async function createTestApp(): Promise<TestApp> {
+/**
+ * `aiAvailable`: Mila counts as available (as with an API key), so her hints show. No model is
+ * ever called: resolving one throws, and nothing queues runs in tests.
+ */
+export async function createTestApp(options: { aiAvailable?: boolean } = {}): Promise<TestApp> {
   const emails = new CapturingEmailProvider();
   const files = new FakeFileStorage();
-  const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
+  let builder = Test.createTestingModule({ imports: [AppModule] })
     .overrideProvider(EmailProvider)
     .useValue(emails)
     .overrideProvider(EMAIL_RETRY_DELAYS_MS)
     .useValue([0, 0])
     .overrideProvider(FileStorage)
-    .useValue(files)
-    .compile();
+    .useValue(files);
+  if (options.aiAvailable) {
+    const resolver: AiModelResolver = {
+      enabled: true,
+      resolve: () => {
+        throw new Error('Tests never call a model');
+      },
+    };
+    builder = builder.overrideProvider(AI_MODEL_RESOLVER).useValue(resolver);
+  }
+  const moduleRef = await builder.compile();
 
   const app = moduleRef.createNestApplication<NestExpressApplication>({
     bodyParser: false,
