@@ -182,6 +182,41 @@ export class BudgetService {
     }
   }
 
+  /**
+   * An estimated expense for a task created in the same transaction (accepting one of Mila's
+   * promo actions, docs/info.md §7.11). The caller made the task, so it is not looked up again:
+   * outside the transaction it doesn't exist yet. The labels must already be committed.
+   */
+  async createTaskExpenseInTransaction(
+    tx: Transaction,
+    org: OrgContext,
+    access: EventAccess,
+    input: { title: string; estimatedCents: number; taskId: string; labelIds: string[] },
+  ): Promise<BudgetEntryRow> {
+    const eventId = access.event.id;
+    assertWritable(access.event);
+    const labelIds = await this.labels.assertLabels(eventId, input.labelIds);
+    const row = await this.budget.insert(tx, eventId, org.userId, {
+      type: 'expense',
+      title: input.title,
+      estimatedCents: input.estimatedCents,
+      actualCents: null,
+      notes: null,
+      taskId: input.taskId,
+      supplierId: null,
+    });
+    await this.budget.setLabels(tx, row.id, labelIds);
+    await recordActivity(tx, org, {
+      action: 'created',
+      entityType: 'budget_entry',
+      entity: { ...row, labelIds } satisfies LoggedEntry,
+      before: null,
+      eventId,
+      values: ENTRY_LOGGED_VALUES,
+    });
+    return row;
+  }
+
   private async view(org: OrgContext, access: EventAccess, entryId: string) {
     const [view] = await this.budget.listViews(access.event.id, entryId);
     if (!view) throw new NotFoundException('Budget entry not found');

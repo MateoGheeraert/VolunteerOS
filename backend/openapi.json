@@ -2581,6 +2581,77 @@
         "tags": ["ai"]
       }
     },
+    "/api/events/{eventId}/ai/promotion-plan": {
+      "post": {
+        "operationId": "PromotionPlanController_request",
+        "parameters": [
+          {
+            "name": "eventId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestPromotionPlan"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiRun"
+                }
+              }
+            }
+          }
+        },
+        "tags": ["ai"]
+      }
+    },
+    "/api/events/{eventId}/ai/promotion-plan/accept": {
+      "post": {
+        "operationId": "PromotionPlanController_accept",
+        "parameters": [
+          {
+            "name": "eventId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AcceptPromoActions"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": ["ai"]
+      }
+    },
     "/api/events/{eventId}/overview": {
       "get": {
         "operationId": "OverviewController_get",
@@ -2640,6 +2711,113 @@
           }
         },
         "tags": ["overview"]
+      }
+    },
+    "/api/events/{eventId}/promotion": {
+      "get": {
+        "operationId": "PromotionController_state",
+        "parameters": [
+          {
+            "name": "eventId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PromotionState"
+                }
+              }
+            }
+          }
+        },
+        "tags": ["promotion"]
+      }
+    },
+    "/api/events/{eventId}/promotion/tasks": {
+      "post": {
+        "operationId": "PromotionController_createTask",
+        "parameters": [
+          {
+            "name": "eventId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTask"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Task"
+                }
+              }
+            }
+          }
+        },
+        "tags": ["promotion"]
+      }
+    },
+    "/api/events/{eventId}/promotion/audience": {
+      "put": {
+        "operationId": "PromotionController_updateAudience",
+        "parameters": [
+          {
+            "name": "eventId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateEventAudience"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventAudience"
+                }
+              }
+            }
+          }
+        },
+        "tags": ["promotion"]
       }
     }
   },
@@ -5665,7 +5843,7 @@
           },
           "feature": {
             "type": "string",
-            "enum": ["task_suggestions", "task_drafting"]
+            "enum": ["task_suggestions", "task_drafting", "promotion_plan"]
           },
           "trigger": {
             "type": "string",
@@ -5903,6 +6081,74 @@
               "answer"
             ],
             "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              "eventId": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              "status": {
+                "type": "string",
+                "enum": ["pending", "accepted", "rejected", "dismissed_stale"]
+              },
+              "title": {
+                "type": "string"
+              },
+              "explanation": {
+                "type": "string"
+              },
+              "citations": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/AiCitation"
+                }
+              },
+              "createdAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+              },
+              "seenAt": {
+                "nullable": true,
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+              },
+              "kind": {
+                "type": "string",
+                "enum": ["promo_action"]
+              },
+              "payload": {
+                "$ref": "#/components/schemas/AiPromoActionPayload"
+              },
+              "answer": {
+                "type": "string",
+                "nullable": true,
+                "enum": [null]
+              }
+            },
+            "required": [
+              "id",
+              "eventId",
+              "status",
+              "title",
+              "explanation",
+              "citations",
+              "createdAt",
+              "seenAt",
+              "kind",
+              "payload",
+              "answer"
+            ],
+            "additionalProperties": false
           }
         ]
       },
@@ -5911,7 +6157,7 @@
         "properties": {
           "type": {
             "type": "string",
-            "enum": ["event", "task", "memory"]
+            "enum": ["event", "task", "memory", "catalog"]
           },
           "id": {
             "type": "string"
@@ -5993,6 +6239,72 @@
           }
         },
         "required": ["field", "value"],
+        "additionalProperties": false
+      },
+      "AiPromoActionPayload": {
+        "type": "object",
+        "properties": {
+          "catalogKey": {
+            "nullable": true,
+            "type": "string",
+            "maxLength": 100
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "offline",
+              "social",
+              "partnership",
+              "giveaway",
+              "listing",
+              "press",
+              "word_of_mouth"
+            ]
+          },
+          "audience": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "weeksBefore": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 52
+          },
+          "dueDate": {
+            "type": "string",
+            "format": "date",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+          },
+          "estimatedCostCents": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 999999999
+          },
+          "effort": {
+            "type": "string",
+            "enum": ["low", "medium", "high"]
+          },
+          "howTo": {
+            "type": "string",
+            "maxLength": 2000
+          }
+        },
+        "required": [
+          "catalogKey",
+          "title",
+          "type",
+          "audience",
+          "weeksBefore",
+          "dueDate",
+          "estimatedCostCents",
+          "effort",
+          "howTo"
+        ],
         "additionalProperties": false
       },
       "DraftTasks": {
@@ -6186,7 +6498,7 @@
               "properties": {
                 "type": {
                   "type": "string",
-                  "enum": ["event", "task", "memory"]
+                  "enum": ["event", "task", "memory", "catalog"]
                 },
                 "id": {
                   "type": "string"
@@ -6236,6 +6548,43 @@
         },
         "required": ["monthToDateCents", "capCents"],
         "additionalProperties": false
+      },
+      "RequestPromotionPlan": {
+        "type": "object",
+        "properties": {
+          "instruction": {
+            "type": "string",
+            "maxLength": 500
+          }
+        }
+      },
+      "AcceptPromoActions": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "minItems": 1,
+            "maxItems": 20,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "suggestionId": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "task": {
+                  "$ref": "#/components/schemas/CreateTask"
+                },
+                "addBudgetLine": {
+                  "type": "boolean"
+                }
+              },
+              "required": ["suggestionId", "task", "addBudgetLine"]
+            }
+          }
+        },
+        "required": ["items"]
       },
       "EventOverview": {
         "type": "object",
@@ -6593,6 +6942,65 @@
             "required": ["status", "entryCount", "income", "expense", "result", "supplierCount"],
             "additionalProperties": false
           },
+          "promotion": {
+            "type": "object",
+            "properties": {
+              "status": {
+                "type": "string",
+                "enum": ["ok", "warn", "bad", "neutral"]
+              },
+              "open": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "overdue": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "done": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "next": {
+                "nullable": true,
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "title": {
+                    "type": "string"
+                  },
+                  "dueDate": {
+                    "nullable": true,
+                    "type": "string",
+                    "format": "date",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                  },
+                  "overdue": {
+                    "type": "boolean"
+                  }
+                },
+                "required": ["id", "title", "dueDate", "overdue"],
+                "additionalProperties": false
+              },
+              "hasPlan": {
+                "type": "boolean"
+              },
+              "pendingActions": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": ["status", "open", "overdue", "done", "next", "hasPlan", "pendingActions"],
+            "additionalProperties": false
+          },
           "mila": {
             "type": "object",
             "properties": {
@@ -6669,6 +7077,7 @@
           "tasks",
           "planning",
           "budget",
+          "promotion",
           "mila"
         ],
         "additionalProperties": false
@@ -6687,6 +7096,348 @@
           }
         },
         "required": ["hintKey", "fingerprint"]
+      },
+      "PromotionState": {
+        "type": "object",
+        "properties": {
+          "audience": {
+            "$ref": "#/components/schemas/EventAudience"
+          },
+          "sizeBand": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": ["S", "M", "L"]
+              },
+              {
+                "type": "string",
+                "nullable": true,
+                "enum": [null]
+              }
+            ]
+          },
+          "guard": {
+            "type": "object",
+            "properties": {
+              "state": {
+                "type": "string",
+                "enum": ["ready", "blocked", "disabled"]
+              },
+              "blockedBy": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "enum": ["audience"]
+                  },
+                  {
+                    "type": "string",
+                    "nullable": true,
+                    "enum": [null]
+                  }
+                ]
+              },
+              "missing": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": ["pitch", "expectedAttendance"]
+                }
+              },
+              "lastMinute": {
+                "type": "boolean"
+              },
+              "daysLeft": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": ["state", "blockedBy", "missing", "lastMinute", "daysLeft"],
+            "additionalProperties": false
+          },
+          "budget": {
+            "type": "object",
+            "properties": {
+              "budgetCents": {
+                "nullable": true,
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "spentCents": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "availableCents": {
+                "nullable": true,
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": ["budgetCents", "spentCents", "availableCents"],
+            "additionalProperties": false
+          },
+          "tasks": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": ["todo", "in_progress", "done"]
+                },
+                "priority": {
+                  "type": "string",
+                  "enum": ["low", "medium", "high"]
+                },
+                "dueDate": {
+                  "nullable": true,
+                  "type": "string",
+                  "format": "date",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                },
+                "assigneeName": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "fromMila": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "id",
+                "title",
+                "status",
+                "priority",
+                "dueDate",
+                "assigneeName",
+                "fromMila"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "metric": {
+            "type": "object",
+            "properties": {
+              "suggested": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "accepted": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "done": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": ["suggested", "accepted", "done"],
+            "additionalProperties": false
+          },
+          "mila": {
+            "nullable": true,
+            "type": "object",
+            "properties": {
+              "enabled": {
+                "type": "boolean"
+              },
+              "run": {
+                "nullable": true,
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": ["queued", "running", "succeeded", "failed"]
+                  },
+                  "createdAt": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                  },
+                  "instruction": {
+                    "nullable": true,
+                    "type": "string"
+                  }
+                },
+                "required": ["status", "createdAt", "instruction"],
+                "additionalProperties": false
+              },
+              "suggestions": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/AiSuggestion"
+                }
+              }
+            },
+            "required": ["enabled", "run", "suggestions"],
+            "additionalProperties": false
+          }
+        },
+        "required": ["audience", "sizeBand", "guard", "budget", "tasks", "metric", "mila"],
+        "additionalProperties": false
+      },
+      "EventAudience": {
+        "type": "object",
+        "properties": {
+          "audiences": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "children",
+                "teens",
+                "young_adults",
+                "students",
+                "young_families",
+                "families",
+                "adults",
+                "seniors",
+                "neighbours",
+                "associations",
+                "music_lovers",
+                "culture_lovers",
+                "sporty"
+              ]
+            }
+          },
+          "description": {
+            "nullable": true,
+            "type": "string"
+          },
+          "ageMin": {
+            "nullable": true,
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "ageMax": {
+            "nullable": true,
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "region": {
+            "nullable": true,
+            "type": "string"
+          },
+          "entryPriceCents": {
+            "nullable": true,
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "pitch": {
+            "nullable": true,
+            "type": "string"
+          },
+          "promotionBudgetCents": {
+            "nullable": true,
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "audiences",
+          "description",
+          "ageMin",
+          "ageMax",
+          "region",
+          "entryPriceCents",
+          "pitch",
+          "promotionBudgetCents"
+        ],
+        "additionalProperties": false
+      },
+      "UpdateEventAudience": {
+        "type": "object",
+        "properties": {
+          "audiences": {
+            "maxItems": 13,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "children",
+                "teens",
+                "young_adults",
+                "students",
+                "young_families",
+                "families",
+                "adults",
+                "seniors",
+                "neighbours",
+                "associations",
+                "music_lovers",
+                "culture_lovers",
+                "sporty"
+              ]
+            }
+          },
+          "description": {
+            "nullable": true,
+            "type": "string",
+            "maxLength": 1000
+          },
+          "ageMin": {
+            "nullable": true,
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 120
+          },
+          "ageMax": {
+            "nullable": true,
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 120
+          },
+          "region": {
+            "nullable": true,
+            "type": "string",
+            "maxLength": 120
+          },
+          "entryPriceCents": {
+            "nullable": true,
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 999999999
+          },
+          "pitch": {
+            "nullable": true,
+            "type": "string",
+            "maxLength": 2000
+          },
+          "promotionBudgetCents": {
+            "nullable": true,
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 999999999
+          }
+        },
+        "required": [
+          "audiences",
+          "description",
+          "ageMin",
+          "ageMax",
+          "region",
+          "entryPriceCents",
+          "pitch",
+          "promotionBudgetCents"
+        ]
       }
     }
   }

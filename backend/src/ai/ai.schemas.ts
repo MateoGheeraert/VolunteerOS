@@ -3,6 +3,7 @@ import { dateTimeOutput } from '../common/schemas.js';
 import { createTaskSchema } from '../features/tasks/tasks.schemas.js';
 import {
   citationSchema,
+  promoActionPayloadSchema,
   questionAnswerSchema,
   questionPayloadSchema,
   taskSuggestionPayloadSchema,
@@ -42,6 +43,12 @@ export const aiSuggestionSchema = z
       payload: updateEventPayloadSchema.meta({ id: 'AiUpdateEventPayload' }),
       answer: z.null(),
     }),
+    z.object({
+      ...suggestionBase,
+      kind: z.literal('promo_action'),
+      payload: promoActionPayloadSchema.meta({ id: 'AiPromoActionPayload' }),
+      answer: z.null(),
+    }),
   ])
   .meta({ id: 'AiSuggestion' });
 export type AiSuggestionDto = z.infer<typeof aiSuggestionSchema>;
@@ -49,7 +56,7 @@ export type AiSuggestionDto = z.infer<typeof aiSuggestionSchema>;
 export const aiRunSchema = z
   .object({
     id: z.uuid(),
-    feature: z.enum(['task_suggestions', 'task_drafting']),
+    feature: z.enum(['task_suggestions', 'task_drafting', 'promotion_plan']),
     trigger: z.enum(['on_demand', 'event_created', 'question_answered']),
     status: z.enum(['queued', 'running', 'succeeded', 'failed']),
     createdAt: dateTimeOutput,

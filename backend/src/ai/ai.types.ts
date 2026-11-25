@@ -1,13 +1,17 @@
 import { z } from 'zod';
+import { MAX_BUDGET_CENTS } from '../db/schema/budget.js';
 
 /**
  * Shapes stored in the AI tables' JSON columns. The schema files import the types; the services
  * validate with the Zod schemas on every write and read.
  */
 
-/** A stored record an AI output is based on. `label` is what the UI shows ("Taak: Tent huren"). */
+/**
+ * A stored record an AI output is based on. `label` is what the UI shows ("Taak: Tent huren").
+ * `catalog`: an action from the promotion catalogue; its id is the catalogue key.
+ */
 export const citationSchema = z.object({
-  type: z.enum(['event', 'task', 'memory']),
+  type: z.enum(['event', 'task', 'memory', 'catalog']),
   id: z.string(),
   label: z.string(),
 });
@@ -41,6 +45,38 @@ export const updateEventPayloadSchema = z.object({
   value: z.string().min(1).max(2000),
 });
 export type UpdateEventPayload = z.infer<typeof updateEventPayloadSchema>;
+
+/** Kinds of promotion action, shared by the catalogue and Mila's output (docs/info.md §7.11). */
+export const PROMO_ACTION_TYPES = [
+  'offline',
+  'social',
+  'partnership',
+  'giveaway',
+  'listing',
+  'press',
+  'word_of_mouth',
+] as const;
+export type PromoActionType = (typeof PROMO_ACTION_TYPES)[number];
+export const PROMO_EFFORTS = ['low', 'medium', 'high'] as const;
+export type PromoEffort = (typeof PROMO_EFFORTS)[number];
+
+/** One action of a promotion plan, as the planner checked it. */
+export const promoActionPayloadSchema = z.object({
+  /** The catalogue action it adapts; null when it repeats a past-edition task instead. */
+  catalogKey: z.string().max(100).nullable(),
+  title: z.string().min(1).max(200),
+  type: z.enum(PROMO_ACTION_TYPES),
+  /** Who it reaches, in words ("studenten van de hogeschool"). */
+  audience: z.string().max(200),
+  /** When to do it, in whole weeks before the event starts (after moving a past date to today). */
+  weeksBefore: z.number().int().min(0).max(52),
+  dueDate: z.iso.date(),
+  estimatedCostCents: z.number().int().min(0).max(MAX_BUDGET_CENTS),
+  effort: z.enum(PROMO_EFFORTS),
+  /** How to do it, step by step: becomes the task's description. */
+  howTo: z.string().max(2000),
+});
+export type PromoActionPayload = z.infer<typeof promoActionPayloadSchema>;
 
 /** The answer an organizer gave to a question card. */
 export const questionAnswerSchema = z.object({ text: z.string().min(1).max(1000) });

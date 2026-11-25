@@ -5,6 +5,7 @@ import type { Database } from '../../db/database.js';
 import type { AiRunRow } from '../../db/schema/index.js';
 import { JobsService, willRetry, type JobData } from '../../jobs/jobs.service.js';
 import { AiUnavailableError } from '../ai-client.service.js';
+import { PromotionPlanRunner } from '../promotion-plan/promotion-plan.runner.js';
 import {
   EventGoneError,
   TaskSuggestionsRunner,
@@ -25,6 +26,7 @@ export class AiRunWorker implements OnApplicationBootstrap {
     private readonly jobs: JobsService,
     private readonly runs: AiRunsService,
     private readonly taskSuggestions: TaskSuggestionsRunner,
+    private readonly promotionPlan: PromotionPlanRunner,
   ) {}
 
   async onApplicationBootstrap(): Promise<void> {
@@ -61,6 +63,8 @@ export class AiRunWorker implements OnApplicationBootstrap {
       case 'task_drafting':
         // Drafting runs while the organizer waits (TaskDraftsService), never as a job.
         throw new AiUnavailableError('failed', 'task_drafting runs are not queued');
+      case 'promotion_plan':
+        return this.promotionPlan.run(run);
     }
   }
 }

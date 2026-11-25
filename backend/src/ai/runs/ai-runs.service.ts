@@ -25,6 +25,8 @@ export interface RunRequest {
   feature: AiFeature;
   trigger: AiTrigger;
   requestedByUserId: string | null;
+  /** What the organizer asked of the run, for features that take an instruction. */
+  instruction?: string | null;
 }
 
 /**
