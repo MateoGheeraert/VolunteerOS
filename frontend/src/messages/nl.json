@@ -126,7 +126,8 @@
     "files": "Bestanden",
     "budget": "Budget",
     "suppliers": "Leveranciers",
-    "settings": "Instellingen"
+    "settings": "Instellingen",
+    "promotion": "Promotie"
   },
   "eventStatusBanner": {
     "publishMessage": "Zullen we dit evenement publiceren?",
@@ -815,7 +816,8 @@
     "citationType": {
       "event": "evenement",
       "task": "taak",
-      "memory": "onthouden"
+      "memory": "onthouden",
+      "catalog": "actie uit de catalogus"
     },
     "answerPlaceholder": "Of typ je antwoord",
     "send": "Versturen",
@@ -1176,6 +1178,179 @@
       "findChip": "{name} kan ontbrekende taken zoeken",
       "finding": "{name} zoekt ontbrekende taken…",
       "dismiss": "Niet nu"
+    },
+    "promotion": {
+      "title": "Promotie",
+      "view": "Bekijk promotie",
+      "headline": "{open, plural, one {# promotietaak open} other {# promotietaken open}}",
+      "allDone": "Alle promotietaken zijn klaar.",
+      "overdue": "te laat",
+      "done": "klaar",
+      "next": "Volgende",
+      "dueOn": "tegen {date}",
+      "noDate": "geen datum",
+      "pending": "{count, plural, one {# voorstel van Mila} other {# voorstellen van Mila}} te bekijken",
+      "emptyTitle": "Nog geen promotieplan",
+      "emptyBody": "Mila stelt een plan voor dat past bij je publiek, je budget en de tijd die rest.",
+      "emptyBodyNoMila": "Plan hier hoe je het event bekend maakt.",
+      "emptyAction": "Maak promotieplan",
+      "emptyAfter": "Er waren geen promotietaken voor deze editie.",
+      "planAction": "Laat Mila een promotieplan maken"
+    }
+  },
+  "promotion": {
+    "title": "Promotie",
+    "audience": {
+      "title": "Publiek",
+      "subtitle": "Voor wie is dit event? Mila gebruikt het voor haar promotieplan.",
+      "edit": "Publiek bewerken",
+      "fill": "Publiek invullen",
+      "empty": "Nog niet ingevuld. Kies minstens één doelgroep, dan kan Mila een promotieplan maken.",
+      "audiences": "Doelgroepen",
+      "description": "Omschrijving publiek",
+      "descriptionPlaceholder": "Bv. ouders van de leden en de buurt",
+      "ages": "Leeftijd",
+      "ageMin": "Van",
+      "ageMax": "Tot",
+      "ageRange": "{min}–{max} jaar",
+      "region": "Regio of gemeente",
+      "regionPlaceholder": "Bv. Gent, Sint-Amandsberg",
+      "entry": "Toegang",
+      "free": "Gratis",
+      "paid": "Betalend",
+      "price": "Prijs",
+      "pitch": "Pitch",
+      "pitchHelp": "Wat maakt het de moeite? Hoogtepunten, artiesten, wat er te beleven valt.",
+      "budget": "Promotiebudget",
+      "budgetHelp": "Wat je aan promotie wil uitgeven. Leeg: Mila houdt het gratis of goedkoop.",
+      "reused": "Verwachte bezoekers, type en locatie komen uit de instellingen van het event.",
+      "expected": "Verwachte bezoekers",
+      "sizeBand": "Grootte",
+      "notFilled": "niet ingevuld",
+      "save": "Publiek opslaan",
+      "settingsLink": "Publiek en promotie",
+      "settingsLinkBody": "Wie je wil bereiken en hoeveel je aan promotie uitgeeft, vul je in op het tabblad Promotie.",
+      "validation": {
+        "descriptionTooLong": "Maximaal 1000 tekens.",
+        "regionTooLong": "Maximaal 120 tekens.",
+        "pitchTooLong": "Maximaal 2000 tekens.",
+        "ageInvalid": "Een leeftijd tussen 0 en 120.",
+        "ageOrder": "Tot mag niet lager zijn dan van.",
+        "priceRequired": "Vul een prijs in, of kies Gratis."
+      },
+      "visitors": "{count} bezoekers",
+      "budgetShort": "{available} van {budget} over",
+      "noBudgetShort": "Geen promotiebudget",
+      "editShort": "Bewerken",
+      "emptyShort": "Nog niet ingevuld. Mila heeft minstens één doelgroep nodig voor een plan."
+    },
+    "audienceOption": {
+      "children": "Kinderen (<12)",
+      "teens": "Tieners (12–16)",
+      "young_adults": "Jongeren 16–25",
+      "students": "Studenten",
+      "young_families": "Jonge gezinnen",
+      "families": "Gezinnen",
+      "adults": "Volwassenen",
+      "seniors": "Senioren",
+      "neighbours": "Buurtbewoners",
+      "associations": "Verenigingen/jeugdbewegingen",
+      "music_lovers": "Muziekliefhebbers",
+      "culture_lovers": "Cultuurliefhebbers",
+      "sporty": "Sportievelingen"
+    },
+    "plan": {
+      "subtitle": "Een promotieplan op maat van je publiek, budget en timing.",
+      "make": "Maak promotieplan",
+      "remake": "Nieuw plan",
+      "instruction": "Iets waar Mila rekening mee moet houden? (optioneel)",
+      "instructionPlaceholder": "Bv. meer Instagram, geen drukwerk",
+      "thinking": "Mila maakt je promotieplan…",
+      "failed": "Het plan maken lukte niet. Probeer het opnieuw.",
+      "blocked": "Kies eerst minstens één doelgroep in het Publiek, dan kan Mila een plan maken.",
+      "disabled": "Het event is begonnen of gearchiveerd: er komt geen nieuw promotieplan meer.",
+      "missing": "Het plan wordt beter met: {fields}.",
+      "missingLink": "Vul het Publiek aan",
+      "missingField": {
+        "pitch": "een pitch",
+        "expectedAttendance": "het verwachte aantal bezoekers"
+      },
+      "lastMinute": "Nog maar {days, plural, one {# dag} other {# dagen}} tot het event: Mila stelt alleen acties voor die nog op tijd kunnen.",
+      "replaces": "Een nieuw plan vervangt de voorstellen die nog openstaan. Wat je aanvaardde of afwees, blijft.",
+      "unavailable": "Mila is niet beschikbaar.",
+      "blockedError": "Vul eerst het Publiek in.",
+      "disabledError": "Voor dit event kan geen promotieplan meer gemaakt worden.",
+      "budgetLine": "{available} van {budget} promotiebudget over",
+      "noBudget": "Geen promotiebudget: Mila houdt het gratis of goedkoop.",
+      "addSelected": "{count, plural, =0 {Voeg geselecteerde toe} one {Voeg # actie toe} other {Voeg # acties toe}}",
+      "withBudgetLines": "Ook begrotingslijnen toevoegen",
+      "acceptTitle": "Promotieactie toevoegen",
+      "acceptSubtitle": "Pas de taak aan waar nodig. Ze krijgt het label Promotie.",
+      "withBudgetLine": "Ook begrotingslijn toevoegen ({amount}, geraamd)",
+      "addTask": "Taak toevoegen"
+    },
+    "action": {
+      "type": {
+        "offline": "Offline",
+        "social": "Sociale media",
+        "partnership": "Samenwerking",
+        "giveaway": "Wedstrijd",
+        "listing": "Agenda/listing",
+        "press": "Pers",
+        "word_of_mouth": "Mond-tot-mond"
+      },
+      "effort": {
+        "low": "Weinig werk",
+        "medium": "Wat werk",
+        "high": "Veel werk"
+      },
+      "free": "Gratis",
+      "audience": "Voor {audience}",
+      "howTo": "Hoe pak je het aan?"
+    },
+    "timeline": {
+      "title": "Tijdlijn",
+      "subtitle": "Wat gepland is en wat Mila voorstelt, per week voor het event.",
+      "week": "{weeks, plural, =0 {Eventweek} one {# week ervoor} other {# weken ervoor}}",
+      "overdue": "Te laat",
+      "noDate": "Zonder datum",
+      "empty": "Nog geen promotietaken of voorstellen.",
+      "task": "Taak",
+      "fromMila": "van Mila",
+      "proposal": "Voorstel",
+      "legend": {
+        "planned": "Gepland",
+        "done": "Klaar",
+        "overdue": "Te laat",
+        "suggestion": "Voorstel van Mila"
+      },
+      "suggestion": "Voorstel van Mila",
+      "eventNode": "Het event"
+    },
+    "metric": "{suggested} voorgesteld · {accepted} aanvaard · {done} klaar",
+    "readOnly": "Dit event is gearchiveerd: de promotie kan niet meer veranderen.",
+    "bar": {
+      "idle": "Zal ik je helpen met een promotieplan?",
+      "thinking": "{name} maakt je promotieplan…",
+      "suggestions": "{name} stelt {count, plural, one {# actie} other {# acties}} voor",
+      "suggestionsDetail": "Kies op de tijdlijn wat je wil doen. Wat je laat liggen, verdwijnt bij een nieuw plan.",
+      "planned": "Je promotieplan staat op de tijdlijn",
+      "blocked": "Vertel me eerst voor wie dit event is",
+      "blockedDetail": "Kies minstens één doelgroep in het Publiek, dan maak ik een plan.",
+      "disabled": "Het event is begonnen: er komt geen nieuw promotieplan meer",
+      "help": "Help me met een promotieplan",
+      "remake": "Nieuw plan"
+    },
+    "dialog": {
+      "title": "Promotieplan met {name}",
+      "description": "Ik stel concrete acties voor op maat van je publiek, budget en timing. Jij kiest wat je doet.",
+      "cancel": "Annuleren"
+    },
+    "own": {
+      "add": "Eigen actie",
+      "title": "Eigen promotieactie",
+      "description": "Een taak met het label Promotie. Mila ziet ze en plant eromheen.",
+      "save": "Actie toevoegen"
     }
   }
 }

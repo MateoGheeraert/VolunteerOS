@@ -7,6 +7,7 @@ import {
   FolderOpen,
   LayoutDashboard,
   ListChecks,
+  Megaphone,
   Settings,
   ShoppingBag,
   Users,
@@ -34,7 +35,7 @@ import { BrandLogo } from './brand-logo';
 
 type NavLabel =
   | `nav.${'events' | 'myTasks' | 'suppliers' | 'members'}`
-  | `eventTabs.${'overview' | 'tasks' | 'planning' | 'files' | 'budget' | 'suppliers' | 'settings'}`;
+  | `eventTabs.${'overview' | 'tasks' | 'planning' | 'promotion' | 'files' | 'budget' | 'suppliers' | 'settings'}`;
 
 interface NavItem {
   label: NavLabel;
@@ -57,6 +58,7 @@ function eventNav(eventId: string): NavItem[] {
     { label: 'eventTabs.overview', href: base, icon: LayoutDashboard, exact: true },
     { label: 'eventTabs.tasks', href: `${base}/tasks`, icon: ListChecks },
     { label: 'eventTabs.planning', href: `${base}/planning`, icon: CalendarClock },
+    { label: 'eventTabs.promotion', href: `${base}/promotion`, icon: Megaphone },
     { label: 'eventTabs.files', href: `${base}/files`, icon: FolderOpen },
     { label: 'eventTabs.budget', href: `${base}/budget`, icon: Wallet },
     { label: 'eventTabs.suppliers', href: `${base}/suppliers`, icon: ShoppingBag },

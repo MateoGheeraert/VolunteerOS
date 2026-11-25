@@ -7,6 +7,7 @@ import { BudgetCard } from '@/features/overview/budget-card';
 import { CountdownCard } from '@/features/overview/countdown-card';
 import { OverviewHeader } from '@/features/overview/overview-header';
 import { PlanningCard } from '@/features/overview/planning-card';
+import { PromotionCard } from '@/features/overview/promotion-card';
 import { TasksCard } from '@/features/overview/tasks-card';
 import { TasksProvider } from '@/features/tasks/tasks-context';
 import { canManageEvent, getEvent, getEventOverview } from '@/server/events/queries';
@@ -42,6 +43,7 @@ async function EventOverview({ params }: Pick<PageProps<'/events/[eventId]'>, 'p
       <div className="contents lg:flex lg:flex-col lg:gap-5">
         <CountdownCard {...cards} className="order-1" />
         <BudgetCard {...cards} className="order-4" />
+        <PromotionCard {...cards} className="order-5" />
       </div>
       <div className="contents lg:col-span-2 lg:flex lg:flex-col lg:gap-5">
         <TasksCard {...cards} className="order-2" />

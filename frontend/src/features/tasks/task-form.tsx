@@ -4,6 +4,7 @@ import { TriangleAlert } from 'lucide-react';
 import type { SingleInputActionFn } from 'next-safe-action/hooks';
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
+import type { ReactNode } from 'react';
 import { Controller, useWatch } from 'react-hook-form';
 import { FormError, FormFieldError } from '@/components/form-error';
 import { useOutsideSave, type OutsideSave } from '@/components/layout/modal-actions';
@@ -46,6 +47,7 @@ export function TaskForm({
   submitLabel,
   outsideSave,
   currentAssignee,
+  extra,
 }: {
   event: { id: string; endsAt: string };
   onDone: () => void;
@@ -57,6 +59,8 @@ export function TaskForm({
   outsideSave?: OutsideSave;
   /** Editing: the assignee now, so someone who left the organization stays selectable. */
   currentAssignee?: { userId: string; name: string };
+  /** Below the fields, above the buttons: e.g. accepting a promo action's budget-line option. */
+  extra?: ReactNode;
 }) {
   const t = useTranslations();
   const router = useRouter();
@@ -206,6 +210,7 @@ export function TaskForm({
         />
       </FieldGroup>
 
+      {extra}
       <FormError message={formError} />
       {!outsideSave && (
         <div className="flex flex-wrap gap-2">

@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
+import { ArrowRight } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
+import Link from 'next/link';
 import { Suspense } from 'react';
 import { FormError } from '@/components/form-error';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -41,6 +43,17 @@ async function EventSettings({ params }: Pick<PageProps<'/events/[eventId]/setti
           editions={editionOptions(events, event.id)}
           readOnly={archived}
         />
+      </section>
+      <section className="flex flex-col gap-2 rounded-card bg-card p-5 shadow-soft sm:p-8">
+        <h2 className="text-lg">{t('promotion.audience.settingsLink')}</h2>
+        <p className="text-sm text-muted-foreground">{t('promotion.audience.settingsLinkBody')}</p>
+        <Link
+          href={`/events/${event.id}/promotion?publiek=open`}
+          className="inline-flex items-center gap-1.5 self-start text-sm font-bold text-brand-primary-bright underline-offset-4 hover:underline"
+        >
+          {t('promotion.audience.title')}
+          <ArrowRight className="size-4" aria-hidden />
+        </Link>
       </section>
       <EventStatusSettings event={event} />
       {!archived && <ArchiveEvent eventId={event.id} />}
