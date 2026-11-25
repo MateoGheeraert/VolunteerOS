@@ -690,6 +690,63 @@ Not built yet, on purpose:
 
 MVP does not require order management, contract management, or invoice processing.
 
+### 7.11 Mila: Promotieplan (decided 25 November 2026)
+
+Volunteer organizers promote their event with whatever they did last year. Mila proposes a promotion plan that fits the event's audience, size, budget and remaining time, grounded in a fixed catalogue of Flemish promotion actions and in what the previous edition did. She only proposes; every action becomes a normal task (and optionally a budget line) when the organizer accepts it.
+
+**Publiek (the event's audience), lean on purpose.**
+
+- Its own table, `event_audience` (one row per event), edited in a Dialog from a one-line card at the bottom of the event's new **Promotie** tab. "Betalend" needs a price above zero. Event settings links to it.
+- Fields, all optional:
+  - **Doelgroepen**, multi-select from a fixed list: kinderen (<12), tieners (12–16), jongeren 16–25, studenten, jonge gezinnen, gezinnen, volwassenen, senioren, buurtbewoners, verenigingen/jeugdbewegingen, muziekliefhebbers, cultuurliefhebbers, sportievelingen.
+  - **Omschrijving publiek**: free text.
+  - **Leeftijd** from–to.
+  - **Regio/gemeente**.
+  - **Toegang**: free, or a price in € (`entry_price_cents`: 0 is free, empty is not filled in).
+  - **Pitch**: what makes it worth coming, highlights and acts.
+  - **Promotiebudget** (€).
+- Expected attendance, event type and location stay on the event and are reused, not copied.
+- A new edition (created with `previousEditionId`) gets a copy of the previous edition's Publiek.
+- Out of scope: program, opening hours, practical info.
+
+**Size band**, computed in code from expected attendance and passed to Mila: S below 300, M 300–2000, L above 2000. No band without expected attendance.
+
+**Catalogue.** About 30 Flemish promotion actions as typed constants in the backend (`src/ai/promotion-plan/promotion-catalog.ts`): posters in local shops, flyers at schools and hogescholen, a line-up reveal series, a ticket giveaway with a partner, a UiTinVlaanderen listing, the municipal info magazine, a story takeover, word of mouth through the jeugdbewegingen, a WhatsApp chain, and so on. Each action has a key, a type (offline, social, partnership, giveaway, listing, press, word of mouth), the audiences and size bands it suits, a lead time in weeks before the event, a cost range, an effort (low, medium, high) and a how-to template. Mila only sees the actions that fit the size band, the time left and the budget.
+
+**The plan run.** A queued run of the new feature `promotion_plan`, started from the Promotie tab, producing suggestions of the new kind `promo_action`.
+
+- 6–10 actions, each with a type, target audience, weeks before the event, estimated cost, effort, why it fits, and a how-to.
+- Context: the event, its Publiek and size band, the filtered catalogue (records C1…), the previous edition's history (records P1…), the Promotie tasks already planned, and the organizer's optional instruction.
+- Every action must cite a catalogue item or a past-edition task. The planner drops uncited ones: Mila may adapt an action (the wording, the cost, the timing) but not invent one.
+- The total estimated cost is checked **in code** against the promotiebudget minus what the Promotie-labelled budget lines already cost (actual amount, else the estimate). Over budget, the plan is trimmed: actions are kept in Mila's order while they fit, free ones always fit. Without a promotiebudget only free or cheap actions (at most €50 each) are allowed.
+- Due date = event start minus `weeksBefore` weeks, never before today.
+
+**History** (from the previous edition): its Promotie-labelled tasks and whether they were done, the budget lines labelled Promotie or linked to those tasks with their notes (so "Te laat geleverd: dit jaar een andere drukker" comes through), the retrospective, and expected against actual visitors. Ratings come later (card 128).
+
+**Guards**, decided in code and shown on the tab:
+
+- Blocked when the audience (no doelgroep chosen) is missing. (The event date is always set.)
+- A warning listing the missing fields, with a link to Publiek, when the pitch or the expected attendance is missing.
+- Less than 3 weeks before the start: a warning, and only last-minute actions (lead time within the weeks left).
+- Once the event has started, and on archived events: disabled.
+
+**Regenerate** replaces the pending promo suggestions only: they are closed, and the new run's actions are saved. Rejected and accepted actions never come back. An optional instruction box lets the organizer steer the run ("meer Instagram, geen drukwerk"); it is stored on the run (`ai_run.instruction`).
+
+**Accept** opens the TaskForm, prefilled: the action's title, the how-to as description, the due date, and the **Promotie** label (created, purple, when the event has none; the server always adds it). Everything is editable before saving. "Voeg geselecteerde toe" adds several as they are. A checkbox "Ook begrotingslijn toevoegen" also creates an estimated expense with the action's cost, labelled Promotie and linked to the new task. The task, the label and the budget line carry the suggestion as their source in the activity log.
+
+**The Promotie tab:**
+
+- Mila on top, in one line (like on the task page): what she is doing and one button. "Help me met een promotieplan" (or "Nieuw plan") opens a dialog with the guards' warnings, the budget she works with and the optional instruction. Blocked: the button opens the Publiek instead.
+- A timeline: a vertical line with dots, in weeks before the event, ending at the event itself (tasks without a due date after it). Promotie tasks are solid dots (green with a check when done, red when overdue, in a red "Te laat" group on top) on white rows, with a "van Mila" badge when they came from her plan. Mila's pending actions are dashed dots on dashed lavender cards marked "Voorstel van Mila". A legend and the pilot metric "X voorgesteld · Y aanvaard · Z klaar" (actions suggested ever, accepted, and accepted ones whose task is done) sit above the line.
+- **Eigen actie**: managers add their own promotion action from the timeline, in the task dialog with the Promotie label already on (`POST /events/:id/promotion/tasks` adds the label server-side, creating it when the event has none). Mila's context lists every Promotie task as already planned, so she plans around them.
+- The Publiek at the bottom, in one line once filled in (audiences, visitors and size band, entry, promotion budget left, ages, region); the pitch and descriptions stay in its dialog.
+
+**Dashboard card "Promotie"** (§7.2): the open and overdue Promotie tasks, the next one with its due date, and "Maak promotieplan" when there is no plan yet (no promo suggestion ever). Red when `overduePromoTasks` (a pure, unit-tested rule in `overview-rules.ts`) finds an overdue Promotie task; neutral without Promotie tasks; green otherwise.
+
+**Evals** (`pnpm ai:eval`, `promotion-plan.fixtures.ts`): a student party (16–25, M), a family day (gezinnen, S, no budget), the Kerstmarkt with history (the late printer note must come through), a nearly empty Publiek, and an event in two weeks. Code checks: different catalogue picks for the student party and the family day, cost within budget, no due dates in the past, everything cited.
+
+Out of scope: writing the posts' text (a separate card), ratings, program and practical info.
+
 ---
 
 ## 8. P1 — First Major Release
@@ -1289,6 +1346,18 @@ Implemented as `user_profile`: personal details, one row per user (`userId` is t
 - retrospective (lessons learned, for the next edition)
 - createdAt
 - updatedAt
+
+### EventAudience (§7.11)
+
+- id
+- eventId (one per event; copied to the next edition)
+- audiences (fixed list)
+- description
+- ageMin, ageMax
+- region
+- entryPriceCents (0 is free entry, empty is not filled in)
+- pitch
+- promotionBudgetCents
 
 ### EventMember
 

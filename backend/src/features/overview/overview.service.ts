@@ -5,6 +5,7 @@ import type { OrgContext } from '../../authz/org-context.js';
 import type { AiSuggestionKind } from '../../db/schema/index.js';
 import { isReadOnly } from '../events/event-status.js';
 import { todayInBrussels } from '../profile/profile-rules.js';
+import { PromotionRepository } from '../promotion/promotion.repository.js';
 import { canSeeTask, isUnassigned } from '../tasks/task-rules.js';
 import {
   budgetStatus,
@@ -13,8 +14,10 @@ import {
   daysUntil,
   isOverdue,
   nextTasks,
+  overduePromoTasks,
   phaseOf,
   planningStatus,
+  promotionStatus,
   selectHints,
   statusSuggestion,
   taskStats,
@@ -32,6 +35,7 @@ const NEXT_TASKS = 3;
 export class OverviewService {
   constructor(
     private readonly overview: OverviewRepository,
+    private readonly promotion: PromotionRepository,
     @Inject(AI_MODEL_RESOLVER) private readonly ai: AiModelResolver,
   ) {}
 
@@ -88,6 +92,17 @@ export class OverviewService {
     // Budget.
     const totals = budgetTotals(entries);
 
+    // Promotion: the Promotie tasks the caller may see, and whether Mila made a plan.
+    const [promoRows, promoSuggestions] = await Promise.all([
+      this.promotion.listPromotionTasks(event.id),
+      this.promotion.listPromoSuggestions(event.id),
+    ]);
+    const promoTasks = promoRows.filter((row) => canSeeTask(viewer, row));
+    const [nextPromo] = nextTasks(
+      promoTasks.map((row) => ({ ...row, assigned: !isUnassigned(row) })),
+      1,
+    );
+
     // Mila: only for those who may act on what she proposes.
     const milaEnabled = canManage && this.ai.enabled;
     const suggestion = canManage ? statusSuggestion(event, now) : null;
@@ -137,6 +152,24 @@ export class OverviewService {
         })),
       },
       planning,
+      promotion: {
+        status: promotionStatus(promoTasks, today),
+        open: promoTasks.filter((row) => row.status !== 'done').length,
+        overdue: overduePromoTasks(promoTasks, today).length,
+        done: promoTasks.filter((row) => row.status === 'done').length,
+        next: nextPromo
+          ? {
+              id: nextPromo.id,
+              title: nextPromo.title,
+              dueDate: nextPromo.dueDate,
+              overdue: isOverdue(nextPromo.dueDate, today),
+            }
+          : null,
+        hasPlan: promoSuggestions.length > 0,
+        pendingActions: canManage
+          ? promoSuggestions.filter((row) => row.status === 'pending').length
+          : 0,
+      },
       budget: {
         status: budgetStatus({ entryCount: entries.length, totals, phase }),
         entryCount: entries.length,

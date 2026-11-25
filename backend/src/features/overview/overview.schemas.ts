@@ -91,6 +91,27 @@ export const overviewSchema = z
       result: amounts,
       supplierCount: count(),
     }),
+    /** The Promotie tasks and Mila's plan (docs/info.md §7.11). */
+    promotion: z.object({
+      status: cardStatus,
+      /** Promotie tasks the caller may see: not done yet, and overdue among them. */
+      open: count(),
+      overdue: count(),
+      done: count(),
+      /** The first unfinished one: overdue or soonest due first. */
+      next: z
+        .object({
+          id: z.uuid(),
+          title: z.string(),
+          dueDate: z.iso.date().nullable(),
+          overdue: z.boolean(),
+        })
+        .nullable(),
+      /** Mila ever proposed a plan for this event; without one the card offers to make it. */
+      hasPlan: z.boolean(),
+      /** Her actions waiting for a decision. */
+      pendingActions: count(),
+    }),
     mila: z.object({
       /** Mila is available (an API key is configured) and the caller manages the event. */
       enabled: z.boolean(),

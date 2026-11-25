@@ -13,6 +13,7 @@ export const FEATURE_MODELS: Record<AiFeature, { primary: ModelId; fallback: Mod
   // Placeholder: pick the model and fill in its price below.
   task_suggestions: { primary: 'openai:gpt-5.4-mini', fallback: null },
   task_drafting: { primary: 'openai:gpt-5.4-mini', fallback: null },
+  promotion_plan: { primary: 'openai:gpt-5.4-mini', fallback: null },
 };
 
 export interface ModelPrice {

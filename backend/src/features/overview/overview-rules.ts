@@ -346,3 +346,22 @@ function findMissingIsStale(input: HintInput): boolean {
   const age = input.now.getTime() - input.lastFindMissing.finishedAt.getTime();
   return age > FIND_MISSING_STALE_DAYS * DAY_MS;
 }
+
+// ── Promotion ──────────────────────────────────────────────────────────────────────────────────
+
+export interface OverviewPromoTask {
+  status: TaskStatus;
+  /** "YYYY-MM-DD" or null. */
+  dueDate: string | null;
+}
+
+/** The unfinished Promotie tasks whose due day is before today (Brussels, "YYYY-MM-DD"). */
+export function overduePromoTasks<T extends OverviewPromoTask>(tasks: T[], today: string): T[] {
+  return tasks.filter((task) => task.status !== 'done' && isOverdue(task.dueDate, today));
+}
+
+/** Red when a Promotie task is overdue; neutral without Promotie tasks; green otherwise. */
+export function promotionStatus(tasks: OverviewPromoTask[], today: string): CardStatus {
+  if (tasks.length === 0) return 'neutral';
+  return overduePromoTasks(tasks, today).length > 0 ? 'bad' : 'ok';
+}

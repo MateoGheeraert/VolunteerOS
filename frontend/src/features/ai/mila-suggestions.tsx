@@ -27,7 +27,10 @@ import { EventUpdateCard, QuestionCard, TaskSuggestionCard } from './suggestion-
 /** Mila's run and pending suggestions on an event, worked out once for every view of them. */
 export function useMilaState(state: AiEventState, showOnly?: AiSuggestion['kind']) {
   const run = state.runs.find((candidate) => candidate.feature === 'task_suggestions');
-  const suggestions = state.suggestions.filter((s) => !showOnly || s.kind === showOnly);
+  // Promo actions live on the Promotie tab, with their own plan run.
+  const suggestions = state.suggestions.filter(
+    (s) => s.kind !== 'promo_action' && (!showOnly || s.kind === showOnly),
+  );
   return {
     thinking: run?.status === 'queued' || run?.status === 'running',
     failed: run?.status === 'failed',
