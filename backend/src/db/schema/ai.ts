@@ -32,13 +32,22 @@ const updatedAt = timestamp('updated_at', { withTimezone: true })
   .defaultNow()
   .$onUpdate(() => new Date());
 
-/** What an AI run does. One value per feature. */
-/** `task_drafting`: turning an organizer's own list into tasks, while they wait. */
-/** `promotion_plan`: a promotion plan for the event's audience (docs/info.md §7.11). */
+/**
+ * What an AI run does. One value per feature.
+ *
+ * - `task_drafting`: turning an organizer's own list into tasks, while they wait.
+ * - `promotion_plan`: a promotion plan for the event's audience (docs/info.md §7.11).
+ * - `shift_suggestions`: teams and shifts for the planning (docs/info.md §7.7.1 A).
+ * - `rule_drafting`: the organizer's text about people as planning rules, while they wait.
+ * - `allocation`: reading the volunteers' notes, then the solver's proposal of who goes where.
+ */
 export const aiFeatureEnum = pgEnum('ai_feature', [
   'task_suggestions',
   'task_drafting',
   'promotion_plan',
+  'shift_suggestions',
+  'rule_drafting',
+  'allocation',
 ]);
 /** What started a run: a person asking, or something that happened. */
 export const aiTriggerEnum = pgEnum('ai_trigger', [
@@ -58,6 +67,11 @@ export const aiSuggestionKindEnum = pgEnum('ai_suggestion_kind', [
   'question',
   'update_event',
   'promo_action',
+  // The planning page (docs/info.md §7.7.1).
+  'team_suggestion',
+  'shift_change',
+  'planning_rule',
+  'allocation',
 ]);
 /**
  * `dismissed_stale`: closed by the agent because its cause went away (the task was created by

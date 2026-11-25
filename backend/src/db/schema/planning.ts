@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm';
 import {
+  type AnyPgColumn,
   boolean,
   check,
   index,
@@ -179,7 +180,10 @@ export const assignment = pgTable(
       .notNull()
       .references(() => shift.id, { onDelete: 'cascade' }),
     status: assignmentStatusEnum('status').notNull().default('proposed'),
-    /** Who placed it; null when it wasn't a signed-in user (later: the AI agent). */
+    /**
+     * Who placed it; null when it wasn't a signed-in user. Accepting Mila's allocation places
+     * as the organizer who accepted, with her proposal as the source in the activity log.
+     */
     assignedByUserId: text('assigned_by_user_id').references(() => user.id),
     createdAt,
     updatedAt,
@@ -193,8 +197,95 @@ export const assignment = pgTable(
   ],
 );
 
+/**
+ * What a planning rule says (docs/info.md §7.7.1 B). Hard rules the solver never breaks:
+ * `not_team`, `only_team`, `never_together`, `max_shifts`, `not_before`, `not_after`. Soft rules
+ * it weighs: `prefers_team`, `prefer_together`.
+ */
+export const planningRuleKindEnum = pgEnum('planning_rule_kind', [
+  'not_team',
+  'only_team',
+  'never_together',
+  'max_shifts',
+  'not_before',
+  'not_after',
+  'prefers_team',
+  'prefer_together',
+]);
+export type PlanningRuleKind = (typeof planningRuleKindEnum.enumValues)[number];
+
+/** Who said it: the organizer (typed, or told Mila), or the volunteer in their note. */
+export const planningRuleSourceEnum = pgEnum('planning_rule_source', [
+  'organizer',
+  'volunteer_note',
+]);
+export type PlanningRuleSource = (typeof planningRuleSourceEnum.enumValues)[number];
+
+/**
+ * The organizer's knowledge about a volunteer that the allocation must respect. Always about a
+ * volunteer (and a second one for the pair rules). Teams are named rather than linked, and
+ * times are Brussels clock times, so a rule still means something at the next edition.
+ * - `event_id` null: a person rule of the organization, for every event.
+ * - `event_id` set: for this event only; copied when its next edition is created.
+ */
+export const planningRule = pgTable(
+  'planning_rule',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    organizationId: text('organization_id')
+      .notNull()
+      .references(() => organization.id, { onDelete: 'cascade' }),
+    eventId: uuid('event_id').references(() => event.id, { onDelete: 'cascade' }),
+    kind: planningRuleKindEnum('kind').notNull(),
+    volunteerId: uuid('volunteer_id')
+      .notNull()
+      .references(() => volunteer.id, { onDelete: 'cascade' }),
+    /** The other person of `never_together` and `prefer_together`. */
+    otherVolunteerId: uuid('other_volunteer_id').references(() => volunteer.id, {
+      onDelete: 'cascade',
+    }),
+    /** `not_team`, `only_team`, `prefers_team`: matched to the event's teams ignoring case. */
+    teamName: text('team_name'),
+    /** `max_shifts`. */
+    maxShifts: integer('max_shifts'),
+    /** `not_before`, `not_after`: a Brussels clock time, `HH:MM`. */
+    time: text('time'),
+    source: planningRuleSourceEnum('source').notNull(),
+    copiedFromId: uuid('copied_from_id').references((): AnyPgColumn => planningRule.id, {
+      onDelete: 'set null',
+    }),
+    createdByUserId: text('created_by_user_id').references(() => user.id, {
+      onDelete: 'set null',
+    }),
+    createdAt,
+    updatedAt,
+    deletedAt: deletedAt(),
+  },
+  (t) => [
+    index('planning_rule_organization_idx').on(t.organizationId),
+    index('planning_rule_event_idx').on(t.eventId),
+    index('planning_rule_volunteer_idx').on(t.volunteerId),
+    // Each kind has exactly the fields it needs.
+    check(
+      'planning_rule_fields',
+      sql`case ${t.kind}
+        when 'not_team' then ${t.teamName} is not null and ${t.otherVolunteerId} is null and ${t.maxShifts} is null and ${t.time} is null
+        when 'only_team' then ${t.teamName} is not null and ${t.otherVolunteerId} is null and ${t.maxShifts} is null and ${t.time} is null
+        when 'prefers_team' then ${t.teamName} is not null and ${t.otherVolunteerId} is null and ${t.maxShifts} is null and ${t.time} is null
+        when 'never_together' then ${t.otherVolunteerId} is not null and ${t.teamName} is null and ${t.maxShifts} is null and ${t.time} is null
+        when 'prefer_together' then ${t.otherVolunteerId} is not null and ${t.teamName} is null and ${t.maxShifts} is null and ${t.time} is null
+        when 'max_shifts' then ${t.maxShifts} is not null and ${t.maxShifts} >= 0 and ${t.teamName} is null and ${t.otherVolunteerId} is null and ${t.time} is null
+        else ${t.time} is not null and ${t.time} ~ '^([01][0-9]|2[0-3]):[0-5][0-9]$' and ${t.teamName} is null and ${t.otherVolunteerId} is null and ${t.maxShifts} is null
+      end`,
+    ),
+    check('planning_rule_other_person', sql`${t.otherVolunteerId} <> ${t.volunteerId}`),
+  ],
+);
+
 export type TeamRow = typeof team.$inferSelect;
 export type ShiftRow = typeof shift.$inferSelect;
 export type VolunteerRow = typeof volunteer.$inferSelect;
 export type VolunteerApplicationRow = typeof volunteerApplication.$inferSelect;
 export type AssignmentRow = typeof assignment.$inferSelect;
+export type PlanningRuleRow = typeof planningRule.$inferSelect;
+export type NewPlanningRuleRow = typeof planningRule.$inferInsert;
