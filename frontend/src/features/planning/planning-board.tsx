@@ -65,6 +65,7 @@ import {
   notifyVolunteer,
   unassign,
 } from '@/server/planning/actions';
+import { AcceptShiftDrafts, MilaDraftChip, type Proposal } from '@/features/ai/planning/allocation';
 import { useConfirm } from './confirm-dialog';
 import {
   checkPlacement,
@@ -104,6 +105,18 @@ type Dragged =
 
 const PANEL_DROP_ID = 'panel';
 
+/** Where Mila's team and shift proposals go in the board (docs/info.md §7.7.1 A). */
+export interface BoardMilaSlots {
+  /** Days Mila proposes shifts on, so the day tabs also offer days without a shift yet. */
+  days: string[];
+  /** Proposed new teams, as lanes below the real ones, for the day shown; null when none. */
+  lanes: (day: string) => ReactNode;
+  /** Proposed extra shifts for a team, for the day shown; null when none. */
+  extraShifts: (teamId: string, day: string) => ReactNode;
+  /** A proposal on one shift (another capacity); null when none. */
+  onShift: (shiftId: string) => ReactNode;
+}
+
 /**
  * The planning board: a lane per team with its shifts and their coverage, and on the right the
  * volunteers who signed up. Drag volunteers onto shifts (a proposal), confirm them, then publish.
@@ -114,11 +127,17 @@ export function PlanningBoard({
   planning,
   canManage,
   readOnly,
+  proposal = null,
+  mila = null,
 }: {
   event: Event;
   planning: Planning;
   canManage: boolean;
   readOnly: boolean;
+  /** Mila's open allocation: her draft chips on the shifts (docs/info.md §7.7.1 C). */
+  proposal?: Proposal | null;
+  /** Mila's team and shift proposals, shown in the schedule itself. */
+  mila?: BoardMilaSlots | null;
 }) {
   const t = useTranslations();
   const editable = canManage && !readOnly;
@@ -136,7 +155,8 @@ export function PlanningBoard({
     if (!dragging.current) setPane({ kind: 'volunteer', applicationId: application.id });
   };
 
-  const days = shiftDays(planning.shifts);
+  const days = [...new Set([...shiftDays(planning.shifts), ...(mila?.days ?? [])])].toSorted();
+  const suggestedLanes = mila?.lanes(day) ?? null;
   const visibleShifts =
     day === 'all' ? planning.shifts : planning.shifts.filter((s) => shiftDay(s) === day);
   const applicationById = new Map(planning.applications.map((a) => [a.id, a]));
@@ -348,28 +368,33 @@ export function PlanningBoard({
 
         <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_18rem]">
           <div className="flex min-w-0 flex-col gap-6">
-            {planning.teams.length === 0 ? (
-              <EmptyTeams eventId={event.id} editable={editable} />
-            ) : (
-              planning.teams.map((team) => (
-                <TeamLane
-                  key={team.id}
-                  team={team}
-                  shifts={visibleShifts.filter((s) => s.teamId === team.id)}
-                  allTeamShifts={planning.shifts.filter((s) => s.teamId === team.id)}
-                  applications={planning.applications}
-                  dragged={dragged}
-                  editable={editable}
-                  pending={pending}
-                  onEditTeam={() => setPane({ kind: 'team', teamId: team.id })}
-                  onAddShift={() => setPane({ kind: 'newShift', values: newShiftValues(team) })}
-                  onEditShift={(shift) => setPane({ kind: 'shift', shiftId: shift.id })}
-                  onConfirm={(assignment) => run(() => confirmAssignment(event.id, assignment.id))}
-                  onRemove={(assignment, application) => void remove(assignment, application)}
-                  onOpenVolunteer={openVolunteer}
-                />
-              ))
-            )}
+            {planning.teams.length === 0
+              ? // Mila's proposed teams stand in for the empty state until you decide on them.
+                !suggestedLanes && <EmptyTeams eventId={event.id} editable={editable} />
+              : planning.teams.map((team) => (
+                  <TeamLane
+                    key={team.id}
+                    team={team}
+                    shifts={visibleShifts.filter((s) => s.teamId === team.id)}
+                    allTeamShifts={planning.shifts.filter((s) => s.teamId === team.id)}
+                    applications={planning.applications}
+                    dragged={dragged}
+                    editable={editable}
+                    pending={pending}
+                    onEditTeam={() => setPane({ kind: 'team', teamId: team.id })}
+                    onAddShift={() => setPane({ kind: 'newShift', values: newShiftValues(team) })}
+                    onEditShift={(shift) => setPane({ kind: 'shift', shiftId: shift.id })}
+                    onConfirm={(assignment) =>
+                      run(() => confirmAssignment(event.id, assignment.id))
+                    }
+                    onRemove={(assignment, application) => void remove(assignment, application)}
+                    onOpenVolunteer={openVolunteer}
+                    proposal={proposal}
+                    extraShifts={mila?.extraShifts(team.id, day) ?? null}
+                    onShift={mila?.onShift}
+                  />
+                ))}
+            {suggestedLanes}
             {editable && planning.teams.length > 0 && (
               <AddTeam eventId={event.id} teams={planning.teams} />
             )}
@@ -382,6 +407,7 @@ export function PlanningBoard({
             onAdd={() => setPane({ kind: 'newVolunteer' })}
             onOpen={openVolunteer}
             onNotify={(application) => void notify(application)}
+            proposal={proposal}
           />
         </div>
       </div>
@@ -769,6 +795,9 @@ function TeamLane({
   onConfirm,
   onRemove,
   onOpenVolunteer,
+  proposal,
+  extraShifts,
+  onShift,
 }: {
   team: Team;
   shifts: Shift[];
@@ -783,6 +812,10 @@ function TeamLane({
   onConfirm: (assignment: Assignment) => void;
   onRemove: (assignment: Assignment, application: Application) => void;
   onOpenVolunteer: (application: Application) => void;
+  proposal: Proposal | null;
+  /** Mila's proposed extra shifts for this team, after its own. */
+  extraShifts: ReactNode;
+  onShift?: (shiftId: string) => ReactNode;
 }) {
   const t = useTranslations();
   const totals = teamCoverage(allTeamShifts);
@@ -840,7 +873,7 @@ function TeamLane({
           </div>
         )}
       </header>
-      {shifts.length === 0 ? (
+      {shifts.length === 0 && !extraShifts ? (
         <p className="px-1 pb-1 text-sm text-muted-foreground">
           {allTeamShifts.length === 0
             ? t('planning.shifts.none')
@@ -860,8 +893,11 @@ function TeamLane({
               onConfirm={onConfirm}
               onRemove={onRemove}
               onOpenVolunteer={onOpenVolunteer}
+              proposal={proposal}
+              milaNote={onShift?.(shift.id) ?? null}
             />
           ))}
+          {extraShifts}
         </div>
       )}
     </section>
@@ -878,6 +914,8 @@ function ShiftCard({
   onConfirm,
   onRemove,
   onOpenVolunteer,
+  proposal,
+  milaNote,
 }: {
   shift: Shift;
   applications: Application[];
@@ -888,6 +926,9 @@ function ShiftCard({
   onConfirm: (assignment: Assignment) => void;
   onRemove: (assignment: Assignment, application: Application) => void;
   onOpenVolunteer: (application: Application) => void;
+  proposal: Proposal | null;
+  /** Mila's proposal on this shift (another capacity). */
+  milaNote: ReactNode;
 }) {
   const t = useTranslations();
   const { setNodeRef, isOver } = useDroppable({ id: shift.id, disabled: !editable });
@@ -897,6 +938,9 @@ function ShiftCard({
       .filter((a) => a.shiftId === shift.id)
       .map((assignment) => ({ assignment, application })),
   );
+  const drafts = proposal?.placements.filter((p) => p.shiftId === shift.id) ?? [];
+  const nameOf = (applicationId: string) =>
+    applications.find((a) => a.id === applicationId)?.name ?? '';
   // While dragging: the shifts the volunteer marked light up green, the others fade a little.
   const marked = dragged ? isAvailable(dragged.application, shift.id) : false;
 
@@ -952,7 +996,7 @@ function ShiftCard({
         </span>
       )}
       <ul className="flex min-h-9 flex-wrap gap-1.5">
-        {people.length === 0 && (
+        {people.length === 0 && drafts.length === 0 && (
           <li className="text-sm text-muted-foreground/80">
             {editable ? t('planning.board.dropHere') : t('planning.board.nobody')}
           </li>
@@ -970,7 +1014,20 @@ function ShiftCard({
             />
           </li>
         ))}
+        {proposal &&
+          drafts.map((placement) => (
+            <li key={`draft:${placement.applicationId}`}>
+              <MilaDraftChip
+                name={nameOf(placement.applicationId)}
+                placement={placement}
+                proposal={proposal}
+                editable={editable}
+              />
+            </li>
+          ))}
       </ul>
+      {proposal && editable && <AcceptShiftDrafts placements={drafts} proposal={proposal} />}
+      {milaNote}
     </article>
   );
 }
@@ -1097,6 +1154,7 @@ function VolunteerPanel({
   onAdd,
   onOpen,
   onNotify,
+  proposal,
 }: {
   event: Event;
   planning: Planning;
@@ -1105,6 +1163,7 @@ function VolunteerPanel({
   onAdd: () => void;
   onOpen: (application: Application) => void;
   onNotify: (application: Application) => void;
+  proposal: Proposal | null;
 }) {
   const t = useTranslations();
   const [filters, setFilters] = useState<VolunteerFilters>({ search: '', teamId: 'all' });
@@ -1189,6 +1248,10 @@ function VolunteerPanel({
               pending={pending}
               onOpen={() => onOpen(application)}
               onNotify={() => onNotify(application)}
+              drafts={proposal?.placements.filter((p) => p.applicationId === application.id) ?? []}
+              shifts={planning.shifts}
+              teamNames={teamName}
+              proposal={proposal}
             />
           </li>
         ))}
@@ -1205,6 +1268,10 @@ function VolunteerCard({
   pending,
   onOpen,
   onNotify,
+  drafts,
+  shifts,
+  teamNames,
+  proposal,
 }: {
   application: Application;
   event: Event;
@@ -1213,6 +1280,11 @@ function VolunteerCard({
   pending: boolean;
   onOpen: () => void;
   onNotify: () => void;
+  /** Mila's proposed shifts for this person. */
+  drafts: Proposal['placements'];
+  shifts: Shift[];
+  teamNames: Map<string, string>;
+  proposal: Proposal | null;
 }) {
   const t = useTranslations();
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
@@ -1299,6 +1371,34 @@ function VolunteerCard({
             <ContactDetails application={application} />
           </PopoverContent>
         </Popover>
+      )}
+      {proposal && drafts.length > 0 && (
+        <div className="flex w-full items-center justify-between gap-2 border-t border-mila-tint-strong/60 pt-2">
+          <span className="text-xs font-bold text-mila-ink">
+            {t('milaPlanning.allocation.personDrafts', {
+              shifts: drafts
+                .map((draft) => {
+                  const shift = shifts.find((s) => s.id === draft.shiftId);
+                  return shift
+                    ? `${teamNames.get(shift.teamId) ?? ''} ${formatShiftTime(shift.startsAt, shift.endsAt)}`
+                    : '';
+                })
+                .join(', '),
+            })}
+          </span>
+          {editable && (
+            <Button
+              size="xs"
+              variant="mila-soft"
+              disabled={proposal.busy}
+              onClick={() => proposal.accept(drafts)}
+              aria-label={t('milaPlanning.allocation.acceptPerson', { name: application.name })}
+            >
+              <Check data-icon="inline-start" aria-hidden />
+              {t('milaPlanning.allocation.take')}
+            </Button>
+          )}
+        </div>
       )}
       {application.pendingNotice && (
         <div className="flex w-full items-center justify-between gap-2 border-t border-status-warn-bg pt-2">
