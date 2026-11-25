@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { dateTimeOutput } from '../common/schemas.js';
+import { aiFeatureEnum } from '../db/schema/index.js';
 import { createTaskSchema } from '../features/tasks/tasks.schemas.js';
 import {
   citationSchema,
@@ -9,6 +10,12 @@ import {
   taskSuggestionPayloadSchema,
   updateEventPayloadSchema,
 } from './ai.types.js';
+import {
+  allocationPayloadSchema,
+  planningRulePayloadSchema,
+  shiftChangePayloadSchema,
+  teamSuggestionPayloadSchema,
+} from './planning/planning-payloads.js';
 
 /** API contracts for the AI agent: runs, suggestions, memory and usage. */
 
@@ -49,6 +56,31 @@ export const aiSuggestionSchema = z
       payload: promoActionPayloadSchema.meta({ id: 'AiPromoActionPayload' }),
       answer: z.null(),
     }),
+    // The planning page (docs/info.md §7.7.1).
+    z.object({
+      ...suggestionBase,
+      kind: z.literal('team_suggestion'),
+      payload: teamSuggestionPayloadSchema.meta({ id: 'AiTeamSuggestionPayload' }),
+      answer: z.null(),
+    }),
+    z.object({
+      ...suggestionBase,
+      kind: z.literal('shift_change'),
+      payload: shiftChangePayloadSchema.meta({ id: 'AiShiftChangePayload' }),
+      answer: z.null(),
+    }),
+    z.object({
+      ...suggestionBase,
+      kind: z.literal('planning_rule'),
+      payload: planningRulePayloadSchema.meta({ id: 'AiPlanningRulePayload' }),
+      answer: z.null(),
+    }),
+    z.object({
+      ...suggestionBase,
+      kind: z.literal('allocation'),
+      payload: allocationPayloadSchema.meta({ id: 'AiAllocationPayload' }),
+      answer: z.null(),
+    }),
   ])
   .meta({ id: 'AiSuggestion' });
 export type AiSuggestionDto = z.infer<typeof aiSuggestionSchema>;
@@ -56,7 +88,7 @@ export type AiSuggestionDto = z.infer<typeof aiSuggestionSchema>;
 export const aiRunSchema = z
   .object({
     id: z.uuid(),
-    feature: z.enum(['task_suggestions', 'task_drafting', 'promotion_plan']),
+    feature: z.enum(aiFeatureEnum.enumValues),
     trigger: z.enum(['on_demand', 'event_created', 'question_answered']),
     status: z.enum(['queued', 'running', 'succeeded', 'failed']),
     createdAt: dateTimeOutput,

@@ -3,6 +3,7 @@ import { getDrizzleToken } from '@nestjs/drizzle';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { Test } from '@nestjs/testing';
 import { sql } from 'drizzle-orm';
+import { MockLanguageModelV4 } from 'ai/test';
 import request from 'supertest';
 import { AI_MODEL_RESOLVER, type AiModelResolver } from '../src/ai/ai-models.js';
 import { AppModule } from '../src/app.module.js';
@@ -72,11 +73,22 @@ export interface TestApp {
   close: () => Promise<void>;
 }
 
+/** What a scripted model sees of one call. */
+export interface ModelCall {
+  system: string;
+  prompt: string;
+}
+
 /**
- * `aiAvailable`: Mila counts as available (as with an API key), so her hints show. No model is
- * ever called: resolving one throws, and nothing queues runs in tests.
+ * - `aiAvailable`: Mila counts as available (as with an API key), so her hints show. No model is
+ *   ever called: resolving one throws, and nothing queues runs in tests.
+ * - `respond`: Mila is available and every model call answers with what this returns (as JSON),
+ *   so a test can drive a runner or a drafting call end to end. Runs are still not queued: tests
+ *   insert the run and hand it to the worker.
  */
-export async function createTestApp(options: { aiAvailable?: boolean } = {}): Promise<TestApp> {
+export async function createTestApp(
+  options: { aiAvailable?: boolean; respond?: (call: ModelCall) => unknown } = {},
+): Promise<TestApp> {
   const emails = new CapturingEmailProvider();
   const files = new FakeFileStorage();
   let builder = Test.createTestingModule({ imports: [AppModule] })
@@ -86,7 +98,37 @@ export async function createTestApp(options: { aiAvailable?: boolean } = {}): Pr
     .useValue([0, 0])
     .overrideProvider(FileStorage)
     .useValue(files);
-  if (options.aiAvailable) {
+  if (options.respond) {
+    const respond = options.respond;
+    const resolver: AiModelResolver = {
+      enabled: true,
+      resolve: () =>
+        new MockLanguageModelV4({
+          doGenerate: async ({ prompt }) => {
+            const text = (role: string) =>
+              prompt
+                .filter((message) => message.role === role)
+                .flatMap((message) =>
+                  typeof message.content === 'string'
+                    ? [message.content]
+                    : message.content.flatMap((part) => (part.type === 'text' ? [part.text] : [])),
+                )
+                .join('\n');
+            const output = respond({ system: text('system'), prompt: text('user') });
+            return {
+              content: [{ type: 'text', text: JSON.stringify(output) }],
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage: {
+                inputTokens: { total: 100, noCache: 100, cacheRead: 0, cacheWrite: 0 },
+                outputTokens: { total: 50, text: 50, reasoning: 0 },
+              },
+              warnings: [],
+            };
+          },
+        }),
+    };
+    builder = builder.overrideProvider(AI_MODEL_RESOLVER).useValue(resolver);
+  } else if (options.aiAvailable) {
     const resolver: AiModelResolver = {
       enabled: true,
       resolve: () => {

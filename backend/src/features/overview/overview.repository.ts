@@ -169,6 +169,22 @@ export class OverviewRepository {
     };
   }
 
+  /** Whether Mila is suggesting teams and shifts or dividing volunteers right now. */
+  async planningRunning(eventId: string): Promise<boolean> {
+    const [row] = await this.db
+      .select({ id: aiRun.id })
+      .from(aiRun)
+      .where(
+        and(
+          eq(aiRun.eventId, eventId),
+          inArray(aiRun.feature, ['shift_suggestions', 'allocation']),
+          inArray(aiRun.status, ['queued', 'running']),
+        ),
+      )
+      .limit(1);
+    return row !== undefined;
+  }
+
   /** Pending suggestions per kind, with the newest one's time. */
   pendingSuggestions(eventId: string) {
     return this.db

@@ -106,16 +106,28 @@ export class OverviewService {
     // Mila: only for those who may act on what she proposes.
     const milaEnabled = canManage && this.ai.enabled;
     const suggestion = canManage ? statusSuggestion(event, now) : null;
-    const [runs, pending, dismissed] = milaEnabled
+    const [runs, pending, dismissed, planningBusy] = milaEnabled
       ? await Promise.all([
           this.overview.findMissingRuns(event.id),
           this.overview.pendingSuggestions(event.id),
           this.overview.dismissedHints(org.userId, event.id),
+          this.overview.planningRunning(event.id),
         ])
-      : [{ running: false, lastFinished: null }, [], new Map<string, string>()];
+      : [{ running: false, lastFinished: null }, [], new Map<string, string>(), false];
     const pendingOf = (kinds: AiSuggestionKind[]) =>
       pending.filter((row) => kinds.includes(row.kind)).reduce((sum, row) => sum + row.count, 0);
     const taskSuggestions = pending.find((row) => row.kind === 'task_suggestion');
+    const planningKinds: AiSuggestionKind[] = [
+      'team_suggestion',
+      'shift_change',
+      'planning_rule',
+      'allocation',
+    ];
+    const planningPending = pending.filter((row) => planningKinds.includes(row.kind));
+    const planningNewest = planningPending
+      .map((row) => row.newestAt)
+      .filter((at) => at !== null)
+      .toSorted((a, b) => b.getTime() - a.getTime())[0];
 
     return {
       phase,
@@ -181,6 +193,8 @@ export class OverviewService {
         findingTasks: runs.running,
         openQuestions: pendingOf(['question', 'update_event']),
         pendingTaskSuggestions: taskSuggestions?.count ?? 0,
+        planningBusy,
+        pendingPlanningSuggestions: pendingOf(planningKinds),
         statusSuggestion: suggestion,
         hints: selectHints({
           canManage,
@@ -197,6 +211,16 @@ export class OverviewService {
           findMissingRunning: runs.running,
           lastFindMissing: runs.lastFinished,
           statusSuggestionShown: suggestion !== null,
+          planning: {
+            teamCount: teams.length,
+            pendingSuggestions: {
+              count: pendingOf(planningKinds),
+              newestAt: planningNewest ?? null,
+            },
+            running: planningBusy,
+            openPlaces: wholeEvent ? 0 : Math.max(0, total.positions - total.filled),
+            unassignedVolunteers: planning.unassignedVolunteers,
+          },
           dismissed,
         }),
       },

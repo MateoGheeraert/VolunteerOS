@@ -40,6 +40,7 @@ import {
   PROMOTION_PLAN_CASES,
   STUDENT_PARTY,
 } from './promotion-plan.fixtures.js';
+import { runPlanningEvals } from './planning.evals.js';
 import { TASK_DRAFT_CASES } from './task-drafts.fixtures.js';
 import { TASK_SUGGESTION_CASES } from './task-suggestions.fixtures.js';
 
@@ -221,6 +222,11 @@ async function main(): Promise<void> {
       );
     }
   }
+  // Mila on the planning page: teams and shifts, rules from text and notes.
+  const planning = { spentMillicents, failures, maxCents };
+  await runPlanningEvals(models, planning);
+  spentMillicents = planning.spentMillicents;
+  failures = planning.failures;
 
   console.log(`\nTotal cost: ${(spentMillicents / 1000).toFixed(2)} euro cents`);
   if (failures > 0) {

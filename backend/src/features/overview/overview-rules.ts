@@ -252,10 +252,18 @@ export function statusSuggestion(
 }
 
 /** Every hint Mila can give on the overview; the API schemas use this list too. */
-export const HINT_KEYS = ['tasks.setup', 'tasks.review', 'tasks.find_missing'] as const;
+export const HINT_KEYS = [
+  'tasks.setup',
+  'tasks.review',
+  'tasks.find_missing',
+  // docs/info.md §7.7.1 D.
+  'planning.setup',
+  'planning.review',
+  'planning.allocate',
+] as const;
 export type HintKey = (typeof HINT_KEYS)[number];
-/** The cards Mila can speak in. Planning and budget join once she can help there. */
-export const HINT_CARDS = ['tasks'] as const;
+/** The cards Mila can speak in. Budget joins once she can help there. */
+export const HINT_CARDS = ['tasks', 'planning'] as const;
 export type HintCard = (typeof HINT_CARDS)[number];
 
 export interface Hint {
@@ -287,13 +295,22 @@ export interface HintInput {
   lastFindMissing: { id: string; finishedAt: Date } | null;
   /** Whether the status banner (also Mila) is on the page: then no card hint is highlighted. */
   statusSuggestionShown: boolean;
+  /** The planning card: teams, Mila's waiting planning cards, and whether she works on it. */
+  planning: {
+    teamCount: number;
+    pendingSuggestions: { count: number; newestAt: Date | null };
+    running: boolean;
+    /** Places not taken yet, and volunteers on no shift. */
+    openPlaces: number;
+    unassignedVolunteers: number;
+  };
   /** The caller's dismissed hints: key → fingerprint. */
   dismissed: ReadonlyMap<string, string>;
 }
 
 /**
  * Mila's hints on the overview, balanced so she doesn't bombard the organizer:
- * - Only where she can act (today: tasks), only for managers, only before the event.
+ * - Only where she can act (tasks and planning), only for managers, only before the event.
  * - In an empty card she is the empty state; with data she only speaks when she has something
  *   concrete. At most one hint per card.
  * - In an empty card her setup offer is shown in full. Of her other hints one on the page is,
@@ -322,6 +339,28 @@ export function selectHints(input: HintInput): Hint[] {
       card: 'tasks',
       fingerprint: input.lastFindMissing?.id ?? 'never',
     });
+  }
+
+  // Planning: her waiting cards first, then teams for an empty board, then dividing the open
+  // places over volunteers who have none. Nothing while she is working on it.
+  const planning = input.planning;
+  if (!planning.running) {
+    if (planning.pendingSuggestions.count > 0) {
+      candidates.push({
+        key: 'planning.review',
+        card: 'planning',
+        fingerprint: planning.pendingSuggestions.newestAt?.toISOString() ?? 'pending',
+      });
+    }
+    if (planning.teamCount === 0) {
+      candidates.push({ key: 'planning.setup', card: 'planning', fingerprint: 'empty' });
+    } else if (planning.openPlaces > 0 && planning.unassignedVolunteers > 0) {
+      candidates.push({
+        key: 'planning.allocate',
+        card: 'planning',
+        fingerprint: `${planning.openPlaces}:${planning.unassignedVolunteers}`,
+      });
+    }
   }
 
   const shown: Hint[] = [];

@@ -14,6 +14,9 @@ export const FEATURE_MODELS: Record<AiFeature, { primary: ModelId; fallback: Mod
   task_suggestions: { primary: 'openai:gpt-5.4-mini', fallback: null },
   task_drafting: { primary: 'openai:gpt-5.4-mini', fallback: null },
   promotion_plan: { primary: 'openai:gpt-5.4-mini', fallback: null },
+  shift_suggestions: { primary: 'openai:gpt-5.4-mini', fallback: null },
+  rule_drafting: { primary: 'openai:gpt-5.4-mini', fallback: null },
+  allocation: { primary: 'openai:gpt-5.4-mini', fallback: null },
 };
 
 export interface ModelPrice {

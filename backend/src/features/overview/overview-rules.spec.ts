@@ -204,8 +204,19 @@ describe('Mila hints', () => {
     findMissingRunning: false,
     lastFindMissing: { id: 'run-1', finishedAt: daysFromNow(-2) },
     statusSuggestionShown: false,
+    // A planning that needs nothing from Mila: teams, every place taken.
+    planning: {
+      teamCount: 3,
+      pendingSuggestions: { count: 0, newestAt: null },
+      running: false,
+      openPlaces: 0,
+      unassignedVolunteers: 0,
+    },
     dismissed: new Map(),
     ...overrides,
+  });
+  const planning = (overrides: Partial<HintInput['planning']>): Partial<HintInput> => ({
+    planning: { ...input().planning, ...overrides },
   });
   const keys = (overrides: Partial<HintInput> = {}) =>
     selectHints(input(overrides)).map((h) => h.key);
@@ -279,5 +290,60 @@ describe('Mila hints', () => {
     expect(
       keys({ taskCount: 0, pendingTaskSuggestions: { count: 2, newestAt }, dismissed }),
     ).toEqual(['tasks.setup']);
+  });
+
+  describe('planning card', () => {
+    it('offers to set up teams and shifts when there are none, in full', () => {
+      expect(selectHints(input(planning({ teamCount: 0 })))).toEqual([
+        { key: 'planning.setup', card: 'planning', fingerprint: 'empty', highlighted: true },
+      ]);
+    });
+
+    it('offers to divide when places are open and volunteers wait', () => {
+      expect(keys(planning({ openPlaces: 3, unassignedVolunteers: 2 }))).toEqual([
+        'planning.allocate',
+      ]);
+      expect(keys(planning({ openPlaces: 3, unassignedVolunteers: 0 }))).toEqual([]);
+      expect(keys(planning({ openPlaces: 0, unassignedVolunteers: 2 }))).toEqual([]);
+    });
+
+    it('puts her waiting planning cards first', () => {
+      const newestAt = daysFromNow(-1);
+      expect(
+        keys(
+          planning({
+            teamCount: 0,
+            pendingSuggestions: { count: 2, newestAt },
+          }),
+        ),
+      ).toEqual(['planning.review']);
+    });
+
+    it('stays quiet while she works on the planning', () => {
+      expect(keys(planning({ teamCount: 0, running: true }))).toEqual([]);
+    });
+
+    it('comes back when the open places or waiting volunteers change', () => {
+      const dismissed = new Map([['planning.allocate', '3:2']]);
+      expect(keys({ ...planning({ openPlaces: 3, unassignedVolunteers: 2 }), dismissed })).toEqual(
+        [],
+      );
+      expect(keys({ ...planning({ openPlaces: 2, unassignedVolunteers: 1 }), dismissed })).toEqual([
+        'planning.allocate',
+      ]);
+    });
+
+    it('highlights only one of the cards: the first hint on the page', () => {
+      const hints = selectHints(
+        input({
+          lastFindMissing: null,
+          ...planning({ openPlaces: 3, unassignedVolunteers: 2 }),
+        }),
+      );
+      expect(hints).toMatchObject([
+        { key: 'tasks.find_missing', highlighted: true },
+        { key: 'planning.allocate', highlighted: false },
+      ]);
+    });
   });
 });
