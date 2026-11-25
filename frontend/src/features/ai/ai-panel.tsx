@@ -11,18 +11,29 @@ import { useAiLive } from './use-ai-live';
 type TasksContext = TasksContextValue & { event: { id: string; endsAt: string } };
 
 /**
- * Mila on the event overview, for the people who manage it: her two task helpers and what she
- * proposes, in a box that scrolls on its own so the page doesn't grow with her suggestions.
+ * Mila in full, for the people who manage the event: her two task helpers and everything she
+ * proposes, in a box that scrolls on its own. Opened from "Vraag Mila" on the overview, which
+ * already keeps the page live (`live={false}`).
  */
-export function AiPanel({ state, tasks }: { state: AiEventState; tasks: TasksContext }) {
+export function AiPanel({
+  state,
+  tasks,
+  live = true,
+  className,
+}: {
+  state: AiEventState;
+  tasks: TasksContext;
+  live?: boolean;
+  className?: string;
+}) {
   const t = useTranslations();
   const eventId = tasks.event.id;
-  useAiLive(eventId, state.enabled);
+  useAiLive(eventId, state.enabled && live);
   const { thinking, failed, suggestions } = useMilaState(state);
 
   if (!state.enabled) {
     return (
-      <MilaPanel subtitle={t('ai.subtitle')}>
+      <MilaPanel subtitle={t('ai.subtitle')} className={className}>
         <p className="text-sm text-mila-ink/75">{t('ai.disabled')}</p>
       </MilaPanel>
     );
@@ -30,7 +41,7 @@ export function AiPanel({ state, tasks }: { state: AiEventState; tasks: TasksCon
 
   return (
     <TasksProvider value={tasks}>
-      <MilaPanel subtitle={t('ai.subtitle')} thinking={thinking}>
+      <MilaPanel subtitle={t('ai.subtitle')} thinking={thinking} className={className}>
         {!tasks.readOnly && (
           <div className="flex flex-wrap gap-2">
             <MilaTaskActions eventId={eventId} thinking={thinking} />

@@ -45,7 +45,7 @@ async function EventTasks({ params }: Pick<PageProps<'/events/[eventId]/tasks'>,
       {readOnly && <FormError message={t('tasks.readOnly')} />}
       {canManage && !readOnly && (
         <Suspense fallback={null}>
-          <EventAiPanel eventId={event.id} variant="bar" />
+          <EventAiPanel eventId={event.id} />
         </Suspense>
       )}
       <TasksView
