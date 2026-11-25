@@ -12,8 +12,11 @@
  *   budget lines of both editions. Planning for the Kerstmarkt: teams, shifts and volunteers,
  *   partly placed (some confirmed, some proposed, some still waiting), registration open.
  * - The event overview in its three states: the Kerstmarkt in mid-preparation (an overdue task,
- *   planning partly filled), its previous edition after the event (a result and one task left
+ *   planning partly filled), its previous edition after the event (a result and two tasks left
  *   open), and "Spaghettiavond", a brand-new draft with nothing in it yet (Mila's setup state).
+ * - Promotie (Mila's promotion plan): the Publiek of the Kerstmarkt (families and neighbours, free
+ *   entry, €300 promotion budget) and of the Spaghettiavond (no budget), and last year's Promotie
+ *   tasks with the late printer on their budget line.
  *
  * Keep this in step with the features: a new feature adds its data here.
  *
@@ -28,6 +31,7 @@ import { randomUUID } from 'node:crypto';
 import { hashPassword } from 'better-auth/crypto';
 import { and, eq, inArray, or } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
+import { PROMOTION_LABEL } from '../features/promotion/promotion-rules.js';
 import * as schema from './schema/index.js';
 import type { Transaction } from './database.js';
 
@@ -213,7 +217,7 @@ async function seed(tx: Transaction) {
       { eventId, name: 'Bar', color: 'orange' },
       { eventId, name: 'Kassa', color: 'green' },
       { eventId, name: 'Opbouw', color: 'blue' },
-      { eventId, name: 'Promotie', color: 'purple' },
+      { eventId, ...PROMOTION_LABEL },
     ])
     .returning({ id: schema.label.id, name: schema.label.name });
   const label = (name: string) => labels.find((l) => l.name === name)!.id;
@@ -407,37 +411,96 @@ async function seed(tx: Transaction) {
 
   await insertPlanning(tx, organizationId, eventId, ownerId);
 
-  // Last year's tasks: all done but one that was forgotten, for the overview's wrap-up.
-  await tx.insert(schema.task).values([
-    {
-      eventId: previous!.id,
-      title: 'Glühwein bestellen',
-      status: 'done',
-      priority: 'high',
-      assigneeUserId: ownerId,
-      createdByUserId: ownerId,
-    },
-    {
-      eventId: previous!.id,
-      title: 'Bedankkaartje naar de sponsors sturen',
-      status: 'todo',
-      priority: 'low',
-      assigneeUserId: memberId,
-      createdByUserId: ownerId,
-    },
-  ]);
+  // Last year's tasks: all done but two that were forgotten, for the overview's wrap-up. The
+  // Promotie ones are the history Mila's promotion plan learns from.
+  const previousTasks = await tx
+    .insert(schema.task)
+    .values([
+      {
+        eventId: previous!.id,
+        title: 'Glühwein bestellen',
+        status: 'done',
+        priority: 'high',
+        assigneeUserId: ownerId,
+        createdByUserId: ownerId,
+      },
+      {
+        eventId: previous!.id,
+        title: 'Bedankkaartje naar de sponsors sturen',
+        status: 'todo',
+        priority: 'low',
+        assigneeUserId: memberId,
+        createdByUserId: ownerId,
+      },
+      {
+        eventId: previous!.id,
+        title: 'Affiches ophangen in de buurt',
+        description: 'Bakker, apotheek, cafés en de school.',
+        status: 'done',
+        priority: 'medium',
+        dueDate: day(24 - 365 - 12),
+        assigneeUserId: memberId,
+        createdByUserId: ownerId,
+      },
+      {
+        eventId: previous!.id,
+        title: 'Facebook-evenement aanmaken',
+        status: 'done',
+        priority: 'low',
+        dueDate: day(24 - 365 - 35),
+        assigneeUserId: memberId,
+        createdByUserId: ownerId,
+      },
+      {
+        eventId: previous!.id,
+        title: 'Flyers meegeven via de lagere school',
+        status: 'todo',
+        priority: 'low',
+        dueDate: day(24 - 365 - 21),
+        createdByUserId: ownerId,
+      },
+    ])
+    .returning({ id: schema.task.id, title: schema.task.title });
+  const previousTaskId = (title: string) => previousTasks.find((t) => t.title === title)?.id;
+
+  // The Kerstmarkt's Publiek: families and neighbours, free entry, €300 for promotion.
+  await tx.insert(schema.eventAudience).values({
+    eventId,
+    audiences: ['families', 'young_families', 'neighbours'],
+    description: 'Gezinnen met kinderen uit de wijk en buren rond het kerkplein.',
+    region: 'Gent (Sint-Amandsberg)',
+    entryPriceCents: 0,
+    pitch:
+      'Twintig kraampjes met ambachten, warme glühwein en chocomelk, en om 16u komt de kerstman ' +
+      'met zijn slee langs voor de kinderen.',
+    promotionBudgetCents: 30000,
+  });
 
   // A brand-new event: no tasks, planning or budget yet. The overview's empty states (and Mila
   // offering to set up the tasks).
-  await tx.insert(schema.event).values({
-    organizationId,
-    name: `Spaghettiavond ${year + 1}`,
-    eventType: 'meal',
-    location: 'Parochiezaal Sint-Jan, Gent',
-    startsAt: at(75, 17),
-    endsAt: at(75, 22),
-    status: 'draft',
-    expectedAttendance: 250,
+  const [spaghettiavond] = await tx
+    .insert(schema.event)
+    .values({
+      organizationId,
+      name: `Spaghettiavond ${year + 1}`,
+      eventType: 'meal',
+      location: 'Parochiezaal Sint-Jan, Gent',
+      startsAt: at(75, 17),
+      endsAt: at(75, 22),
+      status: 'draft',
+      expectedAttendance: 250,
+    })
+    .returning({ id: schema.event.id });
+  // Its Publiek is filled in, without a promotion budget: Mila keeps the plan free or cheap.
+  await tx.insert(schema.eventAudience).values({
+    eventId: spaghettiavond!.id,
+    audiences: ['families', 'neighbours', 'associations'],
+    description: 'Ouders van de leden, oud-leiding en de buurt.',
+    ageMin: 0,
+    ageMax: 99,
+    region: 'Gent',
+    entryPriceCents: 1500,
+    pitch: 'Spaghetti à volonté, ook vegetarisch, en een dessertbuffet gemaakt door de leiding.',
   });
 
   // Last year's budget, settled: every line has its actual amount.
@@ -447,10 +510,20 @@ async function seed(tx: Transaction) {
       { eventId: previous!.id, name: 'Bar', color: 'orange' },
       { eventId: previous!.id, name: 'Kassa', color: 'green' },
       { eventId: previous!.id, name: 'Huur', color: 'yellow' },
+      { eventId: previous!.id, ...PROMOTION_LABEL },
     ])
     .returning({ id: schema.label.id, name: schema.label.name });
   const previousLabel = (name: string) => previousLabels.find((l) => l.name === name)!.id;
-  await insertBudget(tx, previous!.id, ownerId, previousLabel, () => undefined, supplierId, [
+  await tx
+    .insert(schema.taskLabelLink)
+    .values(
+      [
+        'Affiches ophangen in de buurt',
+        'Facebook-evenement aanmaken',
+        'Flyers meegeven via de lagere school',
+      ].map((title) => ({ taskId: previousTaskId(title)!, labelId: previousLabel('Promotie') })),
+    );
+  await insertBudget(tx, previous!.id, ownerId, previousLabel, previousTaskId, supplierId, [
     {
       type: 'income',
       title: 'Standgeld kraampjes',
@@ -487,8 +560,9 @@ async function seed(tx: Transaction) {
       title: 'Affiches drukken',
       estimated: 10000,
       actual: 11980,
-      labels: [],
+      labels: ['Promotie'],
       supplier: 'Drukkerij De Kopie',
+      task: 'Affiches ophangen in de buurt',
       notes: 'Te laat geleverd: dit jaar een andere drukker.',
     },
   ]);
