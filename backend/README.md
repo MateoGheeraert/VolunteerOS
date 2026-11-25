@@ -220,6 +220,7 @@ Exceptions:
 - **Logs** (`activity_log`, `email_delivery`) are append-only: rows are never edited by users or removed.
 - **Organizations can't be deleted** (`disableOrganizationDeletion`): it would cascade into everything they own.
 - **GDPR erasure** (to be built): when a person asks to be forgotten, their personal data must really go. That workflow, and only that one, will anonymize or hard-delete personal data. Until it exists, don't add other hard deletes.
+- **Per-user UI state** (`mila_hint_dismissal`: a Mila hint someone put away on the event overview) is not domain data: no `deleted_at`, no activity log, overwritten in place, and removed by cascade with its user or event.
 - **Uploaded files**: the `upload` row is soft-deleted like any other, but the stored object is removed for good by the daily cleanup job, 30 days later (`purged_at` records when). See "File uploads".
 
 ### File uploads

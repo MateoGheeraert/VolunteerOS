@@ -2,6 +2,7 @@
 
 import { PanelRightOpen } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 import type { AiEventState } from '@/api/generated/types.gen';
 import { MILA_NAME, MilaAvatar, MilaBar, MilaThinking } from '@/components/mila';
@@ -29,7 +30,9 @@ export function TaskMilaBar({ state, tasks }: { state: AiEventState; tasks: Task
   const eventId = tasks.event.id;
   useAiLive(eventId, state.enabled);
   const { thinking, failed, suggestions } = useMilaState(state, 'task_suggestion');
-  const [open, setOpen] = useState(false);
+  // The overview's "Bekijk voorstellen" links here with ?mila=voorstellen to open them at once.
+  const searchParams = useSearchParams();
+  const [open, setOpen] = useState(searchParams.get('mila') === 'voorstellen');
   if (!state.enabled) return null;
 
   const count = suggestions.length;

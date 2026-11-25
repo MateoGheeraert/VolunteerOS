@@ -9,7 +9,11 @@
  *   status, an overdue task, a pending assignment request, a budget with income and costs in every
  *   state: estimated only, paid, over and under budget, labelled and linked to tasks) and its
  *   previous edition (with a settled budget). Suppliers (one archived, one never used) on the
- *   budget lines of both editions.
+ *   budget lines of both editions. Planning for the Kerstmarkt: teams, shifts and volunteers,
+ *   partly placed (some confirmed, some proposed, some still waiting), registration open.
+ * - The event overview in its three states: the Kerstmarkt in mid-preparation (an overdue task,
+ *   planning partly filled), its previous edition after the event (a result and one task left
+ *   open), and "Spaghettiavond", a brand-new draft with nothing in it yet (Mila's setup state).
  *
  * Keep this in step with the features: a new feature adds its data here.
  *
@@ -190,6 +194,15 @@ async function seed(tx: Transaction) {
       status: 'published',
       previousEditionId: previous!.id,
       expectedAttendance: 800,
+      // Made two months ago, so the countdown shows how much of the run-up is behind us.
+      createdAt: at(-60, 9),
+      // The tents go up the evening before (last year's lesson).
+      setupStartsAt: at(23, 17),
+      teardownEndsAt: at(24, 23),
+      shiftsPerVolunteer: 1,
+      publicSlug: `kerstmarkt-${year}-seed`,
+      registrationOpen: true,
+      registrationDeadline: at(17, 22),
     })
     .returning({ id: schema.event.id });
   const eventId = kerstmarkt!.id;
@@ -392,6 +405,41 @@ async function seed(tx: Transaction) {
     },
   ]);
 
+  await insertPlanning(tx, organizationId, eventId, ownerId);
+
+  // Last year's tasks: all done but one that was forgotten, for the overview's wrap-up.
+  await tx.insert(schema.task).values([
+    {
+      eventId: previous!.id,
+      title: 'Glühwein bestellen',
+      status: 'done',
+      priority: 'high',
+      assigneeUserId: ownerId,
+      createdByUserId: ownerId,
+    },
+    {
+      eventId: previous!.id,
+      title: 'Bedankkaartje naar de sponsors sturen',
+      status: 'todo',
+      priority: 'low',
+      assigneeUserId: memberId,
+      createdByUserId: ownerId,
+    },
+  ]);
+
+  // A brand-new event: no tasks, planning or budget yet. The overview's empty states (and Mila
+  // offering to set up the tasks).
+  await tx.insert(schema.event).values({
+    organizationId,
+    name: `Spaghettiavond ${year + 1}`,
+    eventType: 'meal',
+    location: 'Parochiezaal Sint-Jan, Gent',
+    startsAt: at(75, 17),
+    endsAt: at(75, 22),
+    status: 'draft',
+    expectedAttendance: 250,
+  });
+
   // Last year's budget, settled: every line has its actual amount.
   const previousLabels = await tx
     .insert(schema.label)
@@ -444,6 +492,95 @@ async function seed(tx: Transaction) {
       notes: 'Te laat geleverd: dit jaar een andere drukker.',
     },
   ]);
+}
+
+/**
+ * The Kerstmarkt's volunteers: three teams with shifts (setup the evening before, bar and cash
+ * desk on the day), and volunteers who signed up. Some are placed and confirmed, some only
+ * proposed, a few still wait for a shift: the planning card shows it partly filled.
+ */
+async function insertPlanning(
+  tx: Transaction,
+  organizationId: string,
+  eventId: string,
+  assignedByUserId: string,
+) {
+  const teams = await tx
+    .insert(schema.team)
+    .values([
+      { eventId, name: 'Bar', defaultMeetingPoint: 'Achter de toog' },
+      { eventId, name: 'Kassa', defaultMeetingPoint: 'Kassahokje aan de ingang' },
+      { eventId, name: 'Opbouw', defaultMeetingPoint: 'Kerkplein' },
+    ])
+    .returning({ id: schema.team.id, name: schema.team.name });
+  const teamId = (name: string) => teams.find((t) => t.name === name)!.id;
+
+  const shiftSpecs = [
+    { key: 'opbouw', team: 'Opbouw', startsAt: at(23, 17), endsAt: at(23, 20), capacity: 6 },
+    { key: 'bar-early', team: 'Bar', startsAt: at(24, 13), endsAt: at(24, 17), capacity: 4 },
+    { key: 'bar-late', team: 'Bar', startsAt: at(24, 17), endsAt: at(24, 22), capacity: 4 },
+    { key: 'kassa-early', team: 'Kassa', startsAt: at(24, 13), endsAt: at(24, 17), capacity: 2 },
+    { key: 'kassa-late', team: 'Kassa', startsAt: at(24, 17), endsAt: at(24, 22), capacity: 2 },
+  ];
+  const shifts = await tx
+    .insert(schema.shift)
+    .values(
+      shiftSpecs.map(({ team, startsAt, endsAt, capacity }) => ({
+        eventId,
+        teamId: teamId(team),
+        meetingPoint: null,
+        startsAt,
+        endsAt,
+        capacity,
+      })),
+    )
+    .returning({ id: schema.shift.id });
+  const shiftId = (key: string) => shifts[shiftSpecs.findIndex((spec) => spec.key === key)]!.id;
+
+  // [name, available shifts, preferred team, placed on (shift, status)]
+  const people: [string, string[], string | null, [string, 'proposed' | 'confirmed'] | null][] = [
+    ['Emma Claes', ['bar-early', 'bar-late'], 'Bar', ['bar-early', 'confirmed']],
+    ['Noah Wouters', ['bar-late'], 'Bar', ['bar-late', 'confirmed']],
+    ['Louise Jacobs', ['kassa-early', 'kassa-late'], 'Kassa', ['kassa-early', 'confirmed']],
+    ['Arthur Maes', ['opbouw'], 'Opbouw', ['opbouw', 'confirmed']],
+    ['Marie Mertens', ['opbouw', 'bar-early'], null, ['opbouw', 'confirmed']],
+    ['Jules Willems', ['bar-early', 'kassa-early'], 'Bar', ['bar-early', 'proposed']],
+    ['Olivia Goossens', ['kassa-late'], 'Kassa', ['kassa-late', 'proposed']],
+    ['Lucas Dubois', ['opbouw'], 'Opbouw', ['opbouw', 'proposed']],
+    ['Elena Hermans', ['bar-late', 'kassa-late'], null, ['bar-late', 'proposed']],
+    ['Victor Lambert', ['bar-early', 'bar-late'], 'Bar', null],
+    ['Nora De Smet', ['opbouw'], 'Opbouw', null],
+    ['Finn Aerts', ['kassa-early'], 'Kassa', null],
+  ];
+  for (const [name, available, preferred, placement] of people) {
+    const [volunteer] = await tx
+      .insert(schema.volunteer)
+      .values({
+        organizationId,
+        name,
+        email: `${name.toLowerCase().replaceAll(' ', '.')}@voorbeeld.test`,
+      })
+      .returning({ id: schema.volunteer.id });
+    const [application] = await tx
+      .insert(schema.volunteerApplication)
+      .values({
+        eventId,
+        volunteerId: volunteer!.id,
+        source: 'public',
+        availableShiftIds: available.map(shiftId),
+        preferredTeamId: preferred ? teamId(preferred) : null,
+        consentedAt: at(-20, 10),
+      })
+      .returning({ id: schema.volunteerApplication.id });
+    if (placement) {
+      await tx.insert(schema.assignment).values({
+        applicationId: application!.id,
+        shiftId: shiftId(placement[0]),
+        status: placement[1],
+        assignedByUserId,
+      });
+    }
+  }
 }
 
 interface SeedBudgetLine {

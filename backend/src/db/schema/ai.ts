@@ -7,6 +7,7 @@ import {
   jsonb,
   pgEnum,
   pgTable,
+  primaryKey,
   text,
   timestamp,
   uniqueIndex,
@@ -232,3 +233,26 @@ export type NewAiSuggestionRow = typeof aiSuggestion.$inferInsert;
 export type AiMemoryRow = typeof aiMemory.$inferSelect;
 export type NewAiMemoryRow = typeof aiMemory.$inferInsert;
 export type AiUsageRow = typeof aiUsage.$inferSelect;
+
+/**
+ * A Mila hint on the event overview that one user put away (docs/info.md §7.2). UI state, not
+ * domain data: one row per user, event and hint, hard-deleted with either. The hint comes back
+ * when its situation changes, i.e. when the overview computes a different `fingerprint`.
+ */
+export const milaHintDismissal = pgTable(
+  'mila_hint_dismissal',
+  {
+    userId: text('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    eventId: uuid('event_id')
+      .notNull()
+      .references(() => event.id, { onDelete: 'cascade' }),
+    hintKey: text('hint_key').notNull(),
+    fingerprint: text('fingerprint').notNull(),
+    dismissedAt: timestamp('dismissed_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.eventId, t.hintKey] })],
+);
+
+export type MilaHintDismissalRow = typeof milaHintDismissal.$inferSelect;
