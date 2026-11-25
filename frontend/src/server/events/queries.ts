@@ -4,6 +4,7 @@ import {
   eventsControllerGet,
   eventsControllerList,
   eventsControllerListMembers,
+  overviewControllerGet,
 } from '@/api/generated';
 import { isOrgAdmin } from '@/features/members/permissions';
 import { getActiveMember } from '../auth';
@@ -32,3 +33,7 @@ export const canManageEvent = cache(async (eventId: string) => {
   const [me, managers] = await Promise.all([getActiveMember(), listEventManagers(eventId)]);
   return isOrgAdmin(me.role) || managers.some((manager) => manager.userId === me.userId);
 });
+
+/** The event overview: every card's numbers and status, and Mila's hints for the caller. */
+export const getEventOverview = (eventId: string) =>
+  query(overviewControllerGet({ path: { eventId } }));

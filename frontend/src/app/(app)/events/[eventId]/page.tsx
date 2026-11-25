@@ -1,127 +1,87 @@
-import { CalendarClock, History, Lightbulb, MapPin, Tag, Text, Users } from 'lucide-react';
-import { getTranslations } from 'next-intl/server';
-import Link from 'next/link';
-import { Suspense, type ReactNode } from 'react';
-import { IconBlob } from '@/components/layout/icon-blob';
+import { Suspense } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { EventAiPanel } from '@/features/ai/event-ai-panel';
+import { getMilaContext } from '@/features/ai/mila-context';
 import { EventStatusBanner } from '@/features/events/event-status-banner';
-import { canManageEvent, getEvent } from '@/server/events/queries';
-import { formatEventRange, LOCALE } from '@/lib/format';
-
-const countFormat = new Intl.NumberFormat(LOCALE);
+import { AskMila } from '@/features/overview/ask-mila';
+import { BudgetCard } from '@/features/overview/budget-card';
+import { CountdownCard } from '@/features/overview/countdown-card';
+import { OverviewHeader } from '@/features/overview/overview-header';
+import { PlanningCard } from '@/features/overview/planning-card';
+import { TasksCard } from '@/features/overview/tasks-card';
+import { TasksProvider } from '@/features/tasks/tasks-context';
+import { canManageEvent, getEvent, getEventOverview } from '@/server/events/queries';
 
 export default function EventOverviewPage({ params }: PageProps<'/events/[eventId]'>) {
   return (
-    <Suspense fallback={<Skeleton className="h-72 rounded-card bg-card" />}>
+    <Suspense fallback={<OverviewSkeleton />}>
       <EventOverview params={params} />
     </Suspense>
   );
 }
 
+/**
+ * One page per event that shows at a glance what still needs attention (docs/info.md §7.2): the
+ * essentials under the title, then a card per module in a fixed order. Mila speaks inside the
+ * cards (at most one highlighted hint) and opens in full from "Vraag Mila".
+ */
 async function EventOverview({ params }: Pick<PageProps<'/events/[eventId]'>, 'params'>) {
   const { eventId } = await params;
-  const [event, canManage, t] = await Promise.all([
+  const [event, overview, canManage, mila] = await Promise.all([
     getEvent(eventId),
+    getEventOverview(eventId),
     canManageEvent(eventId),
-    getTranslations(),
+    getMilaContext(eventId),
   ]);
-  const count = (value: number) => countFormat.format(value);
-  const { expectedAttendance: expected, actualAttendance: actual } = event;
-  const attendance =
-    actual !== null && expected !== null
-      ? t('eventOverview.attendanceBoth', { actual: count(actual), expected: count(expected) })
-      : actual !== null
-        ? t('eventOverview.attendanceActual', { actual: count(actual) })
-        : expected !== null
-          ? t('eventOverview.attendanceExpected', { expected: count(expected) })
-          : null;
+  const cards = { eventId, overview, canManage };
+
+  // Desktop: the small cards (countdown, budget) stack on the left, the large ones (tasks,
+  // planning) on the right, so no card stretches to its neighbour's height. On mobile the
+  // columns dissolve (`contents`) and `order` keeps the fixed card order.
+  const grid = (
+    <div className="flex flex-col gap-5 lg:grid lg:grid-cols-3 lg:items-start">
+      <div className="contents lg:flex lg:flex-col lg:gap-5">
+        <CountdownCard {...cards} className="order-1" />
+        <BudgetCard {...cards} className="order-4" />
+      </div>
+      <div className="contents lg:col-span-2 lg:flex lg:flex-col lg:gap-5">
+        <TasksCard {...cards} className="order-2" />
+        <PlanningCard {...cards} className="order-3" />
+      </div>
+    </div>
+  );
 
   return (
     <>
+      <OverviewHeader
+        event={event}
+        canManage={canManage}
+        askMila={
+          mila?.state.enabled && (
+            <AskMila
+              state={mila.state}
+              tasks={mila.tasks}
+              openQuestions={overview.mila.openQuestions}
+            />
+          )
+        }
+      />
       {/* Only those who may change the status get Mila's suggestion to. */}
       {canManage && <EventStatusBanner event={event} />}
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
-        <section className="flex flex-col gap-5 rounded-card bg-card p-5 shadow-soft sm:p-6">
-          <h2 className="text-lg">{t('eventOverview.details')}</h2>
-          <dl className="grid gap-4">
-            <Detail icon={<IconBlob icon={CalendarClock} />} label={t('eventOverview.when')}>
-              {formatEventRange(event.startsAt, event.endsAt)}
-            </Detail>
-            <Detail icon={<IconBlob icon={MapPin} />} label={t('eventOverview.where')}>
-              {event.location ?? (
-                <span className="text-muted-foreground">{t('events.noLocation')}</span>
-              )}
-            </Detail>
-            <Detail icon={<IconBlob icon={Tag} />} label={t('eventOverview.type')}>
-              {t(`eventType.${event.eventType}`)}
-            </Detail>
-            <Detail icon={<IconBlob icon={Users} />} label={t('eventOverview.attendance')}>
-              {attendance ?? (
-                <span className="text-muted-foreground">{t('eventOverview.noAttendance')}</span>
-              )}
-            </Detail>
-            <Detail icon={<IconBlob icon={Text} />} label={t('eventOverview.description')}>
-              {event.description ? (
-                <span className="whitespace-pre-line">{event.description}</span>
-              ) : (
-                <span className="text-muted-foreground">{t('eventOverview.noDescription')}</span>
-              )}
-            </Detail>
-            {(event.previousEdition || event.nextEdition) && (
-              <Detail icon={<IconBlob icon={History} />} label={t('events.editions')}>
-                <span className="flex flex-col gap-0.5">
-                  {event.previousEdition && (
-                    <EditionLink label={t('events.continues')} edition={event.previousEdition} />
-                  )}
-                  {event.nextEdition && (
-                    <EditionLink label={t('events.continuedBy')} edition={event.nextEdition} />
-                  )}
-                </span>
-              </Detail>
-            )}
-            {event.retrospective && (
-              <Detail icon={<IconBlob icon={Lightbulb} />} label={t('eventOverview.retrospective')}>
-                <span className="whitespace-pre-line">{event.retrospective}</span>
-              </Detail>
-            )}
-          </dl>
-        </section>
-
-        <Suspense fallback={<Skeleton className="h-72 rounded-card bg-brand-tint/60" />}>
-          <EventAiPanel eventId={event.id} />
-        </Suspense>
-      </div>
+      {/* Mila's helpers in the cards create tasks with the event's task context. */}
+      {mila ? <TasksProvider value={mila.tasks}>{grid}</TasksProvider> : grid}
     </>
   );
 }
 
-function EditionLink({ label, edition }: { label: string; edition: { id: string; name: string } }) {
+function OverviewSkeleton() {
   return (
-    <span>
-      <span className="font-normal text-muted-foreground">{label}: </span>
-      <Link href={`/events/${edition.id}`} className="underline-offset-4 hover:underline">
-        {edition.name}
-      </Link>
-    </span>
-  );
-}
-
-function Detail({
-  icon,
-  label,
-  children,
-}: {
-  icon: ReactNode;
-  label: string;
-  children: ReactNode;
-}) {
-  return (
-    <div className="flex items-start gap-3">
-      {icon}
-      <div className="flex min-w-0 flex-col">
-        <dt className="text-sm font-bold text-muted-foreground">{label}</dt>
-        <dd className="font-semibold">{children}</dd>
+    <div className="flex flex-col gap-5">
+      <Skeleton className="h-6 w-96 max-w-full bg-card" />
+      <div className="grid gap-5 lg:grid-cols-3">
+        <Skeleton className="h-80 rounded-card bg-card" />
+        <Skeleton className="h-80 rounded-card bg-card lg:col-span-2" />
+        <Skeleton className="h-80 rounded-card bg-card lg:col-span-2" />
+        <Skeleton className="h-80 rounded-card bg-card" />
       </div>
     </div>
   );

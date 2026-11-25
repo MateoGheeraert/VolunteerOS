@@ -100,9 +100,7 @@
     "archived": "Evenement gearchiveerd.",
     "statusChanged": "Status gewijzigd.",
     "readOnly": "Dit evenement is gearchiveerd en kan niet meer gewijzigd worden.",
-    "editions": "Edities",
-    "continues": "Vervolg op",
-    "continuedBy": "Vervolgd door"
+    "editions": "Edities"
   },
   "eventType": {
     "market": "Markt",
@@ -129,21 +127,6 @@
     "budget": "Budget",
     "suppliers": "Leveranciers",
     "settings": "Instellingen"
-  },
-  "eventOverview": {
-    "details": "Details",
-    "when": "Wanneer",
-    "where": "Waar",
-    "description": "Beschrijving",
-    "noDescription": "Nog geen beschrijving.",
-    "type": "Soort",
-    "attendance": "Bezoekers",
-    "attendanceBoth": "{actual} bezoekers, {expected} verwacht",
-    "attendanceExpected": "{expected} verwacht",
-    "attendanceActual": "{actual} bezoekers",
-    "noAttendance": "Nog niet ingevuld.",
-    "retrospective": "Wat leerden we?",
-    "edit": "Bewerken"
   },
   "eventStatusBanner": {
     "publishMessage": "Zullen we dit evenement publiceren?",
@@ -1088,5 +1071,111 @@
     "transport": "Transport",
     "rental": "Verhuur",
     "other": "Andere"
+  },
+  "overview": {
+    "previousEdition": "Vorige editie: {name}",
+    "edit": "Bewerken",
+    "askMila": "Vraag {name}",
+    "askMilaTitle": "{name}, je assistent",
+    "openQuestions": "{count, plural, one {# vraag} other {# vragen}} voor jou",
+    "status": {
+      "ok": "Op schema",
+      "warn": "Aandacht nodig",
+      "bad": "Risico"
+    },
+    "countdown": {
+      "title": "Aftellen",
+      "days": "{count, plural, =0 {Vandaag} one {Nog # dag} other {Nog # dagen}}",
+      "untilStart": "tot de start op {date}",
+      "elapsed": "{percent}% van de voorbereidingstijd is voorbij",
+      "registrationCloses": "Inschrijvingen sluiten",
+      "setupStarts": "Opbouw start",
+      "liveTitle": "Nu bezig",
+      "liveUntil": "Tot {time}",
+      "liveDetail": "Veel succes vandaag! De planning en je taken staan hiernaast.",
+      "daysUnit": "{count, plural, one {dag} other {dagen}}"
+    },
+    "wrapUp": {
+      "title": "Afsluiten",
+      "attendance": "Bezoekers",
+      "attendanceBoth": "{actual} van {expected} verwacht",
+      "attendanceActual": "{actual}",
+      "attendanceMissing": "Hoeveel bezoekers waren er?",
+      "fillAttendance": "Vul in",
+      "openTasks": "{count, plural, =0 {Alle taken zijn klaar} one {# taak staat nog open} other {# taken staan nog open}}",
+      "retrospective": "Wat leerden we? Schrijf het op voor de volgende editie.",
+      "writeRetrospective": "Schrijf de terugblik",
+      "retrospectiveDone": "Terugblik geschreven"
+    },
+    "tasks": {
+      "title": "Taken",
+      "view": "Bekijk taken",
+      "headline": "{done} van {total} taken klaar",
+      "done": "Klaar",
+      "inProgress": "Bezig",
+      "todo": "Te doen",
+      "unassigned": "Niemand op gezet",
+      "overdue": "Te laat",
+      "noDueDate": "Geen deadline",
+      "due": "Tegen {date}",
+      "overdueSince": "Te laat · {date}",
+      "requests": "{count, plural, one {# persoon vraagt} other {# personen vragen}} om een taak",
+      "emptyTitle": "Nog geen taken",
+      "emptyBody": "Zet op een rij wat er moet gebeuren, en wie wat doet.",
+      "emptyAction": "Maak een taak",
+      "emptyMember": "Er zijn nog geen taken voor jou.",
+      "emptyAfter": "Er waren geen taken voor deze editie."
+    },
+    "planning": {
+      "title": "Planning",
+      "view": "Bekijk planning",
+      "headline": "{filled} van {positions} plaatsen ingevuld",
+      "confirmed": "Bevestigd",
+      "proposed": "Voorgesteld",
+      "open": "Nog vrij",
+      "applications": "Aangemeld",
+      "unassigned": "Nog niet ingepland",
+      "published": "Planning verstuurd op {date}",
+      "notPublished": "Planning nog niet verstuurd",
+      "noShifts": "{count, plural, one {# vrijwilliger} other {# vrijwilligers}} aangemeld, nog geen shiften",
+      "emptyTitle": "Nog geen shiften",
+      "emptyBody": "Maak ploegen en shiften, dan kunnen vrijwilligers zich aanmelden.",
+      "emptyAction": "Maak een eerste ploeg",
+      "emptyAfter": "Er was geen vrijwilligersplanning voor deze editie.",
+      "assigned": "Ingepland",
+      "wholeEventHeadline": "{assigned} van {applications} vrijwilligers ingepland"
+    },
+    "budget": {
+      "title": "Budget",
+      "view": "Bekijk budget",
+      "headline": "{spent} uitgegeven van {estimated}",
+      "headlineNoEstimate": "{spent} uitgegeven",
+      "income": "Inkomsten",
+      "incomeLine": "{actual} van {estimated} verwacht",
+      "expense": "Uitgaven",
+      "estimated": "Geraamd",
+      "actual": "Werkelijk",
+      "projected": "Verwacht resultaat",
+      "result": "Resultaat",
+      "suppliers": "{count, plural, one {# leverancier} other {# leveranciers}} gekoppeld",
+      "emptyTitle": "Nog geen budget",
+      "emptyBody": "Zet je verwachte kosten en inkomsten erin, dan zie je hier hoe je ervoor staat.",
+      "emptyAction": "Voeg een budgetlijn toe",
+      "emptyAfter": "Er was geen budget voor deze editie."
+    },
+    "mila": {
+      "setupTitle": "Zal ik de eerste taken voor je opstellen?",
+      "setupBody": "Ik vergelijk met vorig jaar en met gelijkaardige evenementen, of maak taken van jouw lijstje.",
+      "setupChip": "{name} kan je eerste taken opstellen",
+      "reviewTitle": "{count, plural, one {Ik heb # taak voor je klaarstaan} other {Ik heb # taken voor je klaarstaan}}",
+      "reviewBody": "Bekijk ze en kies wat je wil overnemen.",
+      "reviewChip": "{count, plural, one {# voorstel van {name}} other {# voorstellen van {name}}}",
+      "review": "Bekijk voorstellen",
+      "findTitle": "Zal ik kijken of er taken ontbreken?",
+      "findBody": "Ik vergelijk met vorig jaar en met gelijkaardige evenementen.",
+      "findChip": "{name} kan ontbrekende taken zoeken",
+      "finding": "{name} zoekt ontbrekende taken…",
+      "dismiss": "Niet nu"
+    }
   }
 }
