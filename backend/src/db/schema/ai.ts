@@ -34,7 +34,12 @@ const updatedAt = timestamp('updated_at', { withTimezone: true })
 
 /** What an AI run does. One value per feature. */
 /** `task_drafting`: turning an organizer's own list into tasks, while they wait. */
-export const aiFeatureEnum = pgEnum('ai_feature', ['task_suggestions', 'task_drafting']);
+/** `promotion_plan`: a promotion plan for the event's audience (docs/info.md §7.11). */
+export const aiFeatureEnum = pgEnum('ai_feature', [
+  'task_suggestions',
+  'task_drafting',
+  'promotion_plan',
+]);
 /** What started a run: a person asking, or something that happened. */
 export const aiTriggerEnum = pgEnum('ai_trigger', [
   'on_demand',
@@ -52,6 +57,7 @@ export const aiSuggestionKindEnum = pgEnum('ai_suggestion_kind', [
   'task_suggestion',
   'question',
   'update_event',
+  'promo_action',
 ]);
 /**
  * `dismissed_stale`: closed by the agent because its cause went away (the task was created by
@@ -104,6 +110,8 @@ export const aiRun = pgTable(
     /** The prompt version and model that produced the result; set when the run succeeds. */
     promptVersion: text('prompt_version'),
     model: text('model'),
+    /** What the organizer asked of this run ("meer Instagram, geen drukwerk"), if anything. */
+    instruction: text('instruction'),
     /** Why a run failed, for debugging. Never shown to organizers. */
     error: text('error'),
     createdAt,

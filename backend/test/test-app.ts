@@ -146,7 +146,7 @@ export async function createTestApp(options: { aiAvailable?: boolean } = {}): Pr
   };
 }
 
-type Method = 'get' | 'post' | 'patch' | 'delete';
+type Method = 'get' | 'post' | 'put' | 'patch' | 'delete';
 
 export class TestClient {
   private readonly agent: ReturnType<typeof request.agent>;
@@ -165,6 +165,7 @@ export class TestClient {
 
   get = (path: string) => this.request('get', path);
   post = (path: string, body?: object) => this.request('post', path, body ?? {});
+  put = (path: string, body: object) => this.request('put', path, body);
   patch = (path: string, body: object) => this.request('patch', path, body);
   delete = (path: string) => this.request('delete', path);
 
