@@ -8,8 +8,9 @@
  * - Organization "Chiro Sint-Jan (seed)" with the event "Kerstmarkt 2026" (labels, tasks in every
  *   status, an overdue task, a pending assignment request, a budget with income and costs in every
  *   state: estimated only, paid, over and under budget, labelled and linked to tasks) and its
- *   previous edition (with a settled budget). Suppliers (one archived, one never used) on the
- *   budget lines of both editions. Planning for the Kerstmarkt: teams, shifts and volunteers,
+ *   previous edition (with a settled budget that has lines this year's lacks, and a task with a
+ *   cost but no budget line, for Mila's budget review). Suppliers (one archived, one never used)
+ *   on the budget lines of both editions. Planning for the Kerstmarkt: teams, shifts and volunteers,
  *   partly placed (some confirmed, some proposed, some still waiting), registration open; notes
  *   on the sign-ups and planning rules for Mila, and last year's planning as her history.
  * - The event overview in its three states: the Kerstmarkt in mid-preparation (an overdue task,
@@ -293,6 +294,14 @@ async function seed(tx: Transaction) {
       priority: 'low',
       labels: ['Opbouw', 'Kassa'],
     },
+    // A cost without a budget line yet: Mila's budget review picks it up.
+    {
+      title: 'Springkasteel reserveren voor de kinderen',
+      status: 'todo',
+      priority: 'low',
+      dueDate: day(10),
+      labels: [],
+    },
   ];
 
   const inserted = await tx
@@ -571,6 +580,38 @@ async function seed(tx: Transaction) {
       supplier: 'Drukkerij De Kopie',
       task: 'Affiches ophangen in de buurt',
       notes: 'Te laat geleverd: dit jaar een andere drukker.',
+    },
+    // This year's budget has these under another name, or not yet: what Mila's budget review
+    // compares (the permit is "Vergunning stad" this year; the other three are missing).
+    {
+      type: 'expense',
+      title: 'Toelating evenement gemeente',
+      estimated: 7500,
+      actual: 7500,
+      labels: [],
+    },
+    {
+      type: 'expense',
+      title: 'Verzekering BA organisator',
+      estimated: 18500,
+      actual: 18500,
+      labels: [],
+      notes: 'Eéndagspolis via de verzekeraar van de Chiro.',
+    },
+    {
+      type: 'expense',
+      title: 'Afvalcontainer',
+      estimated: 12000,
+      actual: 14350,
+      labels: [],
+    },
+    {
+      type: 'expense',
+      title: 'Unisono kerstmuziek',
+      estimated: 15000,
+      actual: 16280,
+      labels: [],
+      notes: 'Achtergrondmuziek op het plein.',
     },
   ]);
 }
