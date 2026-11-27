@@ -40,6 +40,7 @@ const updatedAt = timestamp('updated_at', { withTimezone: true })
  * - `shift_suggestions`: teams and shifts for the planning (docs/info.md §7.7.1 A).
  * - `rule_drafting`: the organizer's text about people as planning rules, while they wait.
  * - `allocation`: reading the volunteers' notes, then the solver's proposal of who goes where.
+ * - `budget_review`: "Mila, bekijk mijn begroting": missing budget lines and an insight.
  */
 export const aiFeatureEnum = pgEnum('ai_feature', [
   'task_suggestions',
@@ -48,6 +49,7 @@ export const aiFeatureEnum = pgEnum('ai_feature', [
   'shift_suggestions',
   'rule_drafting',
   'allocation',
+  'budget_review',
 ]);
 /** What started a run: a person asking, or something that happened. */
 export const aiTriggerEnum = pgEnum('ai_trigger', [
@@ -62,6 +64,10 @@ export const aiRunStatusEnum = pgEnum('ai_run_status', [
   'failed',
 ]);
 
+/**
+ * `budget_line`: a line to add to the budget. `budget_insight`: what the budget's numbers mean;
+ * nothing to accept, replaced by each run.
+ */
 export const aiSuggestionKindEnum = pgEnum('ai_suggestion_kind', [
   'task_suggestion',
   'question',
@@ -72,6 +78,8 @@ export const aiSuggestionKindEnum = pgEnum('ai_suggestion_kind', [
   'shift_change',
   'planning_rule',
   'allocation',
+  'budget_line',
+  'budget_insight',
 ]);
 /**
  * `dismissed_stale`: closed by the agent because its cause went away (the task was created by

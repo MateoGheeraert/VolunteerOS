@@ -106,14 +106,23 @@ export class OverviewService {
     // Mila: only for those who may act on what she proposes.
     const milaEnabled = canManage && this.ai.enabled;
     const suggestion = canManage ? statusSuggestion(event, now) : null;
-    const [runs, pending, dismissed, planningBusy] = milaEnabled
+    const [runs, pending, dismissed, planningBusy, reviewingBudget, budgetLines] = milaEnabled
       ? await Promise.all([
           this.overview.findMissingRuns(event.id),
           this.overview.pendingSuggestions(event.id),
           this.overview.dismissedHints(org.userId, event.id),
           this.overview.planningRunning(event.id),
+          this.overview.budgetReviewRunning(event.id),
+          this.overview.pendingBudgetLines(event.id),
         ])
-      : [{ running: false, lastFinished: null }, [], new Map<string, string>(), false];
+      : [
+          { running: false, lastFinished: null },
+          [],
+          new Map<string, string>(),
+          false,
+          false,
+          { count: 0, fromPreviousEdition: 0, newestAt: null },
+        ];
     const pendingOf = (kinds: AiSuggestionKind[]) =>
       pending.filter((row) => kinds.includes(row.kind)).reduce((sum, row) => sum + row.count, 0);
     const taskSuggestions = pending.find((row) => row.kind === 'task_suggestion');
@@ -195,6 +204,9 @@ export class OverviewService {
         pendingTaskSuggestions: taskSuggestions?.count ?? 0,
         planningBusy,
         pendingPlanningSuggestions: pendingOf(planningKinds),
+        reviewingBudget,
+        pendingBudgetLines: budgetLines.count,
+        pendingBudgetLinesFromPreviousEdition: budgetLines.fromPreviousEdition,
         statusSuggestion: suggestion,
         hints: selectHints({
           canManage,
@@ -210,6 +222,9 @@ export class OverviewService {
           },
           findMissingRunning: runs.running,
           lastFindMissing: runs.lastFinished,
+          budgetEntryCount: entries.length,
+          pendingBudgetLines: budgetLines,
+          budgetReviewRunning: reviewingBudget,
           statusSuggestionShown: suggestion !== null,
           planning: {
             teamCount: teams.length,

@@ -2,6 +2,7 @@ import type { INestApplication } from '@nestjs/common';
 import { getDrizzleToken } from '@nestjs/drizzle';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { Test } from '@nestjs/testing';
+import type { LanguageModel } from 'ai';
 import { sql } from 'drizzle-orm';
 import { MockLanguageModelV4 } from 'ai/test';
 import request from 'supertest';
@@ -85,9 +86,15 @@ export interface ModelCall {
  * - `respond`: Mila is available and every model call answers with what this returns (as JSON),
  *   so a test can drive a runner or a drafting call end to end. Runs are still not queued: tests
  *   insert the run and hand it to the worker.
+ * - `model`: a mock model every feature uses, for tests that execute a run themselves.
  */
 export async function createTestApp(
-  options: { aiAvailable?: boolean; respond?: (call: ModelCall) => unknown } = {},
+  options: {
+    aiAvailable?: boolean;
+    respond?: (call: ModelCall) => unknown;
+    /** A mock model (`ai/test`) every feature uses: Mila is available and her runs can execute. */
+    model?: LanguageModel;
+  } = {},
 ): Promise<TestApp> {
   const emails = new CapturingEmailProvider();
   const files = new FakeFileStorage();
@@ -128,10 +135,12 @@ export async function createTestApp(
         }),
     };
     builder = builder.overrideProvider(AI_MODEL_RESOLVER).useValue(resolver);
-  } else if (options.aiAvailable) {
+  } else if (options.aiAvailable || options.model) {
+    const { model } = options;
     const resolver: AiModelResolver = {
       enabled: true,
       resolve: () => {
+        if (model) return model;
         throw new Error('Tests never call a model');
       },
     };

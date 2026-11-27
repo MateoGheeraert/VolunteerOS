@@ -8,6 +8,7 @@ import { TasksModule } from '../features/tasks/tasks.module.js';
 import { AiClient } from './ai-client.service.js';
 import { AI_MODEL_RESOLVER, createModelResolver } from './ai-models.js';
 import { AiUsageService } from './ai-usage.service.js';
+import { BudgetReviewRunner } from './budget-review/budget-review.runner.js';
 import { AiEventController, AiOrganizationController } from './ai.controller.js';
 import { PromotionPlanController } from './promotion-plan/promotion-plan.controller.js';
 import { PromotionPlanRunner } from './promotion-plan/promotion-plan.runner.js';
@@ -51,6 +52,7 @@ import { TaskSuggestionsRunner } from './task-suggestions/task-suggestions.runne
     AiSuggestionsService,
     AiMemoryService,
     TaskSuggestionsRunner,
+    BudgetReviewRunner,
     TaskDraftsService,
     PromotionRepository,
     PromotionPlanRunner,

@@ -9,11 +9,13 @@ import { MAX_BUDGET_CENTS } from '../db/schema/budget.js';
 /**
  * A stored record an AI output is based on. `label` is what the UI shows ("Taak: Tent huren").
  * `catalog`: an action from the promotion catalogue; its id is the catalogue key.
+ * `checklist`: an item of Mila's checklist of typical event costs (its `id` is the item's key).
  */
 export const citationSchema = z.object({
   // `catalog`: a promotion action; `team`, `shift`: the previous edition's or this event's;
   // `catalogue`: a staffing rule of thumb; `note`: a volunteer's note on their application;
-  // `request`: what the organizer asked Mila for.
+  // `request`: what the organizer asked Mila for; `budget_entry`: a budget line;
+  // `checklist`: an item of the typical event costs.
   type: z.enum([
     'event',
     'task',
@@ -24,6 +26,8 @@ export const citationSchema = z.object({
     'catalogue',
     'note',
     'request',
+    'budget_entry',
+    'checklist',
   ]),
   id: z.string(),
   label: z.string(),
@@ -94,3 +98,113 @@ export type PromoActionPayload = z.infer<typeof promoActionPayloadSchema>;
 /** The answer an organizer gave to a question card. */
 export const questionAnswerSchema = z.object({ text: z.string().min(1).max(1000) });
 export type QuestionAnswer = z.infer<typeof questionAnswerSchema>;
+
+const cents = () => z.number().int().min(0);
+
+/**
+ * Where the estimate of a proposed budget line comes from. Always computed by the server, never by
+ * the model: the previous edition's actual amount (scaled by the visitors when the line grows with
+ * them), or the middle of a richtprijs range from Mila's checklist.
+ */
+export const budgetLineEstimateSchema = z.discriminatedUnion('basis', [
+  z.object({
+    basis: z.literal('previous_edition'),
+    cents: cents(),
+    /** The previous edition's line, as it was settled. */
+    source: z.object({
+      eventName: z.string(),
+      title: z.string(),
+      actualCents: cents(),
+      /** The previous edition's actual visitors; null when unknown. */
+      attendance: z.number().int().nullable(),
+    }),
+    /** This event's expected visitors, when the amount was scaled to them. */
+    targetAttendance: z.number().int().nullable(),
+    /** True when the line grows with the visitors and both visitor numbers are known. */
+    scaled: z.boolean(),
+  }),
+  z.object({
+    basis: z.literal('richtprijs'),
+    cents: cents(),
+    checklistKey: z.string(),
+    minCents: cents(),
+    maxCents: cents(),
+  }),
+]);
+export type BudgetLineEstimate = z.infer<typeof budgetLineEstimateSchema>;
+
+/** Why Mila proposes the line: last year had it, the checklist, a task, or typical for the event. */
+/** `request`: the organizer asked for it ("we verkopen ook hotdogs"). */
+export const BUDGET_LINE_ORIGINS = [
+  'previous_edition',
+  'checklist',
+  'task',
+  'typical',
+  'request',
+] as const;
+
+/** A budget line Mila proposes. Only ever an estimate: she never fills in an actual amount. */
+export const budgetLinePayloadSchema = z.object({
+  type: z.enum(['income', 'expense']),
+  title: z.string().min(1).max(200),
+  origin: z.enum(BUDGET_LINE_ORIGINS),
+  /** Null when nothing backs an amount: the organizer fills it in. */
+  estimate: z.union([budgetLineEstimateSchema, z.null()]),
+  /** This event's labels, matched by name to the previous edition's line. */
+  labelIds: z.array(z.uuid()).max(20),
+  /** The previous edition's supplier, unless it was archived since. */
+  supplier: z.union([z.object({ id: z.uuid(), name: z.string() }), z.null()]),
+  /** The event's task the cost belongs to. */
+  task: z.union([z.object({ id: z.uuid(), title: z.string() }), z.null()]),
+});
+export type BudgetLinePayload = z.infer<typeof budgetLinePayloadSchema>;
+
+const signedCents = () => z.number().int();
+
+/**
+ * The numbers behind Mila's insight on a budget, all computed by the server (the model only puts
+ * them in words). Amounts are planned amounts: the estimate, else the actual amount.
+ */
+export const budgetInsightPayloadSchema = z.object({
+  /**
+   * What the figures are about: the current budget, the previous edition's budget scaled to this
+   * one (an empty budget with history), or nothing yet.
+   */
+  basis: z.enum(['current', 'previous_edition', 'none']),
+  expectedAttendance: z.number().int().nullable(),
+  previousEdition: z.union([
+    z.object({ name: z.string(), attendance: z.number().int().nullable() }),
+    z.null(),
+  ]),
+  incomeCents: cents(),
+  expenseCents: cents(),
+  resultCents: signedCents(),
+  /** Variable lines grow with the visitors; fixed ones don't. */
+  split: z.object({
+    fixedIncomeCents: cents(),
+    variableIncomeCents: cents(),
+    fixedExpenseCents: cents(),
+    variableExpenseCents: cents(),
+  }),
+  /** From the previous edition's actual amounts and visitors; null without them. */
+  perVisitor: z.union([
+    z.object({
+      incomeCents: cents(),
+      expenseCents: cents(),
+      lines: z.array(
+        z.object({ type: z.enum(['income', 'expense']), title: z.string(), cents: cents() }),
+      ),
+    }),
+    z.null(),
+  ]),
+  /** The result at fewer or more visitors: variable lines scale, fixed ones stay. */
+  scenarios: z.array(
+    z.object({
+      attendance: z.number().int(),
+      changePercent: z.number().int(),
+      resultCents: signedCents(),
+      differenceCents: signedCents(),
+    }),
+  ),
+});
+export type BudgetInsightPayload = z.infer<typeof budgetInsightPayloadSchema>;

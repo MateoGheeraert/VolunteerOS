@@ -69,34 +69,48 @@ export class BudgetService {
     access: EventAccess,
     input: CreateBudgetEntryInput,
   ): Promise<BudgetEntryDto> {
+    const created = await this.db.transaction((tx) =>
+      this.createInTransaction(tx, org, access, input),
+    );
+    return this.view(org, access, created.id);
+  }
+
+  /**
+   * Creates the entry inside the caller's transaction, e.g. when accepting one of Mila's budget
+   * lines, which is marked accepted in the same one. Returns the row: the view can only be read
+   * after commit.
+   */
+  async createInTransaction(
+    tx: Transaction,
+    org: OrgContext,
+    access: EventAccess,
+    input: CreateBudgetEntryInput,
+  ): Promise<BudgetEntryRow> {
     const eventId = access.event.id;
     assertWritable(access.event);
     if (input.taskId) await this.assertTask(eventId, input.taskId);
     if (input.supplierId) await this.suppliers.assertPickable(org.organizationId, input.supplierId);
     const labelIds = await this.labels.assertLabels(eventId, input.labelIds ?? []);
 
-    const created = await this.db.transaction(async (tx) => {
-      const row = await this.budget.insert(tx, eventId, org.userId, {
-        type: input.type,
-        title: input.title,
-        estimatedCents: input.estimatedCents ?? null,
-        actualCents: input.actualCents ?? null,
-        notes: input.notes || null,
-        taskId: input.taskId ?? null,
-        supplierId: input.supplierId ?? null,
-      });
-      await this.budget.setLabels(tx, row.id, labelIds);
-      await recordActivity(tx, org, {
-        action: 'created',
-        entityType: 'budget_entry',
-        entity: { ...row, labelIds } satisfies LoggedEntry,
-        before: null,
-        eventId,
-        values: ENTRY_LOGGED_VALUES,
-      });
-      return row;
+    const row = await this.budget.insert(tx, eventId, org.userId, {
+      type: input.type,
+      title: input.title,
+      estimatedCents: input.estimatedCents ?? null,
+      actualCents: input.actualCents ?? null,
+      notes: input.notes || null,
+      taskId: input.taskId ?? null,
+      supplierId: input.supplierId ?? null,
     });
-    return this.view(org, access, created.id);
+    await this.budget.setLabels(tx, row.id, labelIds);
+    await recordActivity(tx, org, {
+      action: 'created',
+      entityType: 'budget_entry',
+      entity: { ...row, labelIds } satisfies LoggedEntry,
+      before: null,
+      eventId,
+      values: ENTRY_LOGGED_VALUES,
+    });
+    return row;
   }
 
   async update(

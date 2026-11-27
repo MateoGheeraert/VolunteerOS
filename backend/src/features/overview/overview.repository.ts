@@ -1,6 +1,17 @@
 import { Injectable } from '@nestjs/common';
 import { InjectDrizzle } from '@nestjs/drizzle';
-import { and, asc, count, countDistinct, desc, eq, inArray, isNotNull, max } from 'drizzle-orm';
+import {
+  and,
+  asc,
+  count,
+  countDistinct,
+  desc,
+  eq,
+  inArray,
+  isNotNull,
+  max,
+  sql,
+} from 'drizzle-orm';
 import type { Database } from '../../db/database.js';
 import {
   aiRun,
@@ -192,6 +203,48 @@ export class OverviewRepository {
       .from(aiSuggestion)
       .where(and(eq(aiSuggestion.eventId, eventId), eq(aiSuggestion.status, 'pending')))
       .groupBy(aiSuggestion.kind);
+  }
+
+  /** Whether a budget review is queued or running. */
+  async budgetReviewRunning(eventId: string): Promise<boolean> {
+    const [row] = await this.db
+      .select({ id: aiRun.id })
+      .from(aiRun)
+      .where(
+        and(
+          eq(aiRun.eventId, eventId),
+          eq(aiRun.feature, 'budget_review'),
+          inArray(aiRun.status, ['queued', 'running']),
+        ),
+      )
+      .limit(1);
+    return row !== undefined;
+  }
+
+  /** Mila's pending budget lines: how many, how many last edition had, and the newest one's time. */
+  async pendingBudgetLines(eventId: string) {
+    const [row] = await this.db
+      .select({
+        count: count(),
+        fromPreviousEdition:
+          sql<number>`count(*) filter (where ${aiSuggestion.payload}->>'origin' = 'previous_edition')`.mapWith(
+            Number,
+          ),
+        newestAt: max(aiSuggestion.createdAt),
+      })
+      .from(aiSuggestion)
+      .where(
+        and(
+          eq(aiSuggestion.eventId, eventId),
+          eq(aiSuggestion.kind, 'budget_line'),
+          eq(aiSuggestion.status, 'pending'),
+        ),
+      );
+    return {
+      count: row?.count ?? 0,
+      fromPreviousEdition: row?.fromPreviousEdition ?? 0,
+      newestAt: row?.newestAt ?? null,
+    };
   }
 
   async dismissedHints(userId: string, eventId: string): Promise<Map<string, string>> {

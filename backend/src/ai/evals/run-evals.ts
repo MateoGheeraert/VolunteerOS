@@ -26,6 +26,14 @@ import {
   TASK_DRAFTS_SYSTEM,
 } from '../task-drafts/task-drafts.prompt.js';
 import { taskDraftOutputSchema } from '../task-drafts/task-drafts.schema.js';
+import { buildBudgetReviewContext } from '../budget-review/budget-review.context.js';
+import { planBudgetReview } from '../budget-review/budget-review.plan.js';
+import {
+  BUDGET_REVIEW_PROMPT_VERSION,
+  budgetReviewSystem,
+} from '../budget-review/budget-review.prompt.js';
+import { budgetReviewOutputSchema } from '../budget-review/budget-review.schema.js';
+import { BUDGET_REVIEW_CASES } from './budget-review.fixtures.js';
 import { buildPromotionPlanContext } from '../promotion-plan/promotion-plan.context.js';
 import { planPromotionActions, type PromotionPlan } from '../promotion-plan/promotion-plan.plan.js';
 import {
@@ -227,6 +235,61 @@ async function main(): Promise<void> {
   await runPlanningEvals(models, planning);
   spentMillicents = planning.spentMillicents;
   failures = planning.failures;
+
+  const review = FEATURE_MODELS.budget_review;
+  const reviewModels = [
+    review.primary,
+    ...(review.fallback && review.fallback !== review.primary ? [review.fallback] : []),
+  ];
+  console.log(`\nPrompt ${BUDGET_REVIEW_PROMPT_VERSION}\n`);
+  for (const model of runs('budget_review') ? reviewModels : []) {
+    for (const testCase of BUDGET_REVIEW_CASES) {
+      if (spentMillicents / 1000 >= maxCents) {
+        console.error(`Stopped: the cost limit of ${maxCents} cents was reached.`);
+        process.exit(1);
+      }
+      const { prompt, refs, records, insight } = buildBudgetReviewContext(testCase.input);
+      const started = Date.now();
+      try {
+        const result = await generateText({
+          model: models.resolve(model),
+          output: Output.object({ schema: budgetReviewOutputSchema }),
+          system: budgetReviewSystem(Boolean(testCase.input.instruction)),
+          prompt,
+          timeout: 120_000,
+        });
+        const cost = costMillicents(priceOf(model), {
+          inputTokens: result.usage.inputTokens ?? 0,
+          outputTokens: result.usage.outputTokens ?? 0,
+        });
+        spentMillicents += cost;
+        const { input } = testCase;
+        const plan = planBudgetReview(result.output, refs, records, insight, {
+          existingTitles: input.currentLines.map((line) => line.title),
+          labelIdsByName: new Map(),
+          previousEditionName: input.previousEdition?.name ?? null,
+          previousAttendance: input.previousEdition?.actualAttendance ?? null,
+          expectedAttendance: input.event.expectedAttendance,
+        });
+        const results = testCase.checks.map((check) => ({ ...check, ok: check.pass(plan) }));
+        failures += results.filter((check) => !check.ok).length;
+        console.log(
+          `${model} · ${testCase.name} · ${Date.now() - started} ms · ${(cost / 1000).toFixed(2)} ct`,
+        );
+        for (const check of results) console.log(`  ${check.ok ? '✓' : '✗'} ${check.name}`);
+        for (const line of plan.lines) {
+          const estimate = line.payload.estimate;
+          const amount = estimate ? `${estimate.basis} ${estimate.cents / 100}` : 'no amount';
+          console.log(`  - ${line.payload.type} ${line.title} (${line.payload.origin}, ${amount})`);
+        }
+        console.log(`  insight: ${plan.insight.title} ${plan.insight.explanation}`);
+        if (plan.dropped.length > 0) console.log(`  dropped: ${JSON.stringify(plan.dropped)}`);
+      } catch (error) {
+        failures++;
+        console.log(`${model} · ${testCase.name} · ERROR ${String(error)}`);
+      }
+    }
+  }
 
   console.log(`\nTotal cost: ${(spentMillicents / 1000).toFixed(2)} euro cents`);
   if (failures > 0) {

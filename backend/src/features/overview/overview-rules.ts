@@ -260,10 +260,12 @@ export const HINT_KEYS = [
   'planning.setup',
   'planning.review',
   'planning.allocate',
+  'budget.setup',
+  'budget.review',
 ] as const;
 export type HintKey = (typeof HINT_KEYS)[number];
-/** The cards Mila can speak in. Budget joins once she can help there. */
-export const HINT_CARDS = ['tasks', 'planning'] as const;
+/** The cards Mila can speak in. */
+export const HINT_CARDS = ['tasks', 'planning', 'budget'] as const;
 export type HintCard = (typeof HINT_CARDS)[number];
 
 export interface Hint {
@@ -293,6 +295,11 @@ export interface HintInput {
   findMissingRunning: boolean;
   /** The last finished task-suggestion run. */
   lastFindMissing: { id: string; finishedAt: Date } | null;
+  budgetEntryCount: number;
+  /** Mila's budget lines waiting for a decision, and when the newest was made. */
+  pendingBudgetLines: { count: number; newestAt: Date | null };
+  /** Whether a budget review is queued or running right now. */
+  budgetReviewRunning: boolean;
   /** Whether the status banner (also Mila) is on the page: then no card hint is highlighted. */
   statusSuggestionShown: boolean;
   /** The planning card: teams, Mila's waiting planning cards, and whether she works on it. */
@@ -310,7 +317,7 @@ export interface HintInput {
 
 /**
  * Mila's hints on the overview, balanced so she doesn't bombard the organizer:
- * - Only where she can act (tasks and planning), only for managers, only before the event.
+ * - Only where she can act (tasks, planning and budget), only for managers, only before the event.
  * - In an empty card she is the empty state; with data she only speaks when she has something
  *   concrete. At most one hint per card.
  * - In an empty card her setup offer is shown in full. Of her other hints one on the page is,
@@ -339,6 +346,16 @@ export function selectHints(input: HintInput): Hint[] {
       card: 'tasks',
       fingerprint: input.lastFindMissing?.id ?? 'never',
     });
+  }
+  const budgetLines = input.pendingBudgetLines;
+  if (budgetLines.count > 0) {
+    candidates.push({
+      key: 'budget.review',
+      card: 'budget',
+      fingerprint: budgetLines.newestAt?.toISOString() ?? 'pending',
+    });
+  } else if (input.budgetEntryCount === 0 && !input.budgetReviewRunning) {
+    candidates.push({ key: 'budget.setup', card: 'budget', fingerprint: 'empty' });
   }
 
   // Planning: her waiting cards first, then teams for an empty board, then dividing the open

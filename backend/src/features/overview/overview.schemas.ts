@@ -125,6 +125,11 @@ export const overviewSchema = z
       planningBusy: z.boolean(),
       /** Her planning cards (teams, shifts, rules, an allocation) waiting for a decision. */
       pendingPlanningSuggestions: count(),
+      /** Mila is reviewing the budget right now. */
+      reviewingBudget: z.boolean(),
+      /** Her budget lines waiting for a decision, and how many of them last edition had. */
+      pendingBudgetLines: count(),
+      pendingBudgetLinesFromPreviousEdition: count(),
       // A union rather than `.nullable()`: the OpenAPI client drops `nullable` from an enum.
       statusSuggestion: z.union([z.enum(['publish', 'complete']), z.null()]),
       hints: z.array(

@@ -10,11 +10,13 @@ import type { EventAccess } from '../../authz/event-access.service.js';
 import type { OrgContext } from '../../authz/org-context.js';
 import type { Database, Transaction } from '../../db/database.js';
 import type { AiSuggestionKind, AiSuggestionRow } from '../../db/schema/index.js';
+import { BudgetService } from '../../features/budget/budget.service.js';
 import { EventsService } from '../../features/events/events.service.js';
 import { TasksService } from '../../features/tasks/tasks.service.js';
 import { LiveUpdatesService } from '../../jobs/live-updates.service.js';
 import { AiClient } from '../ai-client.service.js';
 import type {
+  AcceptBudgetLinesInput,
   AcceptEventUpdateInput,
   AcceptTaskSuggestionsInput,
   AiEventStateDto,
@@ -47,6 +49,7 @@ export class AiSuggestionsService {
     private readonly ai: AiClient,
     private readonly tasks: TasksService,
     private readonly events: EventsService,
+    private readonly budget: BudgetService,
     private readonly live: LiveUpdatesService,
   ) {}
 
@@ -70,13 +73,33 @@ export class AiSuggestionsService {
   }
 
   /** The organizer asks for (new) task suggestions now. */
-  async requestTaskSuggestions(org: OrgContext, access: EventAccess): Promise<AiRunDto> {
+  requestTaskSuggestions(org: OrgContext, access: EventAccess): Promise<AiRunDto> {
+    return this.request(org, access, 'task_suggestions');
+  }
+
+  /** "Mila, bekijk mijn begroting": missing budget lines and an insight. */
+  requestBudgetReview(
+    org: OrgContext,
+    access: EventAccess,
+    /** What the organizer tells her to take into account ("de zaal is gratis dit jaar"). */
+    instruction?: string,
+  ): Promise<AiRunDto> {
+    return this.request(org, access, 'budget_review', instruction);
+  }
+
+  private async request(
+    org: OrgContext,
+    access: EventAccess,
+    feature: 'task_suggestions' | 'budget_review',
+    instruction?: string,
+  ): Promise<AiRunDto> {
     const run = await this.runs.enqueue({
       organizationId: org.organizationId,
       eventId: access.event.id,
-      feature: 'task_suggestions',
+      feature,
       trigger: 'on_demand',
       requestedByUserId: org.userId,
+      instruction: instruction || null,
     });
     if (!run) throw new ConflictException('AI is not available');
     return {
@@ -111,6 +134,38 @@ export class AiSuggestionsService {
           withSource(org, { type: 'ai_suggestion', id: row.id }),
           access,
           item.task,
+        );
+      }
+      await this.live.publish(tx, { type: 'ai_suggestions', eventId });
+    });
+  }
+
+  /**
+   * Creates the budget lines as edited in the form (or as proposed), and marks their suggestions
+   * accepted. Never more than the organizer sent: Mila's estimate is only what the form started
+   * from.
+   */
+  async acceptBudgetLines(
+    org: OrgContext,
+    access: EventAccess,
+    input: AcceptBudgetLinesInput,
+  ): Promise<void> {
+    const eventId = access.event.id;
+    await this.db.transaction(async (tx) => {
+      for (const item of input.items) {
+        const row = await this.decide(
+          tx,
+          org,
+          access,
+          item.suggestionId,
+          'budget_line',
+          'accepted',
+        );
+        await this.budget.createInTransaction(
+          tx,
+          withSource(org, { type: 'ai_suggestion', id: row.id }),
+          access,
+          item.entry,
         );
       }
       await this.live.publish(tx, { type: 'ai_suggestions', eventId });
