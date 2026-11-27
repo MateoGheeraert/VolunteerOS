@@ -25,6 +25,7 @@ import { CurrentOrg, type OrgContext } from '../authz/org-context.js';
 import { LiveUpdatesService } from '../jobs/live-updates.service.js';
 import { AiUsageService } from './ai-usage.service.js';
 import {
+  acceptBudgetLinesSchema,
   acceptEventUpdateSchema,
   acceptTaskSuggestionsSchema,
   aiEventStateSchema,
@@ -36,12 +37,15 @@ import {
   draftTasksSchema,
   markSeenSchema,
   taskDraftSchema,
+  type AcceptBudgetLinesInput,
   type AcceptEventUpdateInput,
   type AcceptTaskSuggestionsInput,
   type AnswerQuestionInput,
   type CreateDraftTasksInput,
   type DraftTasksInput,
   type MarkSeenInput,
+  requestBudgetReviewSchema,
+  type RequestBudgetReviewInput,
 } from './ai.schemas.js';
 import { AiMemoryService } from './suggestions/ai-memory.service.js';
 import { AiSuggestionsService } from './suggestions/ai-suggestions.service.js';
@@ -82,6 +86,19 @@ export class AiEventController {
     return this.suggestions.requestTaskSuggestions(org, access);
   }
 
+  /** Queues a budget review ("Mila, bekijk mijn begroting"); the result arrives on the stream. */
+  @Post('budget-review')
+  @HttpCode(202)
+  @RequireEventAccess('manage')
+  @ApiResponse({ status: 202, standardSchema: aiRunSchema })
+  requestBudgetReview(
+    @CurrentOrg() org: OrgContext,
+    @CurrentEventAccess() access: EventAccess,
+    @Body({ schema: requestBudgetReviewSchema }) body: RequestBudgetReviewInput,
+  ) {
+    return this.suggestions.requestBudgetReview(org, access, body.instruction);
+  }
+
   /** Mila turns the organizer's own list into tasks to check; nothing is created yet. */
   @Post('task-drafts')
   @HttpCode(200)
@@ -117,6 +134,17 @@ export class AiEventController {
     @Body({ schema: acceptTaskSuggestionsSchema }) body: AcceptTaskSuggestionsInput,
   ) {
     return this.suggestions.acceptTasks(org, access, body);
+  }
+
+  @Post('suggestions/accept-budget-lines')
+  @HttpCode(204)
+  @RequireEventAccess('manage')
+  acceptBudgetLines(
+    @CurrentOrg() org: OrgContext,
+    @CurrentEventAccess() access: EventAccess,
+    @Body({ schema: acceptBudgetLinesSchema }) body: AcceptBudgetLinesInput,
+  ) {
+    return this.suggestions.acceptBudgetLines(org, access, body);
   }
 
   @Post('suggestions/:suggestionId/accept-update')

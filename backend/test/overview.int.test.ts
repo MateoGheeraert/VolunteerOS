@@ -57,8 +57,12 @@ describe('event overview', () => {
       mila: {
         enabled: true,
         statusSuggestion: 'publish',
-        // In the empty card she is the empty state, also next to the status banner.
-        hints: [{ key: 'tasks.setup', card: 'tasks', fingerprint: 'empty', highlighted: true }],
+        // In the empty cards she is the empty state, also next to the status banner.
+        hints: [
+          { key: 'tasks.setup', card: 'tasks', fingerprint: 'empty', highlighted: true },
+          { key: 'budget.setup', card: 'budget', fingerprint: 'empty', highlighted: true },
+          { key: 'planning.setup', card: 'planning', fingerprint: 'empty', highlighted: true },
+        ],
       },
     });
   });
@@ -124,9 +128,10 @@ describe('event overview', () => {
       income: { estimated: 80000, actual: 0 },
       result: { estimated: 20000, actual: -42000 },
     });
-    // Tasks exist and Mila never looked for missing ones.
+    // Tasks exist and Mila never looked for missing ones; places are open and people wait.
     expect(body.mila.hints.map((hint: { key: string }) => hint.key)).toEqual([
       'tasks.find_missing',
+      'planning.allocate',
     ]);
   });
 
@@ -161,11 +166,13 @@ describe('event overview', () => {
       fingerprint: 'empty',
     });
     expect(dismiss.status).toBe(204);
-    expect((await overview()).mila.hints).toEqual([]);
+    const taskHints = async () =>
+      (await overview()).mila.hints.filter((hint: { card: string }) => hint.card === 'tasks');
+    expect(await taskHints()).toEqual([]);
 
     // A new situation (tasks now exist) brings Mila back with another hint.
     await post('tasks', { title: 'Tent huren' });
-    expect((await overview()).mila.hints.map((hint: { key: string }) => hint.key)).toEqual([
+    expect((await taskHints()).map((hint: { key: string }) => hint.key)).toEqual([
       'tasks.find_missing',
     ]);
   });

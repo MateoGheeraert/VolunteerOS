@@ -5,7 +5,9 @@ import { and, asc, eq, ne } from 'drizzle-orm';
 import type { Database, DbExecutor } from '../../db/database.js';
 import {
   event,
+  eventAudience,
   eventMember,
+  type EventAudienceRow,
   member,
   shift,
   team,
@@ -192,6 +194,32 @@ export class EventsRepository {
       )
       .limit(1);
     return row;
+  }
+
+  /** A new edition starts with a copy of the previous edition's Publiek (docs/info.md §7.11). */
+  async copyAudience(
+    tx: DbExecutor,
+    fromEventId: string,
+    toEventId: string,
+  ): Promise<EventAudienceRow | undefined> {
+    const [from] = await tx
+      .select()
+      .from(eventAudience)
+      .where(eq(eventAudience.eventId, fromEventId))
+      .limit(1);
+    if (!from) return undefined;
+    const {
+      id: _id,
+      eventId: _eventId,
+      createdAt: _createdAt,
+      updatedAt: _updatedAt,
+      ...values
+    } = from;
+    const [copy] = await tx
+      .insert(eventAudience)
+      .values({ ...values, eventId: toEventId })
+      .returning();
+    return copy;
   }
 
   async insertMember(

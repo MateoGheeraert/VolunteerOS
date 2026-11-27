@@ -9,7 +9,7 @@ import { InjectDrizzle } from '@nestjs/drizzle';
 import { recordActivity } from '../../activity/activity-log.js';
 import type { OrgContext } from '../../authz/org-context.js';
 import type { Database, Transaction } from '../../db/database.js';
-import type { EventRow, ShiftRow } from '../../db/schema/index.js';
+import type { EventRow, ShiftRow, TeamRow } from '../../db/schema/index.js';
 import { toEventDto } from '../events/events.service.js';
 import type { EventDto } from '../events/events.schemas.js';
 import {
@@ -103,27 +103,40 @@ export class PlanningService {
   // ── Teams ────────────────────────────────────────────────────────────────────────────────────
 
   async createTeam(org: OrgContext, event: EventRow, input: CreateTeamInput): Promise<TeamDto> {
+    const row = await this.db.transaction((tx) =>
+      this.createTeamInTransaction(tx, org, event, input),
+    );
+    return toTeamDto(row);
+  }
+
+  /**
+   * Creates a team in the caller's transaction (accepting Mila's team card creates its shifts in
+   * the same one). `scope` may carry the AI suggestion as the change's source.
+   */
+  async createTeamInTransaction(
+    tx: Transaction,
+    scope: OrgContext,
+    event: EventRow,
+    input: CreateTeamInput,
+  ): Promise<TeamRow> {
     assertWritable(event);
-    const row = await this.db
-      .transaction(async (tx) => {
-        const created = await this.planning.insertTeam(tx, {
-          eventId: event.id,
-          name: input.name,
-          description: input.description || null,
-          defaultMeetingPoint: input.defaultMeetingPoint || null,
-        });
-        await recordActivity(tx, org, {
-          action: 'created',
-          entityType: 'team',
-          entity: created,
-          before: null,
-          eventId: event.id,
-          values: TEAM_LOGGED_VALUES,
-        });
-        return created;
+    const created = await this.planning
+      .insertTeam(tx, {
+        eventId: event.id,
+        name: input.name,
+        description: input.description || null,
+        defaultMeetingPoint: input.defaultMeetingPoint || null,
       })
       .catch((error: unknown) => rethrowUnique(error, 'team_event_name_uidx', TEAM_NAME_TAKEN));
-    return toTeamDto(row);
+    await recordActivity(tx, scope, {
+      action: 'created',
+      entityType: 'team',
+      entity: created,
+      before: null,
+      eventId: event.id,
+      values: TEAM_LOGGED_VALUES,
+    });
+    return created;
   }
 
   async updateTeam(
@@ -199,31 +212,41 @@ export class PlanningService {
   // ── Shifts ───────────────────────────────────────────────────────────────────────────────────
 
   async createShift(org: OrgContext, event: EventRow, input: CreateShiftInput): Promise<ShiftDto> {
+    const row = await this.db.transaction((tx) =>
+      this.createShiftInTransaction(tx, org, event, input),
+    );
+    return toShiftDto(row, []);
+  }
+
+  /** Creates a shift in the caller's transaction; the team may be new in that transaction. */
+  async createShiftInTransaction(
+    tx: Transaction,
+    scope: OrgContext,
+    event: EventRow,
+    input: CreateShiftInput,
+  ): Promise<ShiftRow> {
     assertWritable(event);
-    const team = await this.planning.findTeam(event.id, input.teamId);
+    const team = await this.planning.findTeam(event.id, input.teamId, tx);
     if (!team) throw new BadRequestException('teamId: team not found');
     assertInWindow(event, input);
-    const row = await this.db.transaction(async (tx) => {
-      const created = await this.planning.insertShift(tx, {
-        eventId: event.id,
-        teamId: team.id,
-        // Empty means: the team's default meeting point.
-        meetingPoint: input.meetingPoint || team.defaultMeetingPoint,
-        startsAt: input.startsAt,
-        endsAt: input.endsAt,
-        capacity: input.capacity,
-      });
-      await recordActivity(tx, org, {
-        action: 'created',
-        entityType: 'shift',
-        entity: created,
-        before: null,
-        eventId: event.id,
-        values: SHIFT_LOGGED_VALUES,
-      });
-      return created;
+    const created = await this.planning.insertShift(tx, {
+      eventId: event.id,
+      teamId: team.id,
+      // Empty means: the team's default meeting point.
+      meetingPoint: input.meetingPoint || team.defaultMeetingPoint,
+      startsAt: input.startsAt,
+      endsAt: input.endsAt,
+      capacity: input.capacity,
     });
-    return toShiftDto(row, []);
+    await recordActivity(tx, scope, {
+      action: 'created',
+      entityType: 'shift',
+      entity: created,
+      before: null,
+      eventId: event.id,
+      values: SHIFT_LOGGED_VALUES,
+    });
+    return created;
   }
 
   /**
@@ -270,6 +293,28 @@ export class PlanningService {
       return updated;
     });
     return toShiftDto(row, await this.planning.listAssignments(event.id));
+  }
+
+  /** Mila's capacity change, as accepted: in the caller's transaction, with its source. */
+  async setCapacityInTransaction(
+    tx: Transaction,
+    scope: OrgContext,
+    event: EventRow,
+    shiftId: string,
+    capacity: number,
+  ): Promise<void> {
+    assertWritable(event);
+    const current = await this.planning.findShift(event.id, shiftId, tx);
+    if (!current) throw new NotFoundException('Shift not found');
+    const updated = await this.planning.updateShift(tx, current.id, { capacity });
+    await recordActivity(tx, scope, {
+      action: 'updated',
+      entityType: 'shift',
+      entity: updated,
+      before: current,
+      eventId: event.id,
+      values: SHIFT_LOGGED_VALUES,
+    });
   }
 
   async removeShift(org: OrgContext, event: EventRow, shiftId: string, confirmed: boolean) {

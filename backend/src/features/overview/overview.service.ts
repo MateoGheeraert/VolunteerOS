@@ -5,6 +5,7 @@ import type { OrgContext } from '../../authz/org-context.js';
 import type { AiSuggestionKind } from '../../db/schema/index.js';
 import { isReadOnly } from '../events/event-status.js';
 import { todayInBrussels } from '../profile/profile-rules.js';
+import { PromotionRepository } from '../promotion/promotion.repository.js';
 import { canSeeTask, isUnassigned } from '../tasks/task-rules.js';
 import {
   budgetStatus,
@@ -13,8 +14,10 @@ import {
   daysUntil,
   isOverdue,
   nextTasks,
+  overduePromoTasks,
   phaseOf,
   planningStatus,
+  promotionStatus,
   selectHints,
   statusSuggestion,
   taskStats,
@@ -32,6 +35,7 @@ const NEXT_TASKS = 3;
 export class OverviewService {
   constructor(
     private readonly overview: OverviewRepository,
+    private readonly promotion: PromotionRepository,
     @Inject(AI_MODEL_RESOLVER) private readonly ai: AiModelResolver,
   ) {}
 
@@ -88,19 +92,51 @@ export class OverviewService {
     // Budget.
     const totals = budgetTotals(entries);
 
+    // Promotion: the Promotie tasks the caller may see, and whether Mila made a plan.
+    const [promoRows, promoSuggestions] = await Promise.all([
+      this.promotion.listPromotionTasks(event.id),
+      this.promotion.listPromoSuggestions(event.id),
+    ]);
+    const promoTasks = promoRows.filter((row) => canSeeTask(viewer, row));
+    const [nextPromo] = nextTasks(
+      promoTasks.map((row) => ({ ...row, assigned: !isUnassigned(row) })),
+      1,
+    );
+
     // Mila: only for those who may act on what she proposes.
     const milaEnabled = canManage && this.ai.enabled;
     const suggestion = canManage ? statusSuggestion(event, now) : null;
-    const [runs, pending, dismissed] = milaEnabled
+    const [runs, pending, dismissed, planningBusy, reviewingBudget, budgetLines] = milaEnabled
       ? await Promise.all([
           this.overview.findMissingRuns(event.id),
           this.overview.pendingSuggestions(event.id),
           this.overview.dismissedHints(org.userId, event.id),
+          this.overview.planningRunning(event.id),
+          this.overview.budgetReviewRunning(event.id),
+          this.overview.pendingBudgetLines(event.id),
         ])
-      : [{ running: false, lastFinished: null }, [], new Map<string, string>()];
+      : [
+          { running: false, lastFinished: null },
+          [],
+          new Map<string, string>(),
+          false,
+          false,
+          { count: 0, fromPreviousEdition: 0, newestAt: null },
+        ];
     const pendingOf = (kinds: AiSuggestionKind[]) =>
       pending.filter((row) => kinds.includes(row.kind)).reduce((sum, row) => sum + row.count, 0);
     const taskSuggestions = pending.find((row) => row.kind === 'task_suggestion');
+    const planningKinds: AiSuggestionKind[] = [
+      'team_suggestion',
+      'shift_change',
+      'planning_rule',
+      'allocation',
+    ];
+    const planningPending = pending.filter((row) => planningKinds.includes(row.kind));
+    const planningNewest = planningPending
+      .map((row) => row.newestAt)
+      .filter((at) => at !== null)
+      .toSorted((a, b) => b.getTime() - a.getTime())[0];
 
     return {
       phase,
@@ -137,6 +173,24 @@ export class OverviewService {
         })),
       },
       planning,
+      promotion: {
+        status: promotionStatus(promoTasks, today),
+        open: promoTasks.filter((row) => row.status !== 'done').length,
+        overdue: overduePromoTasks(promoTasks, today).length,
+        done: promoTasks.filter((row) => row.status === 'done').length,
+        next: nextPromo
+          ? {
+              id: nextPromo.id,
+              title: nextPromo.title,
+              dueDate: nextPromo.dueDate,
+              overdue: isOverdue(nextPromo.dueDate, today),
+            }
+          : null,
+        hasPlan: promoSuggestions.length > 0,
+        pendingActions: canManage
+          ? promoSuggestions.filter((row) => row.status === 'pending').length
+          : 0,
+      },
       budget: {
         status: budgetStatus({ entryCount: entries.length, totals, phase }),
         entryCount: entries.length,
@@ -148,6 +202,11 @@ export class OverviewService {
         findingTasks: runs.running,
         openQuestions: pendingOf(['question', 'update_event']),
         pendingTaskSuggestions: taskSuggestions?.count ?? 0,
+        planningBusy,
+        pendingPlanningSuggestions: pendingOf(planningKinds),
+        reviewingBudget,
+        pendingBudgetLines: budgetLines.count,
+        pendingBudgetLinesFromPreviousEdition: budgetLines.fromPreviousEdition,
         statusSuggestion: suggestion,
         hints: selectHints({
           canManage,
@@ -163,7 +222,20 @@ export class OverviewService {
           },
           findMissingRunning: runs.running,
           lastFindMissing: runs.lastFinished,
+          budgetEntryCount: entries.length,
+          pendingBudgetLines: budgetLines,
+          budgetReviewRunning: reviewingBudget,
           statusSuggestionShown: suggestion !== null,
+          planning: {
+            teamCount: teams.length,
+            pendingSuggestions: {
+              count: pendingOf(planningKinds),
+              newestAt: planningNewest ?? null,
+            },
+            running: planningBusy,
+            openPlaces: wholeEvent ? 0 : Math.max(0, total.positions - total.filled),
+            unassignedVolunteers: planning.unassignedVolunteers,
+          },
           dismissed,
         }),
       },

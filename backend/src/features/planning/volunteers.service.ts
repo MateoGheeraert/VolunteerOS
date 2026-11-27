@@ -310,6 +310,64 @@ export class VolunteersService {
       );
   }
 
+  /**
+   * Places volunteers as proposals in the caller's transaction (accepting Mila's allocation).
+   * Each placement is checked against the board as it is now: one that would overlap, overfill
+   * the shift, land on a shift the volunteer didn't mark, or repeat a placement is skipped, not
+   * forced. Returns which were placed.
+   */
+  async proposeInTransaction(
+    tx: Transaction,
+    scope: OrgContext,
+    event: EventRow,
+    placements: { applicationId: string; shiftId: string }[],
+  ): Promise<{ placed: { applicationId: string; shiftId: string }[]; skipped: number }> {
+    assertWritable(event);
+    await this.planning.lockEvent(tx, event.id);
+    // One after another: a transaction's client runs one query at a time.
+    const shifts = await this.planning.listShifts(event.id, tx);
+    const applications = await this.planning.listApplications(event.id, tx);
+    const all = await this.planning.listAssignments(event.id, tx);
+    const shiftById = new Map(shifts.map((s) => [s.id, s]));
+    const applicationById = new Map(applications.map((a) => [a.id, a]));
+    const current = [...all];
+    const placed: { applicationId: string; shiftId: string }[] = [];
+    for (const item of placements) {
+      const target = shiftById.get(item.shiftId);
+      const application = applicationById.get(item.applicationId);
+      if (!target || !application) continue;
+      if (current.some((a) => a.applicationId === application.id && a.shiftId === target.id)) {
+        continue;
+      }
+      const check = checkPlacement({
+        target,
+        assignedCount: current.filter((a) => a.shiftId === target.id).length,
+        otherShifts: current
+          .filter((a) => a.applicationId === application.id)
+          .map((a) => shiftById.get(a.shiftId))
+          .filter((s) => s !== undefined),
+        application,
+      });
+      if (check.overlapsWith || check.warnings.length > 0) continue;
+      const created = await this.planning.insertAssignment(tx, {
+        applicationId: application.id,
+        shiftId: target.id,
+        assignedByUserId: scope.userId,
+      });
+      await recordActivity(tx, scope, {
+        action: 'created',
+        entityType: 'assignment',
+        entity: created,
+        before: null,
+        eventId: event.id,
+        values: ASSIGNMENT_LOGGED_VALUES,
+      });
+      current.push(created);
+      placed.push(item);
+    }
+    return { placed, skipped: placements.length - placed.length };
+  }
+
   private async assertPlacement(
     tx: Transaction,
     event: EventRow,

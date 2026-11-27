@@ -5,6 +5,10 @@ import type { Database } from '../../db/database.js';
 import type { AiRunRow } from '../../db/schema/index.js';
 import { JobsService, willRetry, type JobData } from '../../jobs/jobs.service.js';
 import { AiUnavailableError } from '../ai-client.service.js';
+import { PromotionPlanRunner } from '../promotion-plan/promotion-plan.runner.js';
+import { AllocationRunner } from '../allocation/allocation.runner.js';
+import { ShiftSuggestionsRunner } from '../shift-suggestions/shift-suggestions.runner.js';
+import { BudgetReviewRunner } from '../budget-review/budget-review.runner.js';
 import {
   EventGoneError,
   TaskSuggestionsRunner,
@@ -25,6 +29,10 @@ export class AiRunWorker implements OnApplicationBootstrap {
     private readonly jobs: JobsService,
     private readonly runs: AiRunsService,
     private readonly taskSuggestions: TaskSuggestionsRunner,
+    private readonly promotionPlan: PromotionPlanRunner,
+    private readonly shiftSuggestions: ShiftSuggestionsRunner,
+    private readonly allocation: AllocationRunner,
+    private readonly budgetReview: BudgetReviewRunner,
   ) {}
 
   async onApplicationBootstrap(): Promise<void> {
@@ -58,9 +66,18 @@ export class AiRunWorker implements OnApplicationBootstrap {
     switch (run.feature) {
       case 'task_suggestions':
         return this.taskSuggestions.run(run);
+      case 'budget_review':
+        return this.budgetReview.run(run);
+      case 'shift_suggestions':
+        return this.shiftSuggestions.run(run);
+      case 'allocation':
+        return this.allocation.run(run);
+      // Drafting runs while the organizer waits (TaskDraftsService, RuleDraftsService).
       case 'task_drafting':
-        // Drafting runs while the organizer waits (TaskDraftsService), never as a job.
-        throw new AiUnavailableError('failed', 'task_drafting runs are not queued');
+      case 'rule_drafting':
+        throw new AiUnavailableError('failed', `${run.feature} runs are not queued`);
+      case 'promotion_plan':
+        return this.promotionPlan.run(run);
     }
   }
 }

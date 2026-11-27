@@ -18,7 +18,9 @@ import { AiRunsService } from '../../ai/runs/ai-runs.service.js';
 import type { Database, Transaction } from '../../db/database.js';
 import type { EventRow } from '../../db/schema/index.js';
 import type { OrgContext } from '../../authz/org-context.js';
+import { copyEditionRules } from '../planning/planning-rule.service.js';
 import { shiftWindow, shiftsOutside } from '../planning/planning-rules.js';
+import { AUDIENCE_LOGGED_VALUES } from '../promotion/promotion-rules.js';
 import { canArchive, canTransition, isReadOnly } from './event-status.js';
 import { EventsRepository, type EditionRef } from './events.repository.js';
 
@@ -81,6 +83,19 @@ export class EventsService {
       .transaction(async (tx) => {
         const row = await this.events.insert(tx, org.organizationId, input);
         const manager = await this.events.insertMember(tx, row.id, org.userId, 'manager');
+        const audience = input.previousEditionId
+          ? await this.events.copyAudience(tx, input.previousEditionId, row.id)
+          : undefined;
+        if (audience) {
+          await recordActivity(tx, org, {
+            action: 'created',
+            entityType: 'event_audience',
+            entity: audience,
+            before: null,
+            eventId: row.id,
+            values: AUDIENCE_LOGGED_VALUES,
+          });
+        }
         await recordActivity(tx, org, {
           action: 'created',
           entityType: 'event',
@@ -97,6 +112,8 @@ export class EventsService {
           eventId: row.id,
           values: MEMBER_LOGGED_VALUES,
         });
+        // The previous edition's event planning rules carry over (docs/info.md §7.7.1 B).
+        if (row.previousEditionId) await copyEditionRules(tx, org, row.previousEditionId, row.id);
         await this.aiRuns.enqueue(
           {
             organizationId: org.organizationId,

@@ -2112,6 +2112,136 @@
         "tags": ["public"]
       }
     },
+    "/api/events/{eventId}/planning-rules": {
+      "get": {
+        "operationId": "PlanningRuleController_list",
+        "parameters": [
+          {
+            "name": "eventId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PlanningRule"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": ["planning"]
+      },
+      "post": {
+        "operationId": "PlanningRuleController_create",
+        "parameters": [
+          {
+            "name": "eventId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePlanningRule"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": ["planning"]
+      }
+    },
+    "/api/events/{eventId}/planning-rules/{ruleId}": {
+      "patch": {
+        "operationId": "PlanningRuleController_update",
+        "parameters": [
+          {
+            "name": "ruleId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "eventId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePlanningRule"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": ["planning"]
+      },
+      "delete": {
+        "operationId": "PlanningRuleController_remove",
+        "parameters": [
+          {
+            "name": "ruleId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "eventId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": ["planning"]
+      }
+    },
     "/api/me/profile": {
       "get": {
         "operationId": "ProfileController_getMine",
@@ -2244,6 +2374,45 @@
         "tags": ["ai"]
       }
     },
+    "/api/events/{eventId}/ai/budget-review": {
+      "post": {
+        "operationId": "AiEventController_requestBudgetReview",
+        "parameters": [
+          {
+            "name": "eventId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestBudgetReview"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiRun"
+                }
+              }
+            }
+          }
+        },
+        "tags": ["ai"]
+      }
+    },
     "/api/events/{eventId}/ai/task-drafts": {
       "post": {
         "operationId": "AiEventController_draftTasks",
@@ -2343,6 +2512,38 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/AcceptTaskSuggestions"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": ["ai"]
+      }
+    },
+    "/api/events/{eventId}/ai/suggestions/accept-budget-lines": {
+      "post": {
+        "operationId": "AiEventController_acceptBudgetLines",
+        "parameters": [
+          {
+            "name": "eventId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AcceptBudgetLines"
               }
             }
           }
@@ -2581,6 +2782,423 @@
         "tags": ["ai"]
       }
     },
+    "/api/events/{eventId}/ai/promotion-plan": {
+      "post": {
+        "operationId": "PromotionPlanController_request",
+        "parameters": [
+          {
+            "name": "eventId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestPromotionPlan"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiRun"
+                }
+              }
+            }
+          }
+        },
+        "tags": ["ai"]
+      }
+    },
+    "/api/events/{eventId}/ai/promotion-plan/accept": {
+      "post": {
+        "operationId": "PromotionPlanController_accept",
+        "parameters": [
+          {
+            "name": "eventId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AcceptPromoActions"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": ["ai"]
+      }
+    },
+    "/api/events/{eventId}/ai/planning/shift-suggestions": {
+      "post": {
+        "operationId": "PlanningAiController_requestShiftSuggestions",
+        "parameters": [
+          {
+            "name": "eventId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestShiftSuggestions"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiRun"
+                }
+              }
+            }
+          }
+        },
+        "tags": ["ai"]
+      }
+    },
+    "/api/events/{eventId}/ai/planning/allocation": {
+      "post": {
+        "operationId": "PlanningAiController_requestAllocation",
+        "parameters": [
+          {
+            "name": "eventId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiRun"
+                }
+              }
+            }
+          }
+        },
+        "tags": ["ai"]
+      }
+    },
+    "/api/events/{eventId}/ai/planning/rule-drafts": {
+      "post": {
+        "operationId": "PlanningAiController_draftRules",
+        "parameters": [
+          {
+            "name": "eventId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DraftRules"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuleDraftResult"
+                }
+              }
+            }
+          }
+        },
+        "tags": ["ai"]
+      }
+    },
+    "/api/events/{eventId}/ai/planning/rule-drafts/{runId}/rules": {
+      "post": {
+        "operationId": "PlanningAiController_createDraftRules",
+        "parameters": [
+          {
+            "name": "runId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "eventId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateRulesFromDraft"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": ["ai"]
+      }
+    },
+    "/api/events/{eventId}/ai/planning/suggestions/accept-teams": {
+      "post": {
+        "operationId": "PlanningAiController_acceptTeams",
+        "parameters": [
+          {
+            "name": "eventId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AcceptTeamSuggestions"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": ["ai"]
+      }
+    },
+    "/api/events/{eventId}/ai/planning/suggestions/{suggestionId}/accept-shift-change": {
+      "post": {
+        "operationId": "PlanningAiController_acceptShiftChange",
+        "parameters": [
+          {
+            "name": "suggestionId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "eventId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AcceptShiftChange"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": ["ai"]
+      }
+    },
+    "/api/events/{eventId}/ai/planning/suggestions/{suggestionId}/accept-rule": {
+      "post": {
+        "operationId": "PlanningAiController_acceptRule",
+        "parameters": [
+          {
+            "name": "suggestionId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "eventId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AcceptRuleSuggestion"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": ["ai"]
+      }
+    },
+    "/api/events/{eventId}/ai/planning/suggestions/{suggestionId}/accept-placements": {
+      "post": {
+        "operationId": "PlanningAiController_acceptPlacements",
+        "parameters": [
+          {
+            "name": "suggestionId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "eventId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AllocationPlacements"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcceptPlacementsResult"
+                }
+              }
+            }
+          }
+        },
+        "tags": ["ai"]
+      }
+    },
+    "/api/events/{eventId}/ai/planning/suggestions/{suggestionId}/discard-placements": {
+      "post": {
+        "operationId": "PlanningAiController_discardPlacements",
+        "parameters": [
+          {
+            "name": "suggestionId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "eventId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AllocationPlacements"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": ["ai"]
+      }
+    },
     "/api/events/{eventId}/overview": {
       "get": {
         "operationId": "OverviewController_get",
@@ -2640,6 +3258,113 @@
           }
         },
         "tags": ["overview"]
+      }
+    },
+    "/api/events/{eventId}/promotion": {
+      "get": {
+        "operationId": "PromotionController_state",
+        "parameters": [
+          {
+            "name": "eventId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PromotionState"
+                }
+              }
+            }
+          }
+        },
+        "tags": ["promotion"]
+      }
+    },
+    "/api/events/{eventId}/promotion/tasks": {
+      "post": {
+        "operationId": "PromotionController_createTask",
+        "parameters": [
+          {
+            "name": "eventId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTask"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Task"
+                }
+              }
+            }
+          }
+        },
+        "tags": ["promotion"]
+      }
+    },
+    "/api/events/{eventId}/promotion/audience": {
+      "put": {
+        "operationId": "PromotionController_updateAudience",
+        "parameters": [
+          {
+            "name": "eventId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateEventAudience"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventAudience"
+                }
+              }
+            }
+          }
+        },
+        "tags": ["promotion"]
       }
     }
   },
@@ -5475,6 +6200,152 @@
         },
         "required": ["name", "email", "availableShiftIds", "wholeEvent", "consent"]
       },
+      "PlanningRule": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "not_team",
+              "only_team",
+              "never_together",
+              "max_shifts",
+              "not_before",
+              "not_after",
+              "prefers_team",
+              "prefer_together"
+            ]
+          },
+          "scope": {
+            "$ref": "#/components/schemas/PlanningRuleScope"
+          },
+          "volunteer": {
+            "$ref": "#/components/schemas/RulePerson"
+          },
+          "otherVolunteer": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RulePerson"
+              }
+            ]
+          },
+          "teamName": {
+            "nullable": true,
+            "type": "string"
+          },
+          "maxShifts": {
+            "nullable": true,
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "time": {
+            "nullable": true,
+            "type": "string"
+          },
+          "source": {
+            "type": "string",
+            "enum": ["organizer", "volunteer_note"]
+          },
+          "copiedFromPreviousEdition": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "scope",
+          "volunteer",
+          "otherVolunteer",
+          "teamName",
+          "maxShifts",
+          "time",
+          "source",
+          "copiedFromPreviousEdition",
+          "createdAt"
+        ],
+        "additionalProperties": false
+      },
+      "PlanningRuleScope": {
+        "type": "string",
+        "enum": ["organization", "event"]
+      },
+      "RulePerson": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": ["id", "name"],
+        "additionalProperties": false
+      },
+      "CreatePlanningRule": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "not_team",
+              "only_team",
+              "never_together",
+              "max_shifts",
+              "not_before",
+              "not_after",
+              "prefers_team",
+              "prefer_together"
+            ]
+          },
+          "scope": {
+            "$ref": "#/components/schemas/PlanningRuleScope"
+          },
+          "volunteerId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "otherVolunteerId": {
+            "nullable": true,
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "teamName": {
+            "nullable": true,
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "maxShifts": {
+            "nullable": true,
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 50
+          },
+          "time": {
+            "nullable": true,
+            "type": "string",
+            "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+          }
+        },
+        "required": ["kind", "scope", "volunteerId"]
+      },
       "MyProfile": {
         "type": "object",
         "properties": {
@@ -5665,7 +6536,15 @@
           },
           "feature": {
             "type": "string",
-            "enum": ["task_suggestions", "task_drafting"]
+            "enum": [
+              "task_suggestions",
+              "task_drafting",
+              "promotion_plan",
+              "shift_suggestions",
+              "rule_drafting",
+              "allocation",
+              "budget_review"
+            ]
           },
           "trigger": {
             "type": "string",
@@ -5903,6 +6782,482 @@
               "answer"
             ],
             "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              "eventId": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              "status": {
+                "type": "string",
+                "enum": ["pending", "accepted", "rejected", "dismissed_stale"]
+              },
+              "title": {
+                "type": "string"
+              },
+              "explanation": {
+                "type": "string"
+              },
+              "citations": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/AiCitation"
+                }
+              },
+              "createdAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+              },
+              "seenAt": {
+                "nullable": true,
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+              },
+              "kind": {
+                "type": "string",
+                "enum": ["budget_line"]
+              },
+              "payload": {
+                "$ref": "#/components/schemas/AiBudgetLinePayload"
+              },
+              "answer": {
+                "type": "string",
+                "nullable": true,
+                "enum": [null]
+              }
+            },
+            "required": [
+              "id",
+              "eventId",
+              "status",
+              "title",
+              "explanation",
+              "citations",
+              "createdAt",
+              "seenAt",
+              "kind",
+              "payload",
+              "answer"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              "eventId": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              "status": {
+                "type": "string",
+                "enum": ["pending", "accepted", "rejected", "dismissed_stale"]
+              },
+              "title": {
+                "type": "string"
+              },
+              "explanation": {
+                "type": "string"
+              },
+              "citations": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/AiCitation"
+                }
+              },
+              "createdAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+              },
+              "seenAt": {
+                "nullable": true,
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+              },
+              "kind": {
+                "type": "string",
+                "enum": ["promo_action"]
+              },
+              "payload": {
+                "$ref": "#/components/schemas/AiPromoActionPayload"
+              },
+              "answer": {
+                "type": "string",
+                "nullable": true,
+                "enum": [null]
+              }
+            },
+            "required": [
+              "id",
+              "eventId",
+              "status",
+              "title",
+              "explanation",
+              "citations",
+              "createdAt",
+              "seenAt",
+              "kind",
+              "payload",
+              "answer"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              "eventId": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              "status": {
+                "type": "string",
+                "enum": ["pending", "accepted", "rejected", "dismissed_stale"]
+              },
+              "title": {
+                "type": "string"
+              },
+              "explanation": {
+                "type": "string"
+              },
+              "citations": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/AiCitation"
+                }
+              },
+              "createdAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+              },
+              "seenAt": {
+                "nullable": true,
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+              },
+              "kind": {
+                "type": "string",
+                "enum": ["team_suggestion"]
+              },
+              "payload": {
+                "$ref": "#/components/schemas/AiTeamSuggestionPayload"
+              },
+              "answer": {
+                "type": "string",
+                "nullable": true,
+                "enum": [null]
+              }
+            },
+            "required": [
+              "id",
+              "eventId",
+              "status",
+              "title",
+              "explanation",
+              "citations",
+              "createdAt",
+              "seenAt",
+              "kind",
+              "payload",
+              "answer"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              "eventId": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              "status": {
+                "type": "string",
+                "enum": ["pending", "accepted", "rejected", "dismissed_stale"]
+              },
+              "title": {
+                "type": "string"
+              },
+              "explanation": {
+                "type": "string"
+              },
+              "citations": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/AiCitation"
+                }
+              },
+              "createdAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+              },
+              "seenAt": {
+                "nullable": true,
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+              },
+              "kind": {
+                "type": "string",
+                "enum": ["budget_insight"]
+              },
+              "payload": {
+                "$ref": "#/components/schemas/AiBudgetInsightPayload"
+              },
+              "answer": {
+                "type": "string",
+                "nullable": true,
+                "enum": [null]
+              }
+            },
+            "required": [
+              "id",
+              "eventId",
+              "status",
+              "title",
+              "explanation",
+              "citations",
+              "createdAt",
+              "seenAt",
+              "kind",
+              "payload",
+              "answer"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              "eventId": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              "status": {
+                "type": "string",
+                "enum": ["pending", "accepted", "rejected", "dismissed_stale"]
+              },
+              "title": {
+                "type": "string"
+              },
+              "explanation": {
+                "type": "string"
+              },
+              "citations": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/AiCitation"
+                }
+              },
+              "createdAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+              },
+              "seenAt": {
+                "nullable": true,
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+              },
+              "kind": {
+                "type": "string",
+                "enum": ["shift_change"]
+              },
+              "payload": {
+                "$ref": "#/components/schemas/AiShiftChangePayload"
+              },
+              "answer": {
+                "type": "string",
+                "nullable": true,
+                "enum": [null]
+              }
+            },
+            "required": [
+              "id",
+              "eventId",
+              "status",
+              "title",
+              "explanation",
+              "citations",
+              "createdAt",
+              "seenAt",
+              "kind",
+              "payload",
+              "answer"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              "eventId": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              "status": {
+                "type": "string",
+                "enum": ["pending", "accepted", "rejected", "dismissed_stale"]
+              },
+              "title": {
+                "type": "string"
+              },
+              "explanation": {
+                "type": "string"
+              },
+              "citations": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/AiCitation"
+                }
+              },
+              "createdAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+              },
+              "seenAt": {
+                "nullable": true,
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+              },
+              "kind": {
+                "type": "string",
+                "enum": ["planning_rule"]
+              },
+              "payload": {
+                "$ref": "#/components/schemas/AiPlanningRulePayload"
+              },
+              "answer": {
+                "type": "string",
+                "nullable": true,
+                "enum": [null]
+              }
+            },
+            "required": [
+              "id",
+              "eventId",
+              "status",
+              "title",
+              "explanation",
+              "citations",
+              "createdAt",
+              "seenAt",
+              "kind",
+              "payload",
+              "answer"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              "eventId": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              "status": {
+                "type": "string",
+                "enum": ["pending", "accepted", "rejected", "dismissed_stale"]
+              },
+              "title": {
+                "type": "string"
+              },
+              "explanation": {
+                "type": "string"
+              },
+              "citations": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/AiCitation"
+                }
+              },
+              "createdAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+              },
+              "seenAt": {
+                "nullable": true,
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+              },
+              "kind": {
+                "type": "string",
+                "enum": ["allocation"]
+              },
+              "payload": {
+                "$ref": "#/components/schemas/AiAllocationPayload"
+              },
+              "answer": {
+                "type": "string",
+                "nullable": true,
+                "enum": [null]
+              }
+            },
+            "required": [
+              "id",
+              "eventId",
+              "status",
+              "title",
+              "explanation",
+              "citations",
+              "createdAt",
+              "seenAt",
+              "kind",
+              "payload",
+              "answer"
+            ],
+            "additionalProperties": false
           }
         ]
       },
@@ -5911,7 +7266,19 @@
         "properties": {
           "type": {
             "type": "string",
-            "enum": ["event", "task", "memory"]
+            "enum": [
+              "event",
+              "task",
+              "memory",
+              "catalog",
+              "team",
+              "shift",
+              "catalogue",
+              "note",
+              "request",
+              "budget_entry",
+              "checklist"
+            ]
           },
           "id": {
             "type": "string"
@@ -5994,6 +7361,786 @@
         },
         "required": ["field", "value"],
         "additionalProperties": false
+      },
+      "AiBudgetLinePayload": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["income", "expense"]
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "origin": {
+            "type": "string",
+            "enum": ["previous_edition", "checklist", "task", "typical", "request"]
+          },
+          "estimate": {
+            "anyOf": [
+              {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "basis": {
+                        "type": "string",
+                        "enum": ["previous_edition"]
+                      },
+                      "cents": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "source": {
+                        "type": "object",
+                        "properties": {
+                          "eventName": {
+                            "type": "string"
+                          },
+                          "title": {
+                            "type": "string"
+                          },
+                          "actualCents": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 9007199254740991
+                          },
+                          "attendance": {
+                            "nullable": true,
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        "required": ["eventName", "title", "actualCents", "attendance"],
+                        "additionalProperties": false
+                      },
+                      "targetAttendance": {
+                        "nullable": true,
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "scaled": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": ["basis", "cents", "source", "targetAttendance", "scaled"],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "basis": {
+                        "type": "string",
+                        "enum": ["richtprijs"]
+                      },
+                      "cents": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "checklistKey": {
+                        "type": "string"
+                      },
+                      "minCents": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "maxCents": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": ["basis", "cents", "checklistKey", "minCents", "maxCents"],
+                    "additionalProperties": false
+                  }
+                ]
+              },
+              {
+                "type": "string",
+                "nullable": true,
+                "enum": [null]
+              }
+            ]
+          },
+          "labelIds": {
+            "maxItems": 20,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          "supplier": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "required": ["id", "name"],
+                "additionalProperties": false
+              },
+              {
+                "type": "string",
+                "nullable": true,
+                "enum": [null]
+              }
+            ]
+          },
+          "task": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "title": {
+                    "type": "string"
+                  }
+                },
+                "required": ["id", "title"],
+                "additionalProperties": false
+              },
+              {
+                "type": "string",
+                "nullable": true,
+                "enum": [null]
+              }
+            ]
+          }
+        },
+        "required": ["type", "title", "origin", "estimate", "labelIds", "supplier", "task"],
+        "additionalProperties": false
+      },
+      "AiPromoActionPayload": {
+        "type": "object",
+        "properties": {
+          "catalogKey": {
+            "nullable": true,
+            "type": "string",
+            "maxLength": 100
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "offline",
+              "social",
+              "partnership",
+              "giveaway",
+              "listing",
+              "press",
+              "word_of_mouth"
+            ]
+          },
+          "audience": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "weeksBefore": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 52
+          },
+          "dueDate": {
+            "type": "string",
+            "format": "date",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+          },
+          "estimatedCostCents": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 999999999
+          },
+          "effort": {
+            "type": "string",
+            "enum": ["low", "medium", "high"]
+          },
+          "howTo": {
+            "type": "string",
+            "maxLength": 2000
+          }
+        },
+        "required": [
+          "catalogKey",
+          "title",
+          "type",
+          "audience",
+          "weeksBefore",
+          "dueDate",
+          "estimatedCostCents",
+          "effort",
+          "howTo"
+        ],
+        "additionalProperties": false
+      },
+      "AiTeamSuggestionPayload": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "description": {
+            "nullable": true,
+            "type": "string",
+            "maxLength": 2000
+          },
+          "defaultMeetingPoint": {
+            "nullable": true,
+            "type": "string",
+            "maxLength": 200
+          },
+          "shifts": {
+            "minItems": 1,
+            "maxItems": 8,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "startsAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                },
+                "endsAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                },
+                "capacity": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 500
+                },
+                "requested": {
+                  "nullable": true,
+                  "type": "object",
+                  "properties": {
+                    "startsAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                    },
+                    "endsAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                    }
+                  },
+                  "required": ["startsAt", "endsAt"],
+                  "additionalProperties": false
+                }
+              },
+              "required": ["startsAt", "endsAt", "capacity"],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": ["name", "description", "defaultMeetingPoint", "shifts"],
+        "additionalProperties": false
+      },
+      "AiBudgetInsightPayload": {
+        "type": "object",
+        "properties": {
+          "basis": {
+            "type": "string",
+            "enum": ["current", "previous_edition", "none"]
+          },
+          "expectedAttendance": {
+            "nullable": true,
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "previousEdition": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "attendance": {
+                    "nullable": true,
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  }
+                },
+                "required": ["name", "attendance"],
+                "additionalProperties": false
+              },
+              {
+                "type": "string",
+                "nullable": true,
+                "enum": [null]
+              }
+            ]
+          },
+          "incomeCents": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "expenseCents": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "resultCents": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "split": {
+            "type": "object",
+            "properties": {
+              "fixedIncomeCents": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "variableIncomeCents": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "fixedExpenseCents": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "variableExpenseCents": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "fixedIncomeCents",
+              "variableIncomeCents",
+              "fixedExpenseCents",
+              "variableExpenseCents"
+            ],
+            "additionalProperties": false
+          },
+          "perVisitor": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "incomeCents": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "expenseCents": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "lines": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "enum": ["income", "expense"]
+                        },
+                        "title": {
+                          "type": "string"
+                        },
+                        "cents": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": ["type", "title", "cents"],
+                      "additionalProperties": false
+                    }
+                  }
+                },
+                "required": ["incomeCents", "expenseCents", "lines"],
+                "additionalProperties": false
+              },
+              {
+                "type": "string",
+                "nullable": true,
+                "enum": [null]
+              }
+            ]
+          },
+          "scenarios": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "attendance": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "changePercent": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "resultCents": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "differenceCents": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                }
+              },
+              "required": ["attendance", "changePercent", "resultCents", "differenceCents"],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "basis",
+          "expectedAttendance",
+          "previousEdition",
+          "incomeCents",
+          "expenseCents",
+          "resultCents",
+          "split",
+          "perVisitor",
+          "scenarios"
+        ],
+        "additionalProperties": false
+      },
+      "AiShiftChangePayload": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["add_shift", "capacity"]
+          },
+          "teamId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "teamName": {
+            "type": "string"
+          },
+          "shiftId": {
+            "nullable": true,
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "startsAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          },
+          "endsAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          },
+          "fromCapacity": {
+            "nullable": true,
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "capacity": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 500
+          },
+          "requested": {
+            "nullable": true,
+            "type": "object",
+            "properties": {
+              "startsAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+              },
+              "endsAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+              }
+            },
+            "required": ["startsAt", "endsAt"],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "type",
+          "teamId",
+          "teamName",
+          "shiftId",
+          "startsAt",
+          "endsAt",
+          "fromCapacity",
+          "capacity"
+        ],
+        "additionalProperties": false
+      },
+      "AiPlanningRulePayload": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "not_team",
+              "only_team",
+              "never_together",
+              "max_shifts",
+              "not_before",
+              "not_after",
+              "prefers_team",
+              "prefer_together"
+            ]
+          },
+          "scope": {
+            "type": "string",
+            "enum": ["organization", "event"]
+          },
+          "person": {
+            "$ref": "#/components/schemas/RulePersonPick"
+          },
+          "other": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RulePersonPick"
+              }
+            ]
+          },
+          "teamName": {
+            "nullable": true,
+            "type": "string"
+          },
+          "maxShifts": {
+            "nullable": true,
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "time": {
+            "nullable": true,
+            "type": "string"
+          },
+          "quote": {
+            "type": "string"
+          },
+          "applicationId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          }
+        },
+        "required": [
+          "kind",
+          "scope",
+          "person",
+          "other",
+          "teamName",
+          "maxShifts",
+          "time",
+          "quote",
+          "applicationId"
+        ],
+        "additionalProperties": false
+      },
+      "RulePersonPick": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "volunteerId": {
+            "nullable": true,
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "candidates": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "volunteerId": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "name": {
+                  "type": "string"
+                }
+              },
+              "required": ["volunteerId", "name"],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": ["name", "volunteerId", "candidates"],
+        "additionalProperties": false
+      },
+      "AiAllocationPayload": {
+        "type": "object",
+        "properties": {
+          "placements": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AllocationPlacement"
+            }
+          },
+          "gaps": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AllocationGap"
+            }
+          },
+          "unplaced": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AllocationUnplaced"
+            }
+          },
+          "proposed": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "accepted": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "rulesApplied": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "rulesFromNotes": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "placements",
+          "gaps",
+          "unplaced",
+          "proposed",
+          "accepted",
+          "rulesApplied",
+          "rulesFromNotes"
+        ],
+        "additionalProperties": false
+      },
+      "AllocationPlacement": {
+        "type": "object",
+        "properties": {
+          "applicationId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "shiftId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "reasons": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["preferred_team", "prefers_team", "together", "previous_team"]
+            }
+          }
+        },
+        "required": ["applicationId", "shiftId", "reasons"],
+        "additionalProperties": false
+      },
+      "AllocationGap": {
+        "type": "object",
+        "properties": {
+          "shiftId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "missing": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "reason": {
+            "type": "string",
+            "enum": ["nobody_available", "busy", "max_shifts", "rules"]
+          }
+        },
+        "required": ["shiftId", "missing", "reason"],
+        "additionalProperties": false
+      },
+      "AllocationUnplaced": {
+        "type": "object",
+        "properties": {
+          "applicationId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "missing": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "reason": {
+            "type": "string",
+            "enum": ["no_shifts_marked", "shifts_full", "busy", "rules"]
+          }
+        },
+        "required": ["applicationId", "missing", "reason"],
+        "additionalProperties": false
+      },
+      "RequestBudgetReview": {
+        "type": "object",
+        "properties": {
+          "instruction": {
+            "type": "string",
+            "maxLength": 500
+          }
+        }
       },
       "DraftTasks": {
         "type": "object",
@@ -6107,6 +8254,31 @@
         },
         "required": ["items"]
       },
+      "AcceptBudgetLines": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "minItems": 1,
+            "maxItems": 20,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "suggestionId": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "entry": {
+                  "$ref": "#/components/schemas/CreateBudgetEntry"
+                }
+              },
+              "required": ["suggestionId", "entry"]
+            }
+          }
+        },
+        "required": ["items"]
+      },
       "AcceptEventUpdate": {
         "type": "object",
         "properties": {
@@ -6186,7 +8358,19 @@
               "properties": {
                 "type": {
                   "type": "string",
-                  "enum": ["event", "task", "memory"]
+                  "enum": [
+                    "event",
+                    "task",
+                    "memory",
+                    "catalog",
+                    "team",
+                    "shift",
+                    "catalogue",
+                    "note",
+                    "request",
+                    "budget_entry",
+                    "checklist"
+                  ]
                 },
                 "id": {
                   "type": "string"
@@ -6235,6 +8419,266 @@
           }
         },
         "required": ["monthToDateCents", "capCents"],
+        "additionalProperties": false
+      },
+      "RequestPromotionPlan": {
+        "type": "object",
+        "properties": {
+          "instruction": {
+            "type": "string",
+            "maxLength": 500
+          }
+        }
+      },
+      "AcceptPromoActions": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "minItems": 1,
+            "maxItems": 20,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "suggestionId": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "task": {
+                  "$ref": "#/components/schemas/CreateTask"
+                },
+                "addBudgetLine": {
+                  "type": "boolean"
+                }
+              },
+              "required": ["suggestionId", "task", "addBudgetLine"]
+            }
+          }
+        },
+        "required": ["items"]
+      },
+      "RequestShiftSuggestions": {
+        "type": "object",
+        "properties": {
+          "instruction": {
+            "type": "string",
+            "maxLength": 500
+          }
+        }
+      },
+      "DraftRules": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          }
+        },
+        "required": ["text"]
+      },
+      "RuleDraftResult": {
+        "type": "object",
+        "properties": {
+          "runId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "rules": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RuleDraft"
+            }
+          },
+          "unknownNames": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": ["runId", "rules", "unknownNames"],
+        "additionalProperties": false
+      },
+      "RuleDraft": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "not_team",
+              "only_team",
+              "never_together",
+              "max_shifts",
+              "not_before",
+              "not_after",
+              "prefers_team",
+              "prefer_together"
+            ]
+          },
+          "scope": {
+            "type": "string",
+            "enum": ["organization", "event"]
+          },
+          "person": {
+            "$ref": "#/components/schemas/RulePersonPick"
+          },
+          "other": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RulePersonPick"
+              }
+            ]
+          },
+          "teamName": {
+            "nullable": true,
+            "type": "string"
+          },
+          "maxShifts": {
+            "nullable": true,
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "time": {
+            "nullable": true,
+            "type": "string"
+          },
+          "quote": {
+            "type": "string"
+          }
+        },
+        "required": ["kind", "scope", "person", "other", "teamName", "maxShifts", "time", "quote"],
+        "additionalProperties": false
+      },
+      "CreateRulesFromDraft": {
+        "type": "object",
+        "properties": {
+          "rules": {
+            "minItems": 1,
+            "maxItems": 30,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CreatePlanningRule"
+            }
+          }
+        },
+        "required": ["rules"]
+      },
+      "AcceptTeamSuggestions": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "minItems": 1,
+            "maxItems": 10,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "suggestionId": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "team": {
+                  "$ref": "#/components/schemas/CreateTeam"
+                },
+                "shifts": {
+                  "maxItems": 20,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "startsAt": {
+                        "type": "string",
+                        "format": "date-time",
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                      },
+                      "endsAt": {
+                        "type": "string",
+                        "format": "date-time",
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                      },
+                      "capacity": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 500
+                      }
+                    },
+                    "required": ["startsAt", "endsAt", "capacity"]
+                  }
+                }
+              },
+              "required": ["suggestionId", "team", "shifts"]
+            }
+          }
+        },
+        "required": ["items"]
+      },
+      "AcceptShiftChange": {
+        "type": "object",
+        "properties": {
+          "capacity": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 500
+          }
+        }
+      },
+      "AcceptRuleSuggestion": {
+        "type": "object",
+        "properties": {
+          "rule": {
+            "$ref": "#/components/schemas/CreatePlanningRule"
+          }
+        },
+        "required": ["rule"]
+      },
+      "AllocationPlacements": {
+        "type": "object",
+        "properties": {
+          "placements": {
+            "minItems": 1,
+            "maxItems": 500,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "applicationId": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "shiftId": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                }
+              },
+              "required": ["applicationId", "shiftId"]
+            }
+          }
+        },
+        "required": ["placements"]
+      },
+      "AcceptPlacementsResult": {
+        "type": "object",
+        "properties": {
+          "placed": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "skipped": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": ["placed", "skipped"],
         "additionalProperties": false
       },
       "EventOverview": {
@@ -6593,6 +9037,65 @@
             "required": ["status", "entryCount", "income", "expense", "result", "supplierCount"],
             "additionalProperties": false
           },
+          "promotion": {
+            "type": "object",
+            "properties": {
+              "status": {
+                "type": "string",
+                "enum": ["ok", "warn", "bad", "neutral"]
+              },
+              "open": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "overdue": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "done": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "next": {
+                "nullable": true,
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "title": {
+                    "type": "string"
+                  },
+                  "dueDate": {
+                    "nullable": true,
+                    "type": "string",
+                    "format": "date",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                  },
+                  "overdue": {
+                    "type": "boolean"
+                  }
+                },
+                "required": ["id", "title", "dueDate", "overdue"],
+                "additionalProperties": false
+              },
+              "hasPlan": {
+                "type": "boolean"
+              },
+              "pendingActions": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": ["status", "open", "overdue", "done", "next", "hasPlan", "pendingActions"],
+            "additionalProperties": false
+          },
           "mila": {
             "type": "object",
             "properties": {
@@ -6608,6 +9111,27 @@
                 "maximum": 9007199254740991
               },
               "pendingTaskSuggestions": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "planningBusy": {
+                "type": "boolean"
+              },
+              "pendingPlanningSuggestions": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "reviewingBudget": {
+                "type": "boolean"
+              },
+              "pendingBudgetLines": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "pendingBudgetLinesFromPreviousEdition": {
                 "type": "integer",
                 "minimum": 0,
                 "maximum": 9007199254740991
@@ -6632,11 +9156,20 @@
                   "properties": {
                     "key": {
                       "type": "string",
-                      "enum": ["tasks.setup", "tasks.review", "tasks.find_missing"]
+                      "enum": [
+                        "tasks.setup",
+                        "tasks.review",
+                        "tasks.find_missing",
+                        "planning.setup",
+                        "planning.review",
+                        "planning.allocate",
+                        "budget.setup",
+                        "budget.review"
+                      ]
                     },
                     "card": {
                       "type": "string",
-                      "enum": ["tasks"]
+                      "enum": ["tasks", "planning", "budget"]
                     },
                     "fingerprint": {
                       "type": "string"
@@ -6655,6 +9188,11 @@
               "findingTasks",
               "openQuestions",
               "pendingTaskSuggestions",
+              "planningBusy",
+              "pendingPlanningSuggestions",
+              "reviewingBudget",
+              "pendingBudgetLines",
+              "pendingBudgetLinesFromPreviousEdition",
               "statusSuggestion",
               "hints"
             ],
@@ -6669,6 +9207,7 @@
           "tasks",
           "planning",
           "budget",
+          "promotion",
           "mila"
         ],
         "additionalProperties": false
@@ -6678,7 +9217,16 @@
         "properties": {
           "hintKey": {
             "type": "string",
-            "enum": ["tasks.setup", "tasks.review", "tasks.find_missing"]
+            "enum": [
+              "tasks.setup",
+              "tasks.review",
+              "tasks.find_missing",
+              "planning.setup",
+              "planning.review",
+              "planning.allocate",
+              "budget.setup",
+              "budget.review"
+            ]
           },
           "fingerprint": {
             "type": "string",
@@ -6687,6 +9235,348 @@
           }
         },
         "required": ["hintKey", "fingerprint"]
+      },
+      "PromotionState": {
+        "type": "object",
+        "properties": {
+          "audience": {
+            "$ref": "#/components/schemas/EventAudience"
+          },
+          "sizeBand": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": ["S", "M", "L"]
+              },
+              {
+                "type": "string",
+                "nullable": true,
+                "enum": [null]
+              }
+            ]
+          },
+          "guard": {
+            "type": "object",
+            "properties": {
+              "state": {
+                "type": "string",
+                "enum": ["ready", "blocked", "disabled"]
+              },
+              "blockedBy": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "enum": ["audience"]
+                  },
+                  {
+                    "type": "string",
+                    "nullable": true,
+                    "enum": [null]
+                  }
+                ]
+              },
+              "missing": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": ["pitch", "expectedAttendance"]
+                }
+              },
+              "lastMinute": {
+                "type": "boolean"
+              },
+              "daysLeft": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": ["state", "blockedBy", "missing", "lastMinute", "daysLeft"],
+            "additionalProperties": false
+          },
+          "budget": {
+            "type": "object",
+            "properties": {
+              "budgetCents": {
+                "nullable": true,
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "spentCents": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "availableCents": {
+                "nullable": true,
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": ["budgetCents", "spentCents", "availableCents"],
+            "additionalProperties": false
+          },
+          "tasks": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": ["todo", "in_progress", "done"]
+                },
+                "priority": {
+                  "type": "string",
+                  "enum": ["low", "medium", "high"]
+                },
+                "dueDate": {
+                  "nullable": true,
+                  "type": "string",
+                  "format": "date",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                },
+                "assigneeName": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "fromMila": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "id",
+                "title",
+                "status",
+                "priority",
+                "dueDate",
+                "assigneeName",
+                "fromMila"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "metric": {
+            "type": "object",
+            "properties": {
+              "suggested": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "accepted": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "done": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": ["suggested", "accepted", "done"],
+            "additionalProperties": false
+          },
+          "mila": {
+            "nullable": true,
+            "type": "object",
+            "properties": {
+              "enabled": {
+                "type": "boolean"
+              },
+              "run": {
+                "nullable": true,
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": ["queued", "running", "succeeded", "failed"]
+                  },
+                  "createdAt": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                  },
+                  "instruction": {
+                    "nullable": true,
+                    "type": "string"
+                  }
+                },
+                "required": ["status", "createdAt", "instruction"],
+                "additionalProperties": false
+              },
+              "suggestions": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/AiSuggestion"
+                }
+              }
+            },
+            "required": ["enabled", "run", "suggestions"],
+            "additionalProperties": false
+          }
+        },
+        "required": ["audience", "sizeBand", "guard", "budget", "tasks", "metric", "mila"],
+        "additionalProperties": false
+      },
+      "EventAudience": {
+        "type": "object",
+        "properties": {
+          "audiences": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "children",
+                "teens",
+                "young_adults",
+                "students",
+                "young_families",
+                "families",
+                "adults",
+                "seniors",
+                "neighbours",
+                "associations",
+                "music_lovers",
+                "culture_lovers",
+                "sporty"
+              ]
+            }
+          },
+          "description": {
+            "nullable": true,
+            "type": "string"
+          },
+          "ageMin": {
+            "nullable": true,
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "ageMax": {
+            "nullable": true,
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "region": {
+            "nullable": true,
+            "type": "string"
+          },
+          "entryPriceCents": {
+            "nullable": true,
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "pitch": {
+            "nullable": true,
+            "type": "string"
+          },
+          "promotionBudgetCents": {
+            "nullable": true,
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "audiences",
+          "description",
+          "ageMin",
+          "ageMax",
+          "region",
+          "entryPriceCents",
+          "pitch",
+          "promotionBudgetCents"
+        ],
+        "additionalProperties": false
+      },
+      "UpdateEventAudience": {
+        "type": "object",
+        "properties": {
+          "audiences": {
+            "maxItems": 13,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "children",
+                "teens",
+                "young_adults",
+                "students",
+                "young_families",
+                "families",
+                "adults",
+                "seniors",
+                "neighbours",
+                "associations",
+                "music_lovers",
+                "culture_lovers",
+                "sporty"
+              ]
+            }
+          },
+          "description": {
+            "nullable": true,
+            "type": "string",
+            "maxLength": 1000
+          },
+          "ageMin": {
+            "nullable": true,
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 120
+          },
+          "ageMax": {
+            "nullable": true,
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 120
+          },
+          "region": {
+            "nullable": true,
+            "type": "string",
+            "maxLength": 120
+          },
+          "entryPriceCents": {
+            "nullable": true,
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 999999999
+          },
+          "pitch": {
+            "nullable": true,
+            "type": "string",
+            "maxLength": 2000
+          },
+          "promotionBudgetCents": {
+            "nullable": true,
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 999999999
+          }
+        },
+        "required": [
+          "audiences",
+          "description",
+          "ageMin",
+          "ageMax",
+          "region",
+          "entryPriceCents",
+          "pitch",
+          "promotionBudgetCents"
+        ]
       }
     }
   }

@@ -379,7 +379,7 @@ Statuses:
 
 **Mila on the overview: a balance, not a bombardment.**
 
-- Mila only shows where she can act. Today that is the Tasks card; Planning and Budget have a slot for her that stays empty until she can help there.
+- Mila only shows where she can act: the Tasks, Planning and Budget cards (§7.7.1, §7.9).
 - In an empty card she *is* the empty state ("Zal ik de eerste taken voor je opstellen?"), so a new event gets her help everywhere she can give it. This follows from the data, not from counting visits.
 - In a card with data she only speaks when she has something concrete: pending suggestions to review, or a check for missing tasks that hasn't run in 14 days (only more than 7 days before the event). Never a generic "I can help".
 - Her setup offer in an empty card is always shown in full (it is the empty state). Of her other hints at most one on the page is highlighted, chosen by priority, and none while the status banner shows; the rest are a small chip.
@@ -608,6 +608,49 @@ The scheduling engine performs allocation.
 
 These responsibilities must remain separate.
 
+### 7.7.1 Mila on the Planning Page (decided November 2026)
+
+Mila helps in two steps on the Planning tab: she suggests the **teams and shifts**, and later she proposes **who goes where**. The split of §7.7 holds: the model reads language (history, notes, the organizer's text); a pure, unit-tested solver does the allocation. Everything she makes is a proposal the organizer decides on; nothing reaches volunteers until the organizer publishes (§7.5).
+
+**On the page.** One Mila line above the board (`PlanningMilaBar`, like the task page's): her message, "Stel teams en shiften voor", "Laat Mila verdelen", "Regels (n)", an input "Vertel Mila iets over de planning", and "Alles toevoegen (n)" when she proposes several teams. Her proposals stand in the schedule itself, dashed and lavender: a new team as a lane below the real ones, an extra shift as a card among its team's shifts, another capacity as a line on the shift. The day tabs include days she proposes shifts on. Rules she read in the notes wait at the top of the Regels dialog. The overview's "Bekijk voorstellen" (`?mila=voorstellen`) scrolls to the first proposal, or opens Regels when only those wait.
+
+**A. Teams and shifts ("Stel teams en shiften voor")** — a queued run, feature `shift_suggestions`. The button opens a dialog with an optional request ("twee shiften afwas en twee aan de bar, 18–21 en 21–01"). Empty: Mila proposes herself, as below. Filled: the request (`[R]` in the context, cited as `request`) replaces her own proposal; the request rules are added to the system prompt only then, so runs without one keep the plain prompt. A new run replaces the proposals still open; an explicit request may bring back a team rejected earlier.
+
+- **Grounding, in this order:**
+  1. The previous edition's teams and shifts, moved to the new dates in code: same day relative to the event's start, same clock time (Brussels), same capacity. The model sees the moved times; it never does date arithmetic.
+  2. When there is no history (or for teams the history lacks): a staffing rules-of-thumb catalogue, typed TS constants per event type and team (`src/ai/shift-suggestions/staffing-catalogue.ts`), e.g. bar ≈ 1 volunteer per 75 visitors per hour at the peak, shifts of 3–4 hours, setup the day before. Code turns each rule into a headcount for this event's expected attendance and opening hours, so the model gets numbers, not formulas.
+  - Plus the event's window (setup start to teardown end), its expected attendance (and the previous edition's actual one), and the teams and shifts it already has.
+- **Two kinds of card, each citing its source** (a previous team or shift `P1`, a catalogue rule `C2`, the event `E`):
+  - `team_suggestion`: one new team with its shifts ("Bar + 3 shiften"). Gone stale once a team with that name exists.
+  - `shift_change` on an existing team: an extra shift, or another capacity ("Bar laat 4 → 6, bij 800 bezoekers"). Gone stale once the shift is gone, or already has that capacity or start.
+- **Server-side rules:** uncited cards are dropped; a shift running past the event's window is cut to it (when at least an hour is left) and keeps the times asked for, shown on the card, instead of being dropped; capacity 1–500; at most 8 shifts per team and 10 cards per run; a team name that exists is not suggested again. Taking over the allocation checks every placement again against the board as it is then (shift limits, rules added since, people placed by hand) and skips what no longer fits. Time rules read the night after the event's day as the same night: a shift at 00:30 is "after 23:00".
+- **Accepting** a team creates the team and its shifts in one transaction, through the planning service, with the card as the activity log's source. "Bewerken" opens a large dialog to change the team's name, description and meeting point, and to edit or untick shifts. Several team cards can be added at once with "Alles toevoegen".
+
+**B. Planning rules** — the organizer's knowledge about people, kept as data (`planning_rule`).
+
+- **Kinds.** Hard: not in team X, only in team X, A and B never together, at most N shifts, not before a time, not after a time. Soft: prefers team X, A and B preferably together. There is no age field.
+- **Who they are about.** Every rule is about a volunteer (and a second one for the pair rules). Teams are named, not linked ("Bar"), so a rule still means something at the next edition, where the team is a new row. Times are clock times in Brussels ("18:00").
+- **Scope.** Person rules are stored at **organization** level, so they carry over to every event: the default for what the organizer tells Mila. Event rules are stored on one event: the default for what a volunteer's note says, since a note is about this edition. Each rule chip lets the organizer switch ("altijd" / "enkel dit evenement"). Creating the next edition copies the event rules (like event memories); the organizer deletes what no longer holds.
+- **"Vertel Mila iets over de planning"** (feature `rule_drafting`, while the organizer waits, like "Help me taken maken"): Mila turns the text into rule chips the organizer checks before anything is saved. Names are matched against this event's volunteers. When a name fits more than one person ("Jan"), the chip asks which one; the server finds such clashes itself, not only the model. A name that fits nobody is reported, not guessed.
+- **Notes.** Each allocation run first lets Mila read the applications' notes and turn what they say into rule cards ("Pieter: niet vóór 18:00 (uit zijn notitie)"), citing the note. A rule must be about the note's own author. The run already respects these rules while they wait for a decision; a rejected one is never applied or suggested again.
+- **"Regels" panel** (a dialog): the event's rules and the organization rules of its volunteers, with their source; edit, delete, add by hand.
+
+**C. Allocation ("Laat Mila verdelen")** — a queued run, feature `allocation`.
+
+1. Mila reads the notes (one model call, skipped when nobody wrote a note).
+2. A pure greedy solver (`src/features/planning/allocation.ts`) fills **only open places, with volunteers who still have room**. It never moves or removes an existing assignment, proposed or confirmed.
+   - Hard: marked availability (or the whole event), no overlap, the shift's capacity, the event's shifts per volunteer (or a lower "at most N" rule), and every hard rule.
+   - Soft, as a score: the preferred team, "prefers team", "preferably together", an even spread (people with fewer shifts first), the same team as at the previous edition.
+   - Deterministic: the open place with the fewest possible candidates goes first, its best-scoring candidate is placed, then the next; ties by name. Same input, same result.
+3. Mila explains the result in her own words, built from the solver's reasons, not by the model: how many places she filled, and each gap with why ("Kassa laat: 1 plaats tekort, niemand anders is beschikbaar"), and who she could not place.
+
+- **The proposal** is one `allocation` card holding its placements. They show as Mila's draft chips on the board (dashed, in her color), next to the real ones. Accept all, per shift or per person, or drop single chips. Accepted chips become assignments with status **proposed**, made by the organizer with the card as their source, checked again at that moment (a chip that now overlaps or overfills is skipped). Volunteers hear nothing until the organizer confirms and publishes.
+- A new run replaces the previous proposal that is still open.
+
+**D. On the overview.** The Planning card gets Mila's hint like the task card (§7.2): set up the teams when there are none, review her suggestions when some wait, or let her divide when there are open places and volunteers who could fill them.
+
+**Who.** Everything here needs the right to manage the event (owners, admins, the event's managers). Sending volunteers' names and notes to the model is accepted for now.
+
 ### 7.8 Email Notifications
 
 Initial email types:
@@ -658,7 +701,55 @@ Not built yet, on purpose:
 
 - **Variance per entry**: the totals already show estimated against actual.
 - The entries linked to a task in the task pane. (The budget is on the event overview since 24 November 2026, §7.2.)
-- **Mila and the budget** (reading it, proposing entries): the next AI step once this model has settled.
+- Mila on the budget beyond "bekijk mijn begroting" (below): break-even on a ticket price, explaining the differences between editions, reading receipts, subsidy tips.
+
+#### Mila: "bekijk mijn begroting" (decided 25 November 2026)
+
+One button on the budget page, **"Mila, bekijk mijn begroting"**, in Mila's bar above the list (managers only, not on archived events). It opens a dialog with an optional instruction: what she should take into account ("de zaal krijgen we gratis, en we verkopen dit jaar ook hotdogs"). It queues one background run of its own feature, `budget_review`, like "Zoek ontbrekende taken". What she does depends on the budget:
+
+- **Empty budget:** a full draft, income and expenses.
+- **Budget with lines:** the lines that are missing.
+- **Always:** one insight card at the end.
+
+Her proposals are two new suggestion kinds:
+
+- `budget_line`: a line to add, decided one by one or several at once.
+- `budget_insight`: what the numbers mean. Nothing to accept: each run replaces it.
+
+**The organizer's instruction.** It is in the context as `[R]` and cited as `request`; the rules for it are added to the system prompt only when there is one, so reviews without one keep the plain prompt. What it rules out is not proposed (a verdict with `stillNeeded`/`applies` false); what it names as new becomes a line with origin `request` ("Op jouw vraag"). A new review replaces the lines still open; added and rejected ones stay, and an explicit instruction may bring back a rejected line.
+
+**Amounts are estimates only, and every amount is backed.** Mila never fills in an actual amount, and she never approves or pays anything. The amount of a proposed line comes from code, never from the model. The model only names what it is based on:
+
+- **The previous edition's actual amount** of a line, scaled by the number of visitors when the line grows with visitors (drinks, food, tickets): "Kerstmarkt 2025: € 782 bij 720 bezoekers → ~€ 870 bij 800". Fixed costs (the tent, the permit, the posters) keep last year's amount. The card shows the calculation. Without both visitor numbers nothing is scaled.
+- **A richtprijs** from Mila's checklist (below): a range, shown as "richtprijs € 100–€ 350 — vraag een offerte". The proposed estimate is the middle of the range.
+
+Scaled amounts and richtprijzen are rounded to € 10; a fixed cost keeps last year's exact amount. A line whose basis is missing, unknown or doesn't fit (an income line on a cost from the checklist, a previous line without an actual amount) keeps no amount: the planner drops the amount, and the organizer fills one in. A line without an amount can only be added through the form.
+
+**Where forgotten lines come from:**
+
+1. **A checklist of typical Belgian event costs**, as typed constants in code (`src/ai/budget-review/budget-checklist.ts`). Each item has a reason, when it applies, a richtprijs range and keywords: Unisono when there is music, the organizers' liability insurance, EHBO (Rode Kruis) and security above a number of visitors, the municipal permit, waste, toilets, power or a generator, the glass deposit, and a few more. Event type and visitor thresholds are filtered in code. Conditions only words can tell (is there music, a bar, is it outside) are left to Mila, from the event's description. An item whose keywords appear in a budget line or another proposal ("Verlichting en elektriciteit" has power) is never proposed.
+2. **Lines the previous edition had and this one doesn't.** The code marks which ones have no line with the same title; Mila matches the rest by meaning ("Vergunning stad" is "Toelating evenement gemeente").
+3. **Tasks that imply a cost but have no budget line** ("Springkasteel reserveren" without the rental). The proposed line links to the task.
+
+For 1 and 2 Mila does not pick lines freely: she gives a verdict on **every** unmatched previous-edition line (covered by which current line? still needed?) and on **every** checklist item (does it apply? is it covered?), and the planner makes the lines from the uncovered ones. A small model skips items in a free list; a verdict per item can't be skipped. Her own free lines are only for task costs and, without any history, the typical income and costs of an empty budget.
+
+**The insight.** The code works out the numbers; Mila explains them in a few sentences.
+
+- The basis is the current budget. With an empty budget and a previous edition, it is that edition's lines, scaled as above (what the draft would be).
+- A line's planned amount is its estimate, else its actual amount. The insight shows the expected result, split into fixed and variable (scales with visitors) income and costs.
+- With a previous edition that has its actual number of visitors, it also shows per-visitor figures: income and costs per visitor, and per variable line ("drank: € 2,94 per bezoeker"). With an expected number of visitors, it shows scenarios at −25% and +25% visitors: variable lines scale, fixed ones stay. Mila puts it in words: "bij 600 i.p.v. 800 bezoekers: ~€ 420 minder; de tent blijft even duur."
+- Without history: only the result and the fixed/variable split.
+- Whether a line is variable is a fixed list of words in code (drinks, food, tickets, entrance, bar, tombola…), so the numbers never depend on the model.
+
+**Accepting.**
+
+- **"Bewerken en toevoegen"** opens the budget line form in a dialog, filled in with the type, the title, the estimate, the labels (the previous edition's line's labels that exist in this event by name), the supplier of the previous edition's line (unless it is archived since) and the linked task when there is one.
+- **In the table.** Her lines stand in the budget table itself, above the real ones: dashed and lavender rows with her estimate in the estimated column, where it comes from, why, and what it is based on. Each row has **Toevoegen** (as proposed; a line without an amount opens the form), **Bewerken en toevoegen** and **Niet nodig**. With several lines, Mila's bar offers "Alles toevoegen (n)". Her insight stands under her bar. The overview's "Bekijk voorstellen" (`?mila=voorstellen`) scrolls to the first proposed row.
+- Like every suggestion: the line is created by the normal budget service as the organizer, in the same transaction that marks the suggestion accepted, with the suggestion as its source in the activity log. A rejected line ("Niet nodig") doesn't come back for this event, unless the organizer asks for it again in so many words.
+
+**On the overview** the Budget card gets Mila's hint (§7.2): on an empty budget she offers to make a draft. When lines wait for a decision she says so, e.g. "3 posten die vorige editie wel had", and links to them on the budget page. While she works, the card says so.
+
+**Evals** (`src/ai/evals/budget-review.fixtures.ts`): the Kerstmarkt with history, the Spaghettiavond (empty, no history), a festival with music but no Unisono or insurance line, and the same festival where the organizer says the insurance is arranged and they sell hotdogs. The checks: every amount is backed, no actual amounts, the music event gets Unisono, and the instruction rules the insurance out and adds hotdog lines citing it.
 
 ### 7.10 Basic Supplier Management
 
@@ -689,6 +780,63 @@ Not built yet, on purpose:
 - Mila and suppliers.
 
 MVP does not require order management, contract management, or invoice processing.
+
+### 7.11 Mila: Promotieplan (decided 25 November 2026)
+
+Volunteer organizers promote their event with whatever they did last year. Mila proposes a promotion plan that fits the event's audience, size, budget and remaining time, grounded in a fixed catalogue of Flemish promotion actions and in what the previous edition did. She only proposes; every action becomes a normal task (and optionally a budget line) when the organizer accepts it.
+
+**Publiek (the event's audience), lean on purpose.**
+
+- Its own table, `event_audience` (one row per event), edited in a Dialog from a one-line card at the bottom of the event's new **Promotie** tab. "Betalend" needs a price above zero. Event settings links to it.
+- Fields, all optional:
+  - **Doelgroepen**, multi-select from a fixed list: kinderen (<12), tieners (12–16), jongeren 16–25, studenten, jonge gezinnen, gezinnen, volwassenen, senioren, buurtbewoners, verenigingen/jeugdbewegingen, muziekliefhebbers, cultuurliefhebbers, sportievelingen.
+  - **Omschrijving publiek**: free text.
+  - **Leeftijd** from–to.
+  - **Regio/gemeente**.
+  - **Toegang**: free, or a price in € (`entry_price_cents`: 0 is free, empty is not filled in).
+  - **Pitch**: what makes it worth coming, highlights and acts.
+  - **Promotiebudget** (€).
+- Expected attendance, event type and location stay on the event and are reused, not copied.
+- A new edition (created with `previousEditionId`) gets a copy of the previous edition's Publiek.
+- Out of scope: program, opening hours, practical info.
+
+**Size band**, computed in code from expected attendance and passed to Mila: S below 300, M 300–2000, L above 2000. No band without expected attendance.
+
+**Catalogue.** About 30 Flemish promotion actions as typed constants in the backend (`src/ai/promotion-plan/promotion-catalog.ts`): posters in local shops, flyers at schools and hogescholen, a line-up reveal series, a ticket giveaway with a partner, a UiTinVlaanderen listing, the municipal info magazine, a story takeover, word of mouth through the jeugdbewegingen, a WhatsApp chain, and so on. Each action has a key, a type (offline, social, partnership, giveaway, listing, press, word of mouth), the audiences and size bands it suits, a lead time in weeks before the event, a cost range, an effort (low, medium, high) and a how-to template. Mila only sees the actions that fit the size band, the time left and the budget.
+
+**The plan run.** A queued run of the new feature `promotion_plan`, started from the Promotie tab, producing suggestions of the new kind `promo_action`.
+
+- 6–10 actions, each with a type, target audience, weeks before the event, estimated cost, effort, why it fits, and a how-to.
+- Context: the event, its Publiek and size band, the filtered catalogue (records C1…), the previous edition's history (records P1…), the Promotie tasks already planned, and the organizer's optional instruction.
+- Every action must cite a catalogue item or a past-edition task. The planner drops uncited ones: Mila may adapt an action (the wording, the cost, the timing) but not invent one.
+- The total estimated cost is checked **in code** against the promotiebudget minus what the Promotie-labelled budget lines already cost (actual amount, else the estimate). Over budget, the plan is trimmed: actions are kept in Mila's order while they fit, free ones always fit. Without a promotiebudget only free or cheap actions (at most €50 each) are allowed.
+- Due date = event start minus `weeksBefore` weeks, never before today.
+
+**History** (from the previous edition): its Promotie-labelled tasks and whether they were done, the budget lines labelled Promotie or linked to those tasks with their notes (so "Te laat geleverd: dit jaar een andere drukker" comes through), the retrospective, and expected against actual visitors. Ratings come later (card 128).
+
+**Guards**, decided in code and shown on the tab:
+
+- Blocked when the audience (no doelgroep chosen) is missing. (The event date is always set.)
+- A warning listing the missing fields, with a link to Publiek, when the pitch or the expected attendance is missing.
+- Less than 3 weeks before the start: a warning, and only last-minute actions (lead time within the weeks left).
+- Once the event has started, and on archived events: disabled.
+
+**Regenerate** replaces the pending promo suggestions only: they are closed, and the new run's actions are saved. Rejected and accepted actions never come back. An optional instruction box lets the organizer steer the run ("meer Instagram, geen drukwerk"); it is stored on the run (`ai_run.instruction`).
+
+**Accept** opens the TaskForm, prefilled: the action's title, the how-to as description, the due date, and the **Promotie** label (created, purple, when the event has none; the server always adds it). Everything is editable before saving. "Voeg geselecteerde toe" adds several as they are. A checkbox "Ook begrotingslijn toevoegen" also creates an estimated expense with the action's cost, labelled Promotie and linked to the new task. The task, the label and the budget line carry the suggestion as their source in the activity log.
+
+**The Promotie tab:**
+
+- Mila on top, in one line (like on the task page): what she is doing and one button. "Help me met een promotieplan" (or "Nieuw plan") opens a dialog with the guards' warnings, the budget she works with and the optional instruction. Blocked: the button opens the Publiek instead.
+- A timeline: a vertical line with dots, in weeks before the event, ending at the event itself (tasks without a due date after it). Promotie tasks are solid dots (green with a check when done, red when overdue, in a red "Te laat" group on top) on white rows, with a "van Mila" badge when they came from her plan. Mila's pending actions are dashed dots on dashed lavender cards marked "Voorstel van Mila". A legend and the pilot metric "X voorgesteld · Y aanvaard · Z klaar" (actions suggested ever, accepted, and accepted ones whose task is done) sit above the line.
+- **Eigen actie**: managers add their own promotion action from the timeline, in the task dialog with the Promotie label already on (`POST /events/:id/promotion/tasks` adds the label server-side, creating it when the event has none). Mila's context lists every Promotie task as already planned, so she plans around them.
+- The Publiek at the bottom, in one line once filled in (audiences, visitors and size band, entry, promotion budget left, ages, region); the pitch and descriptions stay in its dialog.
+
+**Dashboard card "Promotie"** (§7.2): the open and overdue Promotie tasks, the next one with its due date, and "Maak promotieplan" when there is no plan yet (no promo suggestion ever). Red when `overduePromoTasks` (a pure, unit-tested rule in `overview-rules.ts`) finds an overdue Promotie task; neutral without Promotie tasks; green otherwise.
+
+**Evals** (`pnpm ai:eval`, `promotion-plan.fixtures.ts`): a student party (16–25, M), a family day (gezinnen, S, no budget), the Kerstmarkt with history (the late printer note must come through), a nearly empty Publiek, and an event in two weeks. Code checks: different catalogue picks for the student party and the family day, cost within budget, no due dates in the past, everything cited.
+
+Out of scope: writing the posts' text (a separate card), ratings, program and practical info.
 
 ---
 
@@ -1096,7 +1244,7 @@ How the agent works (`backend/src/ai`):
   - At most 3 questions are open per event.
   - A field is never overwritten.
   - Due dates are counted back from the event start.
-- **Suggestions (`ai_suggestion`).** One table for every kind: `task_suggestion`, `question`, `update_event`.
+- **Suggestions (`ai_suggestion`).** One table for every kind: `task_suggestion`, `question`, `update_event`, and for the budget `budget_line` and `budget_insight` (§7.9).
   - A dedup key per event means a rejected suggestion never comes back. A suggestion whose cause went away (the task was created by hand, the field was filled in) is closed as `dismissed_stale`.
   - The agent never changes domain data. Accepting runs the normal service as the organizer, in the same transaction, and the activity log records the suggestion as the change's source (`source_type`, `source_id`).
   - Answering a question fills in the event field it is about, or else becomes a memory.
@@ -1290,6 +1438,18 @@ Implemented as `user_profile`: personal details, one row per user (`userId` is t
 - createdAt
 - updatedAt
 
+### EventAudience (§7.11)
+
+- id
+- eventId (one per event; copied to the next edition)
+- audiences (fixed list)
+- description
+- ageMin, ageMax
+- region
+- entryPriceCents (0 is free entry, empty is not filled in)
+- pitch
+- promotionBudgetCents
+
 ### EventMember
 
 - id
@@ -1395,7 +1555,20 @@ Statuses:
 - Proposed.
 - Confirmed.
 
-Unassigning soft-deletes the assignment.
+Unassigning soft-deletes the assignment. Accepting Mila's allocation creates proposed assignments by the organizer; the activity log keeps her proposal as their source.
+
+### PlanningRule
+
+- id
+- organizationId
+- eventId (null: an organization rule about the person, for every event)
+- kind (not_team, only_team, never_together, max_shifts, not_before, not_after, prefers_team, prefer_together)
+- volunteerId, otherVolunteerId (pair rules)
+- teamName, maxShifts, time (by kind)
+- source (organizer, volunteer_note)
+- copiedFromId (copied from the previous edition)
+- createdByUserId
+- createdAt
 
 ### Supplier
 

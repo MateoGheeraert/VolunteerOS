@@ -91,6 +91,27 @@ export const overviewSchema = z
       result: amounts,
       supplierCount: count(),
     }),
+    /** The Promotie tasks and Mila's plan (docs/info.md §7.11). */
+    promotion: z.object({
+      status: cardStatus,
+      /** Promotie tasks the caller may see: not done yet, and overdue among them. */
+      open: count(),
+      overdue: count(),
+      done: count(),
+      /** The first unfinished one: overdue or soonest due first. */
+      next: z
+        .object({
+          id: z.uuid(),
+          title: z.string(),
+          dueDate: z.iso.date().nullable(),
+          overdue: z.boolean(),
+        })
+        .nullable(),
+      /** Mila ever proposed a plan for this event; without one the card offers to make it. */
+      hasPlan: z.boolean(),
+      /** Her actions waiting for a decision. */
+      pendingActions: count(),
+    }),
     mila: z.object({
       /** Mila is available (an API key is configured) and the caller manages the event. */
       enabled: z.boolean(),
@@ -100,6 +121,15 @@ export const overviewSchema = z
       openQuestions: count(),
       /** Her task suggestions waiting for a decision. */
       pendingTaskSuggestions: count(),
+      /** Mila is suggesting teams and shifts or dividing volunteers right now. */
+      planningBusy: z.boolean(),
+      /** Her planning cards (teams, shifts, rules, an allocation) waiting for a decision. */
+      pendingPlanningSuggestions: count(),
+      /** Mila is reviewing the budget right now. */
+      reviewingBudget: z.boolean(),
+      /** Her budget lines waiting for a decision, and how many of them last edition had. */
+      pendingBudgetLines: count(),
+      pendingBudgetLinesFromPreviousEdition: count(),
       // A union rather than `.nullable()`: the OpenAPI client drops `nullable` from an enum.
       statusSuggestion: z.union([z.enum(['publish', 'complete']), z.null()]),
       hints: z.array(
