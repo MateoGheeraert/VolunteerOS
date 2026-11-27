@@ -60,6 +60,7 @@ describe('event overview', () => {
         // In the empty cards she is the empty state, also next to the status banner.
         hints: [
           { key: 'tasks.setup', card: 'tasks', fingerprint: 'empty', highlighted: true },
+          { key: 'budget.setup', card: 'budget', fingerprint: 'empty', highlighted: true },
           { key: 'planning.setup', card: 'planning', fingerprint: 'empty', highlighted: true },
         ],
       },

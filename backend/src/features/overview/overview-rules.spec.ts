@@ -203,6 +203,9 @@ describe('Mila hints', () => {
     pendingTaskSuggestions: { count: 0, newestAt: null },
     findMissingRunning: false,
     lastFindMissing: { id: 'run-1', finishedAt: daysFromNow(-2) },
+    budgetEntryCount: 3,
+    pendingBudgetLines: { count: 0, newestAt: null },
+    budgetReviewRunning: false,
     statusSuggestionShown: false,
     // A planning that needs nothing from Mila: teams, every place taken.
     planning: {
@@ -345,5 +348,46 @@ describe('Mila hints', () => {
         { key: 'planning.allocate', highlighted: false },
       ]);
     });
+  });
+
+  it('offers a budget draft on an empty budget, in full, next to the task hints', () => {
+    expect(selectHints(input({ taskCount: 0, budgetEntryCount: 0 }))).toEqual([
+      { key: 'tasks.setup', card: 'tasks', fingerprint: 'empty', highlighted: true },
+      { key: 'budget.setup', card: 'budget', fingerprint: 'empty', highlighted: true },
+    ]);
+  });
+
+  it('says nothing about the budget while the review runs or once it has lines', () => {
+    expect(keys({ budgetEntryCount: 0, budgetReviewRunning: true })).toEqual([]);
+    expect(keys({ budgetEntryCount: 4 })).toEqual([]);
+  });
+
+  it('points to budget lines waiting for a decision, before the setup offer', () => {
+    const newestAt = daysFromNow(-1);
+    const hints = selectHints(
+      input({ budgetEntryCount: 0, pendingBudgetLines: { count: 3, newestAt } }),
+    );
+    expect(hints).toEqual([
+      {
+        key: 'budget.review',
+        card: 'budget',
+        fingerprint: newestAt.toISOString(),
+        highlighted: true,
+      },
+    ]);
+  });
+
+  it('highlights one review hint on the page: tasks before budget', () => {
+    const newestAt = daysFromNow(-1);
+    const hints = selectHints(
+      input({
+        pendingTaskSuggestions: { count: 2, newestAt },
+        pendingBudgetLines: { count: 3, newestAt },
+      }),
+    );
+    expect(hints).toMatchObject([
+      { key: 'tasks.review', highlighted: true },
+      { key: 'budget.review', highlighted: false },
+    ]);
   });
 });

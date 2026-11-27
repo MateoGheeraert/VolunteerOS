@@ -1,8 +1,11 @@
 import { z } from 'zod';
 import { dateTimeOutput } from '../common/schemas.js';
 import { aiFeatureEnum } from '../db/schema/index.js';
+import { createBudgetEntrySchema } from '../features/budget/budget.schemas.js';
 import { createTaskSchema } from '../features/tasks/tasks.schemas.js';
 import {
+  budgetInsightPayloadSchema,
+  budgetLinePayloadSchema,
   citationSchema,
   promoActionPayloadSchema,
   questionAnswerSchema,
@@ -52,6 +55,12 @@ export const aiSuggestionSchema = z
     }),
     z.object({
       ...suggestionBase,
+      kind: z.literal('budget_line'),
+      payload: budgetLinePayloadSchema.meta({ id: 'AiBudgetLinePayload' }),
+      answer: z.null(),
+    }),
+    z.object({
+      ...suggestionBase,
       kind: z.literal('promo_action'),
       payload: promoActionPayloadSchema.meta({ id: 'AiPromoActionPayload' }),
       answer: z.null(),
@@ -61,6 +70,12 @@ export const aiSuggestionSchema = z
       ...suggestionBase,
       kind: z.literal('team_suggestion'),
       payload: teamSuggestionPayloadSchema.meta({ id: 'AiTeamSuggestionPayload' }),
+      answer: z.null(),
+    }),
+    z.object({
+      ...suggestionBase,
+      kind: z.literal('budget_insight'),
+      payload: budgetInsightPayloadSchema.meta({ id: 'AiBudgetInsightPayload' }),
       answer: z.null(),
     }),
     z.object({
@@ -120,6 +135,17 @@ export const acceptTaskSuggestionsSchema = z
   })
   .meta({ id: 'AcceptTaskSuggestions' });
 export type AcceptTaskSuggestionsInput = z.infer<typeof acceptTaskSuggestionsSchema>;
+
+/** Accepting budget lines Mila proposed: each as the organizer edited it, or as proposed. */
+export const acceptBudgetLinesSchema = z
+  .object({
+    items: z
+      .array(z.object({ suggestionId: z.uuid(), entry: createBudgetEntrySchema }))
+      .min(1)
+      .max(20),
+  })
+  .meta({ id: 'AcceptBudgetLines' });
+export type AcceptBudgetLinesInput = z.infer<typeof acceptBudgetLinesSchema>;
 
 /** Accepting a proposed event change, optionally with the value edited. */
 export const acceptEventUpdateSchema = z
@@ -189,3 +215,9 @@ export const createDraftTasksSchema = z
   .object({ tasks: z.array(createTaskSchema).min(1).max(30) })
   .meta({ id: 'CreateDraftTasks' });
 export type CreateDraftTasksInput = z.infer<typeof createDraftTasksSchema>;
+
+/** "Mila, bekijk mijn begroting", with what she should take into account (empty: nothing). */
+export const requestBudgetReviewSchema = z
+  .object({ instruction: z.string().trim().max(500).optional() })
+  .meta({ id: 'RequestBudgetReview' });
+export type RequestBudgetReviewInput = z.infer<typeof requestBudgetReviewSchema>;

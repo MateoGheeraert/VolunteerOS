@@ -2374,6 +2374,45 @@
         "tags": ["ai"]
       }
     },
+    "/api/events/{eventId}/ai/budget-review": {
+      "post": {
+        "operationId": "AiEventController_requestBudgetReview",
+        "parameters": [
+          {
+            "name": "eventId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestBudgetReview"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiRun"
+                }
+              }
+            }
+          }
+        },
+        "tags": ["ai"]
+      }
+    },
     "/api/events/{eventId}/ai/task-drafts": {
       "post": {
         "operationId": "AiEventController_draftTasks",
@@ -2473,6 +2512,38 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/AcceptTaskSuggestions"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": ["ai"]
+      }
+    },
+    "/api/events/{eventId}/ai/suggestions/accept-budget-lines": {
+      "post": {
+        "operationId": "AiEventController_acceptBudgetLines",
+        "parameters": [
+          {
+            "name": "eventId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AcceptBudgetLines"
               }
             }
           }
@@ -6471,7 +6542,8 @@
               "promotion_plan",
               "shift_suggestions",
               "rule_drafting",
-              "allocation"
+              "allocation",
+              "budget_review"
             ]
           },
           "trigger": {
@@ -6753,6 +6825,74 @@
               },
               "kind": {
                 "type": "string",
+                "enum": ["budget_line"]
+              },
+              "payload": {
+                "$ref": "#/components/schemas/AiBudgetLinePayload"
+              },
+              "answer": {
+                "type": "string",
+                "nullable": true,
+                "enum": [null]
+              }
+            },
+            "required": [
+              "id",
+              "eventId",
+              "status",
+              "title",
+              "explanation",
+              "citations",
+              "createdAt",
+              "seenAt",
+              "kind",
+              "payload",
+              "answer"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              "eventId": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              "status": {
+                "type": "string",
+                "enum": ["pending", "accepted", "rejected", "dismissed_stale"]
+              },
+              "title": {
+                "type": "string"
+              },
+              "explanation": {
+                "type": "string"
+              },
+              "citations": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/AiCitation"
+                }
+              },
+              "createdAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+              },
+              "seenAt": {
+                "nullable": true,
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+              },
+              "kind": {
+                "type": "string",
                 "enum": ["promo_action"]
               },
               "payload": {
@@ -6825,6 +6965,74 @@
               },
               "payload": {
                 "$ref": "#/components/schemas/AiTeamSuggestionPayload"
+              },
+              "answer": {
+                "type": "string",
+                "nullable": true,
+                "enum": [null]
+              }
+            },
+            "required": [
+              "id",
+              "eventId",
+              "status",
+              "title",
+              "explanation",
+              "citations",
+              "createdAt",
+              "seenAt",
+              "kind",
+              "payload",
+              "answer"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              "eventId": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              "status": {
+                "type": "string",
+                "enum": ["pending", "accepted", "rejected", "dismissed_stale"]
+              },
+              "title": {
+                "type": "string"
+              },
+              "explanation": {
+                "type": "string"
+              },
+              "citations": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/AiCitation"
+                }
+              },
+              "createdAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+              },
+              "seenAt": {
+                "nullable": true,
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+              },
+              "kind": {
+                "type": "string",
+                "enum": ["budget_insight"]
+              },
+              "payload": {
+                "$ref": "#/components/schemas/AiBudgetInsightPayload"
               },
               "answer": {
                 "type": "string",
@@ -7067,7 +7275,9 @@
               "shift",
               "catalogue",
               "note",
-              "request"
+              "request",
+              "budget_entry",
+              "checklist"
             ]
           },
           "id": {
@@ -7150,6 +7360,174 @@
           }
         },
         "required": ["field", "value"],
+        "additionalProperties": false
+      },
+      "AiBudgetLinePayload": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["income", "expense"]
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "origin": {
+            "type": "string",
+            "enum": ["previous_edition", "checklist", "task", "typical", "request"]
+          },
+          "estimate": {
+            "anyOf": [
+              {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "basis": {
+                        "type": "string",
+                        "enum": ["previous_edition"]
+                      },
+                      "cents": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "source": {
+                        "type": "object",
+                        "properties": {
+                          "eventName": {
+                            "type": "string"
+                          },
+                          "title": {
+                            "type": "string"
+                          },
+                          "actualCents": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 9007199254740991
+                          },
+                          "attendance": {
+                            "nullable": true,
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        "required": ["eventName", "title", "actualCents", "attendance"],
+                        "additionalProperties": false
+                      },
+                      "targetAttendance": {
+                        "nullable": true,
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "scaled": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": ["basis", "cents", "source", "targetAttendance", "scaled"],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "basis": {
+                        "type": "string",
+                        "enum": ["richtprijs"]
+                      },
+                      "cents": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "checklistKey": {
+                        "type": "string"
+                      },
+                      "minCents": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "maxCents": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": ["basis", "cents", "checklistKey", "minCents", "maxCents"],
+                    "additionalProperties": false
+                  }
+                ]
+              },
+              {
+                "type": "string",
+                "nullable": true,
+                "enum": [null]
+              }
+            ]
+          },
+          "labelIds": {
+            "maxItems": 20,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          "supplier": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "required": ["id", "name"],
+                "additionalProperties": false
+              },
+              {
+                "type": "string",
+                "nullable": true,
+                "enum": [null]
+              }
+            ]
+          },
+          "task": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "title": {
+                    "type": "string"
+                  }
+                },
+                "required": ["id", "title"],
+                "additionalProperties": false
+              },
+              {
+                "type": "string",
+                "nullable": true,
+                "enum": [null]
+              }
+            ]
+          }
+        },
+        "required": ["type", "title", "origin", "estimate", "labelIds", "supplier", "task"],
         "additionalProperties": false
       },
       "AiPromoActionPayload": {
@@ -7283,6 +7661,183 @@
           }
         },
         "required": ["name", "description", "defaultMeetingPoint", "shifts"],
+        "additionalProperties": false
+      },
+      "AiBudgetInsightPayload": {
+        "type": "object",
+        "properties": {
+          "basis": {
+            "type": "string",
+            "enum": ["current", "previous_edition", "none"]
+          },
+          "expectedAttendance": {
+            "nullable": true,
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "previousEdition": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "attendance": {
+                    "nullable": true,
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  }
+                },
+                "required": ["name", "attendance"],
+                "additionalProperties": false
+              },
+              {
+                "type": "string",
+                "nullable": true,
+                "enum": [null]
+              }
+            ]
+          },
+          "incomeCents": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "expenseCents": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "resultCents": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "split": {
+            "type": "object",
+            "properties": {
+              "fixedIncomeCents": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "variableIncomeCents": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "fixedExpenseCents": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "variableExpenseCents": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "fixedIncomeCents",
+              "variableIncomeCents",
+              "fixedExpenseCents",
+              "variableExpenseCents"
+            ],
+            "additionalProperties": false
+          },
+          "perVisitor": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "incomeCents": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "expenseCents": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "lines": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "enum": ["income", "expense"]
+                        },
+                        "title": {
+                          "type": "string"
+                        },
+                        "cents": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": ["type", "title", "cents"],
+                      "additionalProperties": false
+                    }
+                  }
+                },
+                "required": ["incomeCents", "expenseCents", "lines"],
+                "additionalProperties": false
+              },
+              {
+                "type": "string",
+                "nullable": true,
+                "enum": [null]
+              }
+            ]
+          },
+          "scenarios": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "attendance": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "changePercent": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "resultCents": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "differenceCents": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                }
+              },
+              "required": ["attendance", "changePercent", "resultCents", "differenceCents"],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "basis",
+          "expectedAttendance",
+          "previousEdition",
+          "incomeCents",
+          "expenseCents",
+          "resultCents",
+          "split",
+          "perVisitor",
+          "scenarios"
+        ],
         "additionalProperties": false
       },
       "AiShiftChangePayload": {
@@ -7578,6 +8133,15 @@
         "required": ["applicationId", "missing", "reason"],
         "additionalProperties": false
       },
+      "RequestBudgetReview": {
+        "type": "object",
+        "properties": {
+          "instruction": {
+            "type": "string",
+            "maxLength": 500
+          }
+        }
+      },
       "DraftTasks": {
         "type": "object",
         "properties": {
@@ -7690,6 +8254,31 @@
         },
         "required": ["items"]
       },
+      "AcceptBudgetLines": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "minItems": 1,
+            "maxItems": 20,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "suggestionId": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "entry": {
+                  "$ref": "#/components/schemas/CreateBudgetEntry"
+                }
+              },
+              "required": ["suggestionId", "entry"]
+            }
+          }
+        },
+        "required": ["items"]
+      },
       "AcceptEventUpdate": {
         "type": "object",
         "properties": {
@@ -7778,7 +8367,9 @@
                     "shift",
                     "catalogue",
                     "note",
-                    "request"
+                    "request",
+                    "budget_entry",
+                    "checklist"
                   ]
                 },
                 "id": {
@@ -8532,6 +9123,19 @@
                 "minimum": 0,
                 "maximum": 9007199254740991
               },
+              "reviewingBudget": {
+                "type": "boolean"
+              },
+              "pendingBudgetLines": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "pendingBudgetLinesFromPreviousEdition": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
               "statusSuggestion": {
                 "anyOf": [
                   {
@@ -8558,12 +9162,14 @@
                         "tasks.find_missing",
                         "planning.setup",
                         "planning.review",
-                        "planning.allocate"
+                        "planning.allocate",
+                        "budget.setup",
+                        "budget.review"
                       ]
                     },
                     "card": {
                       "type": "string",
-                      "enum": ["tasks", "planning"]
+                      "enum": ["tasks", "planning", "budget"]
                     },
                     "fingerprint": {
                       "type": "string"
@@ -8584,6 +9190,9 @@
               "pendingTaskSuggestions",
               "planningBusy",
               "pendingPlanningSuggestions",
+              "reviewingBudget",
+              "pendingBudgetLines",
+              "pendingBudgetLinesFromPreviousEdition",
               "statusSuggestion",
               "hints"
             ],
@@ -8614,7 +9223,9 @@
               "tasks.find_missing",
               "planning.setup",
               "planning.review",
-              "planning.allocate"
+              "planning.allocate",
+              "budget.setup",
+              "budget.review"
             ]
           },
           "fingerprint": {

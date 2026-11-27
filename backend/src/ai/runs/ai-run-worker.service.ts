@@ -8,6 +8,7 @@ import { AiUnavailableError } from '../ai-client.service.js';
 import { PromotionPlanRunner } from '../promotion-plan/promotion-plan.runner.js';
 import { AllocationRunner } from '../allocation/allocation.runner.js';
 import { ShiftSuggestionsRunner } from '../shift-suggestions/shift-suggestions.runner.js';
+import { BudgetReviewRunner } from '../budget-review/budget-review.runner.js';
 import {
   EventGoneError,
   TaskSuggestionsRunner,
@@ -31,6 +32,7 @@ export class AiRunWorker implements OnApplicationBootstrap {
     private readonly promotionPlan: PromotionPlanRunner,
     private readonly shiftSuggestions: ShiftSuggestionsRunner,
     private readonly allocation: AllocationRunner,
+    private readonly budgetReview: BudgetReviewRunner,
   ) {}
 
   async onApplicationBootstrap(): Promise<void> {
@@ -64,6 +66,8 @@ export class AiRunWorker implements OnApplicationBootstrap {
     switch (run.feature) {
       case 'task_suggestions':
         return this.taskSuggestions.run(run);
+      case 'budget_review':
+        return this.budgetReview.run(run);
       case 'shift_suggestions':
         return this.shiftSuggestions.run(run);
       case 'allocation':
