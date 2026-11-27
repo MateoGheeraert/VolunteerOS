@@ -379,7 +379,7 @@ Statuses:
 
 **Mila on the overview: a balance, not a bombardment.**
 
-- Mila only shows where she can act. Today that is the Tasks card; Planning and Budget have a slot for her that stays empty until she can help there.
+- Mila only shows where she can act: the Tasks, Planning and Budget cards (§7.7.1, §7.9).
 - In an empty card she *is* the empty state ("Zal ik de eerste taken voor je opstellen?"), so a new event gets her help everywhere she can give it. This follows from the data, not from counting visits.
 - In a card with data she only speaks when she has something concrete: pending suggestions to review, or a check for missing tasks that hasn't run in 14 days (only more than 7 days before the event). Never a generic "I can help".
 - Her setup offer in an empty card is always shown in full (it is the empty state). Of her other hints at most one on the page is highlighted, chosen by priority, and none while the status banner shows; the rest are a small chip.
@@ -701,7 +701,55 @@ Not built yet, on purpose:
 
 - **Variance per entry**: the totals already show estimated against actual.
 - The entries linked to a task in the task pane. (The budget is on the event overview since 24 November 2026, §7.2.)
-- **Mila and the budget** (reading it, proposing entries): the next AI step once this model has settled.
+- Mila on the budget beyond "bekijk mijn begroting" (below): break-even on a ticket price, explaining the differences between editions, reading receipts, subsidy tips.
+
+#### Mila: "bekijk mijn begroting" (decided 25 November 2026)
+
+One button on the budget page, **"Mila, bekijk mijn begroting"**, in Mila's bar above the list (managers only, not on archived events). It opens a dialog with an optional instruction: what she should take into account ("de zaal krijgen we gratis, en we verkopen dit jaar ook hotdogs"). It queues one background run of its own feature, `budget_review`, like "Zoek ontbrekende taken". What she does depends on the budget:
+
+- **Empty budget:** a full draft, income and expenses.
+- **Budget with lines:** the lines that are missing.
+- **Always:** one insight card at the end.
+
+Her proposals are two new suggestion kinds:
+
+- `budget_line`: a line to add, decided one by one or several at once.
+- `budget_insight`: what the numbers mean. Nothing to accept: each run replaces it.
+
+**The organizer's instruction.** It is in the context as `[R]` and cited as `request`; the rules for it are added to the system prompt only when there is one, so reviews without one keep the plain prompt. What it rules out is not proposed (a verdict with `stillNeeded`/`applies` false); what it names as new becomes a line with origin `request` ("Op jouw vraag"). A new review replaces the lines still open; added and rejected ones stay, and an explicit instruction may bring back a rejected line.
+
+**Amounts are estimates only, and every amount is backed.** Mila never fills in an actual amount, and she never approves or pays anything. The amount of a proposed line comes from code, never from the model. The model only names what it is based on:
+
+- **The previous edition's actual amount** of a line, scaled by the number of visitors when the line grows with visitors (drinks, food, tickets): "Kerstmarkt 2025: € 782 bij 720 bezoekers → ~€ 870 bij 800". Fixed costs (the tent, the permit, the posters) keep last year's amount. The card shows the calculation. Without both visitor numbers nothing is scaled.
+- **A richtprijs** from Mila's checklist (below): a range, shown as "richtprijs € 100–€ 350 — vraag een offerte". The proposed estimate is the middle of the range.
+
+Scaled amounts and richtprijzen are rounded to € 10; a fixed cost keeps last year's exact amount. A line whose basis is missing, unknown or doesn't fit (an income line on a cost from the checklist, a previous line without an actual amount) keeps no amount: the planner drops the amount, and the organizer fills one in. A line without an amount can only be added through the form.
+
+**Where forgotten lines come from:**
+
+1. **A checklist of typical Belgian event costs**, as typed constants in code (`src/ai/budget-review/budget-checklist.ts`). Each item has a reason, when it applies, a richtprijs range and keywords: Unisono when there is music, the organizers' liability insurance, EHBO (Rode Kruis) and security above a number of visitors, the municipal permit, waste, toilets, power or a generator, the glass deposit, and a few more. Event type and visitor thresholds are filtered in code. Conditions only words can tell (is there music, a bar, is it outside) are left to Mila, from the event's description. An item whose keywords appear in a budget line or another proposal ("Verlichting en elektriciteit" has power) is never proposed.
+2. **Lines the previous edition had and this one doesn't.** The code marks which ones have no line with the same title; Mila matches the rest by meaning ("Vergunning stad" is "Toelating evenement gemeente").
+3. **Tasks that imply a cost but have no budget line** ("Springkasteel reserveren" without the rental). The proposed line links to the task.
+
+For 1 and 2 Mila does not pick lines freely: she gives a verdict on **every** unmatched previous-edition line (covered by which current line? still needed?) and on **every** checklist item (does it apply? is it covered?), and the planner makes the lines from the uncovered ones. A small model skips items in a free list; a verdict per item can't be skipped. Her own free lines are only for task costs and, without any history, the typical income and costs of an empty budget.
+
+**The insight.** The code works out the numbers; Mila explains them in a few sentences.
+
+- The basis is the current budget. With an empty budget and a previous edition, it is that edition's lines, scaled as above (what the draft would be).
+- A line's planned amount is its estimate, else its actual amount. The insight shows the expected result, split into fixed and variable (scales with visitors) income and costs.
+- With a previous edition that has its actual number of visitors, it also shows per-visitor figures: income and costs per visitor, and per variable line ("drank: € 2,94 per bezoeker"). With an expected number of visitors, it shows scenarios at −25% and +25% visitors: variable lines scale, fixed ones stay. Mila puts it in words: "bij 600 i.p.v. 800 bezoekers: ~€ 420 minder; de tent blijft even duur."
+- Without history: only the result and the fixed/variable split.
+- Whether a line is variable is a fixed list of words in code (drinks, food, tickets, entrance, bar, tombola…), so the numbers never depend on the model.
+
+**Accepting.**
+
+- **"Bewerken en toevoegen"** opens the budget line form in a dialog, filled in with the type, the title, the estimate, the labels (the previous edition's line's labels that exist in this event by name), the supplier of the previous edition's line (unless it is archived since) and the linked task when there is one.
+- **In the table.** Her lines stand in the budget table itself, above the real ones: dashed and lavender rows with her estimate in the estimated column, where it comes from, why, and what it is based on. Each row has **Toevoegen** (as proposed; a line without an amount opens the form), **Bewerken en toevoegen** and **Niet nodig**. With several lines, Mila's bar offers "Alles toevoegen (n)". Her insight stands under her bar. The overview's "Bekijk voorstellen" (`?mila=voorstellen`) scrolls to the first proposed row.
+- Like every suggestion: the line is created by the normal budget service as the organizer, in the same transaction that marks the suggestion accepted, with the suggestion as its source in the activity log. A rejected line ("Niet nodig") doesn't come back for this event, unless the organizer asks for it again in so many words.
+
+**On the overview** the Budget card gets Mila's hint (§7.2): on an empty budget she offers to make a draft. When lines wait for a decision she says so, e.g. "3 posten die vorige editie wel had", and links to them on the budget page. While she works, the card says so.
+
+**Evals** (`src/ai/evals/budget-review.fixtures.ts`): the Kerstmarkt with history, the Spaghettiavond (empty, no history), a festival with music but no Unisono or insurance line, and the same festival where the organizer says the insurance is arranged and they sell hotdogs. The checks: every amount is backed, no actual amounts, the music event gets Unisono, and the instruction rules the insurance out and adds hotdog lines citing it.
 
 ### 7.10 Basic Supplier Management
 
@@ -1196,7 +1244,7 @@ How the agent works (`backend/src/ai`):
   - At most 3 questions are open per event.
   - A field is never overwritten.
   - Due dates are counted back from the event start.
-- **Suggestions (`ai_suggestion`).** One table for every kind: `task_suggestion`, `question`, `update_event`.
+- **Suggestions (`ai_suggestion`).** One table for every kind: `task_suggestion`, `question`, `update_event`, and for the budget `budget_line` and `budget_insight` (§7.9).
   - A dedup key per event means a rejected suggestion never comes back. A suggestion whose cause went away (the task was created by hand, the field was filled in) is closed as `dismissed_stale`.
   - The agent never changes domain data. Accepting runs the normal service as the organizer, in the same transaction, and the activity log records the suggestion as the change's source (`source_type`, `source_id`).
   - Answering a question fills in the event field it is about, or else becomes a memory.
