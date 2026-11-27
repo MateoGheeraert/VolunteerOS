@@ -24,12 +24,14 @@ import {
 import { asIsItem, suggestionToTaskForm, type TaskSuggestion } from './schemas';
 import { EventUpdateCard, QuestionCard, TaskSuggestionCard } from './suggestion-cards';
 
+const TASK_SIDE_KINDS: AiSuggestion['kind'][] = ['task_suggestion', 'question', 'update_event'];
+
 /** Mila's run and pending suggestions on an event, worked out once for every view of them. */
 export function useMilaState(state: AiEventState, showOnly?: AiSuggestion['kind']) {
   const run = state.runs.find((candidate) => candidate.feature === 'task_suggestions');
-  // Promo actions live on the Promotie tab, with their own plan run.
-  const suggestions = state.suggestions.filter(
-    (s) => s.kind !== 'promo_action' && (!showOnly || s.kind === showOnly),
+  // The planning page shows Mila's planning cards itself; here only the task-side ones.
+  const suggestions = state.suggestions.filter((s) =>
+    showOnly ? s.kind === showOnly : TASK_SIDE_KINDS.includes(s.kind),
   );
   return {
     thinking: run?.status === 'queued' || run?.status === 'running',

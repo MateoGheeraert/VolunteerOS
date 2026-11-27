@@ -3,9 +3,10 @@ import { getTranslations } from 'next-intl/server';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { formatDate } from '@/lib/format';
+import { MilaHint, MilaWorkingOnPlanning } from './mila-hint';
 import { TeamCoverageChart } from './overview-charts';
 import { Counts, EmptyState, OverviewCard, SegmentBar } from './overview-card';
-import { coverageParts, type OverviewCardProps } from './overview-types';
+import { coverageParts, hintFor, type OverviewCardProps } from './overview-types';
 
 /**
  * Planning: how many places are filled (confirmed darker than proposed), how far the volunteers
@@ -13,8 +14,20 @@ import { coverageParts, type OverviewCardProps } from './overview-types';
  */
 export async function PlanningCard({ eventId, overview, canManage, className }: OverviewCardProps) {
   const t = await getTranslations('overview.planning');
-  const { planning } = overview;
+  const { planning, mila } = overview;
   const href = `/events/${eventId}/planning`;
+  // Mila speaks here like in the task card (docs/info.md §7.7.1 D).
+  const hint = hintFor(overview, 'planning');
+  const milaHint = hint && (
+    <MilaHint
+      key={`${hint.key}:${hint.fingerprint}:${hint.highlighted}`}
+      eventId={eventId}
+      hint={hint}
+      pendingTaskSuggestions={mila.pendingTaskSuggestions}
+      pendingPlanningSuggestions={mila.pendingPlanningSuggestions}
+    />
+  );
+  const working = mila.enabled && mila.planningBusy && <MilaWorkingOnPlanning />;
   const card = {
     title: t('title'),
     icon: Users,
@@ -52,11 +65,15 @@ export async function PlanningCard({ eventId, overview, canManage, className }: 
   if (planning.shiftCount === 0 && noPlaces) {
     return (
       <OverviewCard {...card}>
+        {working}
         {planning.applications > 0 ? (
           <>
             <p className="text-sm font-bold">{t('noShifts', { count: planning.applications })}</p>
             {funnel}
+            {milaHint}
           </>
+        ) : hint?.highlighted ? (
+          milaHint
         ) : (
           <EmptyState
             title={t('emptyTitle')}
@@ -83,6 +100,7 @@ export async function PlanningCard({ eventId, overview, canManage, className }: 
     });
     return (
       <OverviewCard {...card}>
+        {working}
         <div className="flex flex-col gap-2">
           <p className="text-lg font-extrabold">{headline}</p>
           <SegmentBar
@@ -103,6 +121,7 @@ export async function PlanningCard({ eventId, overview, canManage, className }: 
           />
         </div>
         {published}
+        {milaHint}
       </OverviewCard>
     );
   }
@@ -112,6 +131,7 @@ export async function PlanningCard({ eventId, overview, canManage, className }: 
   const parts = coverageParts(planning);
   return (
     <OverviewCard {...card}>
+      {working}
       <div className="flex flex-col gap-2">
         <p className="text-lg font-extrabold">{headline}</p>
         <SegmentBar
@@ -139,6 +159,7 @@ export async function PlanningCard({ eventId, overview, canManage, className }: 
       {planning.teams.length > 1 && <TeamCoverageChart teams={planning.teams} labels={labels} />}
 
       {published}
+      {milaHint}
     </OverviewCard>
   );
 }

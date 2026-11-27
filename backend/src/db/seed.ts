@@ -10,10 +10,12 @@
  *   state: estimated only, paid, over and under budget, labelled and linked to tasks) and its
  *   previous edition (with a settled budget). Suppliers (one archived, one never used) on the
  *   budget lines of both editions. Planning for the Kerstmarkt: teams, shifts and volunteers,
- *   partly placed (some confirmed, some proposed, some still waiting), registration open.
+ *   partly placed (some confirmed, some proposed, some still waiting), registration open; notes
+ *   on the sign-ups and planning rules for Mila, and last year's planning as her history.
  * - The event overview in its three states: the Kerstmarkt in mid-preparation (an overdue task,
  *   planning partly filled), its previous edition after the event (a result and two tasks left
- *   open), and "Spaghettiavond", a brand-new draft with nothing in it yet (Mila's setup state).
+ *   open), and "Spaghettiavond", a brand-new draft with nothing in it yet (Mila's setup state,
+ *   and her teams and shifts without history: from the staffing catalogue).
  * - Promotie (Mila's promotion plan): the Publiek of the Kerstmarkt (families and neighbours, free
  *   entry, €300 promotion budget) and of the Spaghettiavond (no budget), and last year's Promotie
  *   tasks with the late printer on their budget line.
@@ -176,6 +178,8 @@ async function seed(tx: Transaction) {
       location: 'Kerkplein, Gent',
       startsAt: at(24 - 365, 13),
       endsAt: at(24 - 365, 22),
+      setupStartsAt: at(24 - 365, 8),
+      teardownEndsAt: at(24 - 365, 23),
       status: 'completed',
       expectedAttendance: 600,
       actualAttendance: 720,
@@ -409,7 +413,7 @@ async function seed(tx: Transaction) {
     },
   ]);
 
-  await insertPlanning(tx, organizationId, eventId, ownerId);
+  await insertPlanning(tx, organizationId, eventId, previous!.id, ownerId);
 
   // Last year's tasks: all done but two that were forgotten, for the overview's wrap-up. The
   // Promotie ones are the history Mila's promotion plan learns from.
@@ -487,6 +491,9 @@ async function seed(tx: Transaction) {
       location: 'Parochiezaal Sint-Jan, Gent',
       startsAt: at(75, 17),
       endsAt: at(75, 22),
+      // The hall is free from the afternoon: room for Mila to suggest setup and teardown shifts.
+      setupStartsAt: at(75, 13),
+      teardownEndsAt: at(75, 23),
       status: 'draft',
       expectedAttendance: 250,
     })
@@ -572,11 +579,18 @@ async function seed(tx: Transaction) {
  * The Kerstmarkt's volunteers: three teams with shifts (setup the evening before, bar and cash
  * desk on the day), and volunteers who signed up. Some are placed and confirmed, some only
  * proposed, a few still wait for a shift: the planning card shows it partly filled.
+ *
+ * For Mila (docs/info.md §7.7.1): last year's planning (with an "Afbraak" team this year lacks,
+ * and a late bar of 4 for 720 visitors), notes on this year's sign-ups that read as rules ("pas
+ * vanaf 17u", "graag samen met Arthur"), two volunteers called Jan for the "which one?" question,
+ * and a few rules the organizer already gave. Open places are left for "Laat Mila verdelen",
+ * some of them for a gap nobody can fill.
  */
 async function insertPlanning(
   tx: Transaction,
   organizationId: string,
   eventId: string,
+  previousEventId: string,
   assignedByUserId: string,
 ) {
   const teams = await tx
@@ -611,22 +625,70 @@ async function insertPlanning(
     .returning({ id: schema.shift.id });
   const shiftId = (key: string) => shifts[shiftSpecs.findIndex((spec) => spec.key === key)]!.id;
 
-  // [name, available shifts, preferred team, placed on (shift, status)]
-  const people: [string, string[], string | null, [string, 'proposed' | 'confirmed'] | null][] = [
-    ['Emma Claes', ['bar-early', 'bar-late'], 'Bar', ['bar-early', 'confirmed']],
-    ['Noah Wouters', ['bar-late'], 'Bar', ['bar-late', 'confirmed']],
-    ['Louise Jacobs', ['kassa-early', 'kassa-late'], 'Kassa', ['kassa-early', 'confirmed']],
-    ['Arthur Maes', ['opbouw'], 'Opbouw', ['opbouw', 'confirmed']],
-    ['Marie Mertens', ['opbouw', 'bar-early'], null, ['opbouw', 'confirmed']],
-    ['Jules Willems', ['bar-early', 'kassa-early'], 'Bar', ['bar-early', 'proposed']],
-    ['Olivia Goossens', ['kassa-late'], 'Kassa', ['kassa-late', 'proposed']],
-    ['Lucas Dubois', ['opbouw'], 'Opbouw', ['opbouw', 'proposed']],
-    ['Elena Hermans', ['bar-late', 'kassa-late'], null, ['bar-late', 'proposed']],
-    ['Victor Lambert', ['bar-early', 'bar-late'], 'Bar', null],
-    ['Nora De Smet', ['opbouw'], 'Opbouw', null],
-    ['Finn Aerts', ['kassa-early'], 'Kassa', null],
+  // [name, available shifts, preferred team, placed on (shift, status), note]
+  type Person = [
+    string,
+    string[],
+    string | null,
+    [string, 'proposed' | 'confirmed'] | null,
+    string | null,
   ];
-  for (const [name, available, preferred, placement] of people) {
+  const people: Person[] = [
+    [
+      'Emma Claes',
+      ['bar-early', 'bar-late'],
+      'Bar',
+      ['bar-early', 'confirmed'],
+      'Mag ik weer aan de toog? Vorig jaar was super!',
+    ],
+    ['Noah Wouters', ['bar-late'], 'Bar', ['bar-late', 'confirmed'], null],
+    ['Louise Jacobs', ['kassa-early', 'kassa-late'], 'Kassa', ['kassa-early', 'confirmed'], null],
+    ['Arthur Maes', ['opbouw'], 'Opbouw', ['opbouw', 'confirmed'], null],
+    ['Marie Mertens', ['opbouw', 'bar-early'], null, ['opbouw', 'confirmed'], null],
+    [
+      'Jules Willems',
+      ['bar-early', 'kassa-early'],
+      'Bar',
+      ['bar-early', 'proposed'],
+      'Eerste keer dat ik help, ik ben benieuwd!',
+    ],
+    ['Olivia Goossens', ['kassa-late'], 'Kassa', ['kassa-late', 'proposed'], null],
+    ['Lucas Dubois', ['opbouw'], 'Opbouw', ['opbouw', 'proposed'], null],
+    ['Elena Hermans', ['bar-late', 'kassa-late'], null, ['bar-late', 'proposed'], null],
+    [
+      'Victor Lambert',
+      ['bar-early', 'bar-late'],
+      'Bar',
+      null,
+      'Ik werk overdag, ik kan pas vanaf 17u.',
+    ],
+    [
+      'Nora De Smet',
+      ['opbouw'],
+      'Opbouw',
+      null,
+      'Graag samen met Arthur, we rijden samen naar het kerkplein.',
+    ],
+    ['Finn Aerts', ['kassa-early'], 'Kassa', null, 'Ik moet om 17u weg voor een verjaardagsfeest.'],
+    [
+      'Pieter Janssens',
+      ['opbouw', 'bar-late'],
+      null,
+      null,
+      'Ik help graag bij de opbouw, sleuren is mijn ding.',
+    ],
+    [
+      'Sara Peeters',
+      ['bar-late', 'kassa-late'],
+      null,
+      null,
+      'Zet me aub niet aan de kassa, ik ben slecht met wisselgeld.',
+    ],
+    ['Jan Peeters', ['bar-late', 'kassa-late'], null, null, null],
+    ['Jan De Wit', ['opbouw', 'bar-early'], null, null, null],
+  ];
+  const volunteerIds = new Map<string, string>();
+  for (const [name, available, preferred, placement, notes] of people) {
     const [volunteer] = await tx
       .insert(schema.volunteer)
       .values({
@@ -635,6 +697,7 @@ async function insertPlanning(
         email: `${name.toLowerCase().replaceAll(' ', '.')}@voorbeeld.test`,
       })
       .returning({ id: schema.volunteer.id });
+    volunteerIds.set(name, volunteer!.id);
     const [application] = await tx
       .insert(schema.volunteerApplication)
       .values({
@@ -643,6 +706,7 @@ async function insertPlanning(
         source: 'public',
         availableShiftIds: available.map(shiftId),
         preferredTeamId: preferred ? teamId(preferred) : null,
+        notes,
         consentedAt: at(-20, 10),
       })
       .returning({ id: schema.volunteerApplication.id });
@@ -654,6 +718,119 @@ async function insertPlanning(
         assignedByUserId,
       });
     }
+  }
+  const volunteerId = (name: string) => volunteerIds.get(name)!;
+
+  // Rules the organizer gave earlier: two about the person, one for this market only.
+  await tx.insert(schema.planningRule).values([
+    {
+      organizationId,
+      kind: 'not_team',
+      volunteerId: volunteerId('Jan De Wit'),
+      teamName: 'Bar',
+      source: 'organizer',
+      createdByUserId: assignedByUserId,
+    },
+    {
+      organizationId,
+      kind: 'never_together',
+      volunteerId: volunteerId('Lucas Dubois'),
+      otherVolunteerId: volunteerId('Jules Willems'),
+      source: 'organizer',
+      createdByUserId: assignedByUserId,
+    },
+    {
+      organizationId,
+      eventId,
+      kind: 'only_team',
+      volunteerId: volunteerId('Olivia Goossens'),
+      teamName: 'Kassa',
+      source: 'organizer',
+      createdByUserId: assignedByUserId,
+    },
+  ]);
+
+  await insertPreviousPlanning(tx, previousEventId, volunteerId, assignedByUserId);
+}
+
+/**
+ * Last year's planning, all confirmed: the history Mila moves to this year's dates. It had an
+ * "Afbraak" team this year lacks, and a late bar of 4 for 720 visitors (800 expected now).
+ */
+async function insertPreviousPlanning(
+  tx: Transaction,
+  eventId: string,
+  volunteerId: (name: string) => string,
+  assignedByUserId: string,
+) {
+  const day = 24 - 365;
+  const teams = await tx
+    .insert(schema.team)
+    .values([
+      { eventId, name: 'Bar', defaultMeetingPoint: 'Achter de toog' },
+      { eventId, name: 'Kassa', defaultMeetingPoint: 'Kassahokje aan de ingang' },
+      { eventId, name: 'Opbouw', defaultMeetingPoint: 'Kerkplein' },
+      {
+        eventId,
+        name: 'Afbraak',
+        description: 'Kraampjes afbreken en het plein proper achterlaten.',
+        defaultMeetingPoint: 'Kerkplein',
+      },
+    ])
+    .returning({ id: schema.team.id, name: schema.team.name });
+  const teamId = (name: string) => teams.find((t) => t.name === name)!.id;
+  const shiftSpecs = [
+    { key: 'opbouw', team: 'Opbouw', startsAt: at(day, 8), endsAt: at(day, 12), capacity: 5 },
+    { key: 'bar-early', team: 'Bar', startsAt: at(day, 13), endsAt: at(day, 17), capacity: 3 },
+    { key: 'bar-late', team: 'Bar', startsAt: at(day, 17), endsAt: at(day, 22), capacity: 4 },
+    { key: 'kassa-early', team: 'Kassa', startsAt: at(day, 13), endsAt: at(day, 17), capacity: 2 },
+    { key: 'kassa-late', team: 'Kassa', startsAt: at(day, 17), endsAt: at(day, 22), capacity: 2 },
+    { key: 'afbraak', team: 'Afbraak', startsAt: at(day, 21), endsAt: at(day, 22), capacity: 5 },
+  ];
+  const shifts = await tx
+    .insert(schema.shift)
+    .values(
+      shiftSpecs.map(({ team, startsAt, endsAt, capacity }) => ({
+        eventId,
+        teamId: teamId(team),
+        meetingPoint: null,
+        startsAt,
+        endsAt,
+        capacity,
+      })),
+    )
+    .returning({ id: schema.shift.id });
+  const shiftId = (key: string) => shifts[shiftSpecs.findIndex((spec) => spec.key === key)]!.id;
+
+  const placed: [string, string][] = [
+    ['Emma Claes', 'bar-late'],
+    ['Noah Wouters', 'bar-late'],
+    ['Victor Lambert', 'bar-late'],
+    ['Sara Peeters', 'bar-early'],
+    ['Louise Jacobs', 'kassa-early'],
+    ['Jan Peeters', 'kassa-late'],
+    ['Arthur Maes', 'opbouw'],
+    ['Nora De Smet', 'opbouw'],
+    ['Pieter Janssens', 'afbraak'],
+    ['Lucas Dubois', 'afbraak'],
+  ];
+  for (const [name, key] of placed) {
+    const [application] = await tx
+      .insert(schema.volunteerApplication)
+      .values({
+        eventId,
+        volunteerId: volunteerId(name),
+        source: 'public',
+        availableShiftIds: [shiftId(key)],
+        consentedAt: at(-380, 10),
+      })
+      .returning({ id: schema.volunteerApplication.id });
+    await tx.insert(schema.assignment).values({
+      applicationId: application!.id,
+      shiftId: shiftId(key),
+      status: 'confirmed',
+      assignedByUserId,
+    });
   }
 }
 

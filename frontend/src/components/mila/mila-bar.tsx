@@ -5,6 +5,7 @@ import { MilaAvatar } from './mila-avatar';
 /**
  * Mila in one line, for pages where the content itself matters most (the task board): her face,
  * a short message, and her actions. Opens her full suggestions elsewhere (a side panel).
+ * `children` go on a row of their own below (an input to tell her something).
  */
 export function MilaBar({
   message,
@@ -12,12 +13,14 @@ export function MilaBar({
   actions,
   thinking = false,
   className,
+  children,
 }: {
   message: ReactNode;
   detail?: ReactNode;
   actions?: ReactNode;
   thinking?: boolean;
   className?: string;
+  children?: ReactNode;
 }) {
   return (
     <section
@@ -34,6 +37,7 @@ export function MilaBar({
         </div>
       </div>
       {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
+      {children && <div className="w-full">{children}</div>}
     </section>
   );
 }

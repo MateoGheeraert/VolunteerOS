@@ -11,7 +11,20 @@ import { MAX_BUDGET_CENTS } from '../db/schema/budget.js';
  * `catalog`: an action from the promotion catalogue; its id is the catalogue key.
  */
 export const citationSchema = z.object({
-  type: z.enum(['event', 'task', 'memory', 'catalog']),
+  // `catalog`: a promotion action; `team`, `shift`: the previous edition's or this event's;
+  // `catalogue`: a staffing rule of thumb; `note`: a volunteer's note on their application;
+  // `request`: what the organizer asked Mila for.
+  type: z.enum([
+    'event',
+    'task',
+    'memory',
+    'catalog',
+    'team',
+    'shift',
+    'catalogue',
+    'note',
+    'request',
+  ]),
   id: z.string(),
   label: z.string(),
 });

@@ -114,7 +114,15 @@ export class AiSuggestionsRepository {
    * Saves new suggestions. One row per event and dedup key, ever: a key that was accepted,
    * rejected or is still pending is skipped; one closed as stale opens again with the new text.
    */
-  async upsert(tx: DbExecutor, rows: NewAiSuggestionRow[]): Promise<number> {
+  /**
+   * Saves suggestions; one whose key exists reopens only when it was closed as stale, or also
+   * when it was rejected with `reopenRejected` (the organizer asked for it again in so many words).
+   */
+  async upsert(
+    tx: DbExecutor,
+    rows: NewAiSuggestionRow[],
+    { reopenRejected = false }: { reopenRejected?: boolean } = {},
+  ): Promise<number> {
     if (rows.length === 0) return 0;
     const saved = await tx
       .insert(aiSuggestion)
@@ -133,7 +141,9 @@ export class AiSuggestionsRepository {
           resolvedByUserId: null,
           createdAt: sql`now()`,
         },
-        setWhere: eq(aiSuggestion.status, 'dismissed_stale'),
+        setWhere: reopenRejected
+          ? inArray(aiSuggestion.status, ['dismissed_stale', 'rejected'])
+          : eq(aiSuggestion.status, 'dismissed_stale'),
       })
       .returning({ id: aiSuggestion.id });
     return saved.length;

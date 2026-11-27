@@ -608,6 +608,49 @@ The scheduling engine performs allocation.
 
 These responsibilities must remain separate.
 
+### 7.7.1 Mila on the Planning Page (decided November 2026)
+
+Mila helps in two steps on the Planning tab: she suggests the **teams and shifts**, and later she proposes **who goes where**. The split of §7.7 holds: the model reads language (history, notes, the organizer's text); a pure, unit-tested solver does the allocation. Everything she makes is a proposal the organizer decides on; nothing reaches volunteers until the organizer publishes (§7.5).
+
+**On the page.** One Mila line above the board (`PlanningMilaBar`, like the task page's): her message, "Stel teams en shiften voor", "Laat Mila verdelen", "Regels (n)", an input "Vertel Mila iets over de planning", and "Alles toevoegen (n)" when she proposes several teams. Her proposals stand in the schedule itself, dashed and lavender: a new team as a lane below the real ones, an extra shift as a card among its team's shifts, another capacity as a line on the shift. The day tabs include days she proposes shifts on. Rules she read in the notes wait at the top of the Regels dialog. The overview's "Bekijk voorstellen" (`?mila=voorstellen`) scrolls to the first proposal, or opens Regels when only those wait.
+
+**A. Teams and shifts ("Stel teams en shiften voor")** — a queued run, feature `shift_suggestions`. The button opens a dialog with an optional request ("twee shiften afwas en twee aan de bar, 18–21 en 21–01"). Empty: Mila proposes herself, as below. Filled: the request (`[R]` in the context, cited as `request`) replaces her own proposal; the request rules are added to the system prompt only then, so runs without one keep the plain prompt. A new run replaces the proposals still open; an explicit request may bring back a team rejected earlier.
+
+- **Grounding, in this order:**
+  1. The previous edition's teams and shifts, moved to the new dates in code: same day relative to the event's start, same clock time (Brussels), same capacity. The model sees the moved times; it never does date arithmetic.
+  2. When there is no history (or for teams the history lacks): a staffing rules-of-thumb catalogue, typed TS constants per event type and team (`src/ai/shift-suggestions/staffing-catalogue.ts`), e.g. bar ≈ 1 volunteer per 75 visitors per hour at the peak, shifts of 3–4 hours, setup the day before. Code turns each rule into a headcount for this event's expected attendance and opening hours, so the model gets numbers, not formulas.
+  - Plus the event's window (setup start to teardown end), its expected attendance (and the previous edition's actual one), and the teams and shifts it already has.
+- **Two kinds of card, each citing its source** (a previous team or shift `P1`, a catalogue rule `C2`, the event `E`):
+  - `team_suggestion`: one new team with its shifts ("Bar + 3 shiften"). Gone stale once a team with that name exists.
+  - `shift_change` on an existing team: an extra shift, or another capacity ("Bar laat 4 → 6, bij 800 bezoekers"). Gone stale once the shift is gone, or already has that capacity or start.
+- **Server-side rules:** uncited cards are dropped; a shift running past the event's window is cut to it (when at least an hour is left) and keeps the times asked for, shown on the card, instead of being dropped; capacity 1–500; at most 8 shifts per team and 10 cards per run; a team name that exists is not suggested again. Taking over the allocation checks every placement again against the board as it is then (shift limits, rules added since, people placed by hand) and skips what no longer fits. Time rules read the night after the event's day as the same night: a shift at 00:30 is "after 23:00".
+- **Accepting** a team creates the team and its shifts in one transaction, through the planning service, with the card as the activity log's source. "Bewerken" opens a large dialog to change the team's name, description and meeting point, and to edit or untick shifts. Several team cards can be added at once with "Alles toevoegen".
+
+**B. Planning rules** — the organizer's knowledge about people, kept as data (`planning_rule`).
+
+- **Kinds.** Hard: not in team X, only in team X, A and B never together, at most N shifts, not before a time, not after a time. Soft: prefers team X, A and B preferably together. There is no age field.
+- **Who they are about.** Every rule is about a volunteer (and a second one for the pair rules). Teams are named, not linked ("Bar"), so a rule still means something at the next edition, where the team is a new row. Times are clock times in Brussels ("18:00").
+- **Scope.** Person rules are stored at **organization** level, so they carry over to every event: the default for what the organizer tells Mila. Event rules are stored on one event: the default for what a volunteer's note says, since a note is about this edition. Each rule chip lets the organizer switch ("altijd" / "enkel dit evenement"). Creating the next edition copies the event rules (like event memories); the organizer deletes what no longer holds.
+- **"Vertel Mila iets over de planning"** (feature `rule_drafting`, while the organizer waits, like "Help me taken maken"): Mila turns the text into rule chips the organizer checks before anything is saved. Names are matched against this event's volunteers. When a name fits more than one person ("Jan"), the chip asks which one; the server finds such clashes itself, not only the model. A name that fits nobody is reported, not guessed.
+- **Notes.** Each allocation run first lets Mila read the applications' notes and turn what they say into rule cards ("Pieter: niet vóór 18:00 (uit zijn notitie)"), citing the note. A rule must be about the note's own author. The run already respects these rules while they wait for a decision; a rejected one is never applied or suggested again.
+- **"Regels" panel** (a dialog): the event's rules and the organization rules of its volunteers, with their source; edit, delete, add by hand.
+
+**C. Allocation ("Laat Mila verdelen")** — a queued run, feature `allocation`.
+
+1. Mila reads the notes (one model call, skipped when nobody wrote a note).
+2. A pure greedy solver (`src/features/planning/allocation.ts`) fills **only open places, with volunteers who still have room**. It never moves or removes an existing assignment, proposed or confirmed.
+   - Hard: marked availability (or the whole event), no overlap, the shift's capacity, the event's shifts per volunteer (or a lower "at most N" rule), and every hard rule.
+   - Soft, as a score: the preferred team, "prefers team", "preferably together", an even spread (people with fewer shifts first), the same team as at the previous edition.
+   - Deterministic: the open place with the fewest possible candidates goes first, its best-scoring candidate is placed, then the next; ties by name. Same input, same result.
+3. Mila explains the result in her own words, built from the solver's reasons, not by the model: how many places she filled, and each gap with why ("Kassa laat: 1 plaats tekort, niemand anders is beschikbaar"), and who she could not place.
+
+- **The proposal** is one `allocation` card holding its placements. They show as Mila's draft chips on the board (dashed, in her color), next to the real ones. Accept all, per shift or per person, or drop single chips. Accepted chips become assignments with status **proposed**, made by the organizer with the card as their source, checked again at that moment (a chip that now overlaps or overfills is skipped). Volunteers hear nothing until the organizer confirms and publishes.
+- A new run replaces the previous proposal that is still open.
+
+**D. On the overview.** The Planning card gets Mila's hint like the task card (§7.2): set up the teams when there are none, review her suggestions when some wait, or let her divide when there are open places and volunteers who could fill them.
+
+**Who.** Everything here needs the right to manage the event (owners, admins, the event's managers). Sending volunteers' names and notes to the model is accepted for now.
+
 ### 7.8 Email Notifications
 
 Initial email types:
@@ -1464,7 +1507,20 @@ Statuses:
 - Proposed.
 - Confirmed.
 
-Unassigning soft-deletes the assignment.
+Unassigning soft-deletes the assignment. Accepting Mila's allocation creates proposed assignments by the organizer; the activity log keeps her proposal as their source.
+
+### PlanningRule
+
+- id
+- organizationId
+- eventId (null: an organization rule about the person, for every event)
+- kind (not_team, only_team, never_together, max_shifts, not_before, not_after, prefers_team, prefer_together)
+- volunteerId, otherVolunteerId (pair rules)
+- teamName, maxShifts, time (by kind)
+- source (organizer, volunteer_note)
+- copiedFromId (copied from the previous edition)
+- createdByUserId
+- createdAt
 
 ### Supplier
 

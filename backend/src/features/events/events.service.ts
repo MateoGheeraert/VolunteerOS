@@ -18,6 +18,7 @@ import { AiRunsService } from '../../ai/runs/ai-runs.service.js';
 import type { Database, Transaction } from '../../db/database.js';
 import type { EventRow } from '../../db/schema/index.js';
 import type { OrgContext } from '../../authz/org-context.js';
+import { copyEditionRules } from '../planning/planning-rule.service.js';
 import { shiftWindow, shiftsOutside } from '../planning/planning-rules.js';
 import { AUDIENCE_LOGGED_VALUES } from '../promotion/promotion-rules.js';
 import { canArchive, canTransition, isReadOnly } from './event-status.js';
@@ -111,6 +112,8 @@ export class EventsService {
           eventId: row.id,
           values: MEMBER_LOGGED_VALUES,
         });
+        // The previous edition's event planning rules carry over (docs/info.md §7.7.1 B).
+        if (row.previousEditionId) await copyEditionRules(tx, org, row.previousEditionId, row.id);
         await this.aiRuns.enqueue(
           {
             organizationId: org.organizationId,
