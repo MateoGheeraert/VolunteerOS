@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import {
+  aiEventControllerAcceptBudgetLines,
   aiEventControllerAcceptEventUpdate,
   aiEventControllerAcceptTasks,
   aiEventControllerAnswer,
@@ -10,16 +11,23 @@ import {
   aiEventControllerDraftTasks,
   aiEventControllerMarkSeen,
   aiEventControllerReject,
+  aiEventControllerRequestBudgetReview,
   aiEventControllerRequestTaskSuggestions,
   aiOrganizationControllerRemoveMemory,
 } from '@/api/generated';
 import {
   acceptAsIsSchema,
+  acceptBudgetLinesAsIsSchema,
   answerSchema,
   createDraftTasksSchema,
   draftTextSchema,
   eventUpdateSchema,
 } from '@/features/ai/schemas';
+import {
+  budgetApiFields,
+  budgetEntryFormSchema,
+  toBudgetEntryBody,
+} from '@/features/budget/schemas';
 import { taskApiFields, taskFormSchema, toTaskBody } from '@/features/tasks/schemas';
 import { msg } from '@/i18n/keys';
 import { actionClient } from '../action-client';
@@ -32,6 +40,12 @@ function revalidateEvent(eventId: string) {
   revalidatePath('/tasks');
 }
 
+/** Accepted budget lines also show on their supplier's pages. */
+function revalidateBudget(eventId: string) {
+  revalidatePath(`/events/${eventId}`, 'layout');
+  revalidatePath('/suppliers', 'layout');
+}
+
 const handled = msg('ai.alreadyHandled');
 
 /** Bind the event. */
@@ -41,6 +55,48 @@ export const requestTaskSuggestions = actionClient
   .action(async ({ bindArgsParsedInputs: [eventId] }) => {
     await aiEventControllerRequestTaskSuggestions({ path: { eventId } });
     revalidateEvent(eventId);
+  });
+
+/** "Mila, bekijk mijn begroting". Bind the event. */
+export const requestBudgetReview = actionClient
+  .metadata({ name: 'requestBudgetReview', conflictMessage: msg('ai.unavailable') })
+  .bindArgsSchemas([id])
+  .inputSchema(z.object({ instruction: z.string().trim().max(500) }))
+  .action(async ({ parsedInput, bindArgsParsedInputs: [eventId] }) => {
+    await aiEventControllerRequestBudgetReview({
+      path: { eventId },
+      body: { instruction: parsedInput.instruction || undefined },
+    });
+    revalidateEvent(eventId);
+  });
+
+/** One budget line, as edited in the budget line form. Bind the event and the suggestion. */
+export const acceptBudgetLine = actionClient
+  .metadata({ name: 'acceptBudgetLine', apiFields: budgetApiFields, conflictMessage: handled })
+  .bindArgsSchemas([id, id])
+  .inputSchema(budgetEntryFormSchema)
+  .action(async ({ parsedInput, bindArgsParsedInputs: [eventId, suggestionId] }) => {
+    await aiEventControllerAcceptBudgetLines({
+      path: { eventId },
+      body: { items: [{ suggestionId, entry: toBudgetEntryBody(parsedInput) }] },
+    });
+    revalidateBudget(eventId);
+    return { id: suggestionId };
+  });
+
+/** Several budget lines at once, as proposed. Bind the event. */
+export const acceptBudgetLinesAsIs = actionClient
+  .metadata({ name: 'acceptBudgetLinesAsIs', conflictMessage: handled })
+  .bindArgsSchemas([id])
+  .inputSchema(acceptBudgetLinesAsIsSchema)
+  .action(async ({ parsedInput, bindArgsParsedInputs: [eventId] }) => {
+    await aiEventControllerAcceptBudgetLines({
+      path: { eventId },
+      body: {
+        items: parsedInput.items.map(({ suggestionId, ...entry }) => ({ suggestionId, entry })),
+      },
+    });
+    revalidateBudget(eventId);
   });
 
 /** One task suggestion, as edited in the task dialog. Bind the event and the suggestion. */

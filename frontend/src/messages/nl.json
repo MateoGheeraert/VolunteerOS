@@ -822,7 +822,9 @@
       "shift": "shift",
       "catalogue": "vuistregel",
       "note": "notitie",
-      "request": "jouw vraag"
+      "request": "jouw vraag",
+      "budget_entry": "budgetpost",
+      "checklist": "vaak vergeten kost"
     },
     "answerPlaceholder": "Of typ je antwoord",
     "send": "Versturen",
@@ -890,6 +892,64 @@
       "back": "Terug naar mijn lijstje",
       "create": "{count, plural, =0 {Maak taken aan} one {Maak # taak aan} other {Maak # taken aan}}",
       "created": "{count, plural, one {# taak} other {# taken}} aangemaakt."
+    },
+    "budget": {
+      "review": "{name}, bekijk mijn begroting",
+      "bar": {
+        "idle": "Zal ik je begroting nakijken?",
+        "idleEmpty": "Zal ik een eerste begroting opstellen?",
+        "thinking": "{name} bekijkt je begroting…",
+        "lines": "{name} zette {count, plural, one {# voorstel} other {# voorstellen}} in je begroting",
+        "detail": "Ik vergelijk met vorige editie en met kosten die vaak vergeten worden. Bedragen zijn altijd ramingen.",
+        "linesDetail": "Gestippeld in de tabel is een voorstel. Neem over wat je wil, de rest laat je liggen. Bedragen zijn ramingen.",
+        "addAll": "Alles toevoegen ({count})"
+      },
+      "editAndAdd": "Bewerken en toevoegen",
+      "suggestedBy": "Voorstel van {name}",
+      "acceptTitle": "Voorgestelde post toevoegen",
+      "acceptSubtitle": "Pas aan wat je wil en voeg de post toe. Het bedrag is een raming.",
+      "add": "Post toevoegen",
+      "added": "Toegevoegd aan je begroting.",
+      "income": "Inkomst",
+      "expense": "Kost",
+      "estimate": "raming",
+      "fromPreviousScaled": "{event}: {amount} bij {attendance} bezoekers → ~{estimate} bij {target}",
+      "fromPrevious": "Zelfde bedrag als {event}: {amount}",
+      "richtprijs": "Richtprijs {min}–{max} — vraag een offerte",
+      "noAmount": "Geen bedrag: vul het zelf in",
+      "origin": {
+        "previous_edition": "Vorige editie",
+        "checklist": "Vaak vergeten",
+        "task": "Bij een taak",
+        "typical": "Typisch",
+        "request": "Op jouw vraag"
+      },
+      "forTask": "Taak: {title}",
+      "supplier": "Leverancier: {name}",
+      "insight": {
+        "result": "Verwacht resultaat",
+        "income": "Inkomsten",
+        "expenses": "Kosten",
+        "split": "{fixed} vast · {variable} groeit mee met bezoekers",
+        "basisPrevious": "Je begroting is nog leeg: dit is {event}, omgerekend naar {target} bezoekers.",
+        "perVisitorTitle": "Per bezoeker bij {event}",
+        "perVisitor": "{income} inkomsten · {expenses} kosten",
+        "perVisitorLine": "{title}: {amount}",
+        "scenariosTitle": "Met meer of minder bezoekers",
+        "scenario": "{attendance} bezoekers ({change}%): {result} ({difference})",
+        "hide": "Verbergen"
+      },
+      "accept": "Toevoegen",
+      "ask": {
+        "title": "Begroting met {name}",
+        "description": "Ik vergelijk met vorige editie en met kosten die vaak vergeten worden. Zeg wat ik moet weten, of laat het leeg.",
+        "label": "Waar moet ik rekening mee houden? (optioneel)",
+        "placeholder": "Bv. de zaal krijgen we gratis, en we verkopen dit jaar ook hotdogs",
+        "help": "Wat je uitsluit, stel ik niet voor; wat je nieuw noemt, zet ik erbij. Je ziet mijn voorstel gestippeld in de tabel.",
+        "replaces": "Een nieuwe ronde vervangt de voorstellen die nog openstaan. Wat je toevoegde of weigerde, blijft.",
+        "cancel": "Annuleren",
+        "submit": "Bekijk mijn begroting"
+      }
     }
   },
   "files": {
@@ -1194,7 +1254,16 @@
       "planningAllocateBody": "Ik vul de open plaatsen met wie nog geen shift heeft. Niemand krijgt bericht tot jij publiceert.",
       "planningAllocateChip": "{name} kan de open plaatsen verdelen",
       "planningAllocateAction": "Laat Mila verdelen",
-      "planningWorking": "{name} werkt aan de planning…"
+      "planningWorking": "{name} werkt aan de planning…",
+      "budgetSetupTitle": "Zal ik een eerste begroting opstellen?",
+      "budgetSetupBody": "Ik maak een ontwerp met inkomsten en kosten, op basis van vorige editie of kosten die vaak vergeten worden. Jij kijkt alles na.",
+      "budgetSetupChip": "{name} kan je begroting opstellen",
+      "budgetReviewTitle": "{count, plural, one {# post die misschien ontbreekt} other {# posten die misschien ontbreken}}",
+      "budgetReviewTitlePrevious": "{count, plural, one {# post die vorige editie wel had} other {# posten die vorige editie wel had}}",
+      "budgetReviewBody": "Bekijk ze op het budget en voeg toe wat klopt.",
+      "budgetReviewBodyMixed": "{count, plural, one {# ervan had vorige editie wel.} other {# ervan had vorige editie wel.}} Bekijk ze op het budget en voeg toe wat klopt.",
+      "budgetReviewChip": "{count, plural, one {# post van {name}} other {# posten van {name}}}",
+      "budgetReviewing": "{name} bekijkt je begroting…"
     },
     "promotion": {
       "title": "Promotie",

@@ -14,7 +14,7 @@ import { useAction } from 'next-safe-action/hooks';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { toast } from 'sonner';
 import type { BudgetEntry, Label } from '@/api/generated/types.gen';
 import { ModalActions } from '@/components/layout/modal-actions';
@@ -90,6 +90,7 @@ export function BudgetView({
   initialOpenId,
   canManage,
   readOnly,
+  milaRows = null,
 }: {
   eventId: string;
   entries: BudgetEntry[];
@@ -103,6 +104,8 @@ export function BudgetView({
   canManage: boolean;
   /** Archived events: everything is shown, nothing can change. */
   readOnly: boolean;
+  /** Mila's proposed lines, shown in the table above the real ones. */
+  milaRows?: ReactNode;
 }) {
   const t = useTranslations();
   const [filters, setFilters] = useState<BudgetFilters>(NO_BUDGET_FILTERS);
@@ -230,6 +233,8 @@ export function BudgetView({
         </div>
         <ul className="flex flex-col divide-y divide-border">
           {mayEdit && <BudgetQuickAdd eventId={eventId} labels={labels} />}
+          {/* Her proposals are about the whole budget: not mixed into a filtered view. */}
+          {mayEdit && !isFiltered(activeFilters) && milaRows}
           {shown.map((entry) => (
             <EntryRow
               key={`${entry.id}-${entry.updatedAt}`}

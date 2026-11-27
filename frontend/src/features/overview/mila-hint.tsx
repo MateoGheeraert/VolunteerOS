@@ -9,7 +9,7 @@ import { MILA_NAME, MilaAvatar, MilaThinking } from '@/components/mila';
 import { Button } from '@/components/ui/button';
 import { TaskDraftDialog } from '@/features/ai/task-draft-dialog';
 import { useActionFeedback } from '@/features/tasks/tasks-context';
-import { requestTaskSuggestions } from '@/server/ai/actions';
+import { requestBudgetReview, requestTaskSuggestions } from '@/server/ai/actions';
 import { requestAllocation, requestShiftSuggestions } from '@/server/ai/planning-actions';
 import { dismissMilaHint } from '@/server/events/overview-actions';
 import type { MilaHint as Hint } from './overview-types';
@@ -23,14 +23,17 @@ import type { MilaHint as Hint } from './overview-types';
 export function MilaHint({
   eventId,
   hint,
-  pendingTaskSuggestions,
+  pendingTaskSuggestions = 0,
   pendingPlanningSuggestions = 0,
+  pendingBudgetLines = { count: 0, fromPreviousEdition: 0 },
 }: {
   eventId: string;
   hint: Hint;
-  pendingTaskSuggestions: number;
+  pendingTaskSuggestions?: number;
   /** For the planning card's hints. */
   pendingPlanningSuggestions?: number;
+  /** Her budget lines waiting for a decision, and how many of them last edition had. */
+  pendingBudgetLines?: { count: number; fromPreviousEdition: number };
 }) {
   const t = useTranslations('overview.mila');
   const tAi = useTranslations('ai');
@@ -42,8 +45,11 @@ export function MilaHint({
   const suggestShifts = useAction(requestShiftSuggestions.bind(null, eventId), feedback);
   const allocate = useAction(requestAllocation.bind(null, eventId), feedback);
   const planningCount = pendingPlanningSuggestions;
+  const review = useAction(requestBudgetReview.bind(null, eventId), feedback);
   const name = MILA_NAME;
   const count = pendingTaskSuggestions;
+  const lines = pendingBudgetLines;
+  const allFromPrevious = lines.count > 0 && lines.fromPreviousEdition === lines.count;
 
   const copy = {
     'tasks.setup': { title: t('setupTitle'), body: t('setupBody'), chip: t('setupChip', { name }) },
@@ -72,6 +78,22 @@ export function MilaHint({
       body: t('planningAllocateBody'),
       chip: t('planningAllocateChip', { name }),
     },
+    'budget.setup': {
+      title: t('budgetSetupTitle'),
+      body: t('budgetSetupBody'),
+      chip: t('budgetSetupChip', { name }),
+    },
+    'budget.review': {
+      // "3 posten die vorige editie wel had" when that is what they all are.
+      title: allFromPrevious
+        ? t('budgetReviewTitlePrevious', { count: lines.count })
+        : t('budgetReviewTitle', { count: lines.count }),
+      body:
+        lines.fromPreviousEdition > 0 && !allFromPrevious
+          ? t('budgetReviewBodyMixed', { count: lines.fromPreviousEdition })
+          : t('budgetReviewBody'),
+      chip: t('budgetReviewChip', { count: lines.count, name }),
+    },
   }[hint.key];
 
   if (!expanded) {
@@ -87,7 +109,12 @@ export function MilaHint({
     );
   }
 
-  const busy = dismiss.isPending || find.isPending || suggestShifts.isPending || allocate.isPending;
+  const busy =
+    dismiss.isPending ||
+    find.isPending ||
+    review.isPending ||
+    suggestShifts.isPending ||
+    allocate.isPending;
   return (
     <div className="flex flex-col gap-3 rounded-card border border-mila-tint-strong/60 bg-mila-tint p-4">
       <div className="flex items-start gap-3">
@@ -120,6 +147,14 @@ export function MilaHint({
             </Link>
           </Button>
         )}
+        {hint.key === 'budget.review' && (
+          <Button asChild size="sm" variant="mila">
+            <Link href={`/events/${eventId}/budget?mila=voorstellen`}>
+              <PanelRightOpen aria-hidden />
+              {t('review')}
+            </Link>
+          </Button>
+        )}
         {hint.key === 'planning.setup' && (
           <Button
             size="sm"
@@ -135,6 +170,17 @@ export function MilaHint({
           <Button size="sm" variant="mila" disabled={busy} onClick={() => allocate.execute()}>
             <Shuffle aria-hidden />
             {t('planningAllocateAction')}
+          </Button>
+        )}
+        {hint.key === 'budget.setup' && (
+          <Button
+            size="sm"
+            variant="mila"
+            disabled={busy}
+            onClick={() => review.execute({ instruction: '' })}
+          >
+            <Sparkles aria-hidden />
+            {tAi('budget.review', { name })}
           </Button>
         )}
         {hint.key === 'tasks.setup' && (
@@ -171,4 +217,10 @@ export function MilaFindingTasks() {
 export function MilaWorkingOnPlanning() {
   const t = useTranslations('overview.mila');
   return <MilaThinking>{t('planningWorking', { name: MILA_NAME })}</MilaThinking>;
+}
+
+/** While Mila reviews the budget, in the budget card. */
+export function MilaReviewingBudget() {
+  const t = useTranslations('overview.mila');
+  return <MilaThinking>{t('budgetReviewing', { name: MILA_NAME })}</MilaThinking>;
 }

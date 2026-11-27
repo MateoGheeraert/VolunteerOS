@@ -24,15 +24,22 @@ import {
 import { asIsItem, suggestionToTaskForm, type TaskSuggestion } from './schemas';
 import { EventUpdateCard, QuestionCard, TaskSuggestionCard } from './suggestion-cards';
 
-const TASK_SIDE_KINDS: AiSuggestion['kind'][] = ['task_suggestion', 'question', 'update_event'];
+/** What a task-suggestion run proposes; the budget's lines and insight live on the budget page. */
+const TASK_RUN_KINDS: AiSuggestion['kind'][] = ['task_suggestion', 'question', 'update_event'];
 
-/** Mila's run and pending suggestions on an event, worked out once for every view of them. */
-export function useMilaState(state: AiEventState, showOnly?: AiSuggestion['kind']) {
-  const run = state.runs.find((candidate) => candidate.feature === 'task_suggestions');
-  // The planning page shows Mila's planning cards itself; here only the task-side ones.
-  const suggestions = state.suggestions.filter((s) =>
-    showOnly ? s.kind === showOnly : TASK_SIDE_KINDS.includes(s.kind),
-  );
+/**
+ * Mila's run and pending suggestions on an event, worked out once for every view of them. `feature`
+ * is the run that makes them: task suggestions unless said otherwise, with every kind it proposes
+ * unless `showOnly` narrows them.
+ */
+export function useMilaState(
+  state: AiEventState,
+  showOnly: AiSuggestion['kind'] | AiSuggestion['kind'][] = TASK_RUN_KINDS,
+  feature: AiEventState['runs'][number]['feature'] = 'task_suggestions',
+) {
+  const run = state.runs.find((candidate) => candidate.feature === feature);
+  const kinds = Array.isArray(showOnly) ? showOnly : [showOnly];
+  const suggestions = state.suggestions.filter((s) => kinds.includes(s.kind));
   return {
     thinking: run?.status === 'queued' || run?.status === 'running',
     failed: run?.status === 'failed',

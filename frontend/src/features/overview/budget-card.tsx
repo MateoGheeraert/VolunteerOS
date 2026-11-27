@@ -4,20 +4,36 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { formatCents } from '@/lib/money';
 import { cn } from '@/lib/utils';
+import { MilaHint, MilaReviewingBudget } from './mila-hint';
 import { BudgetChart } from './overview-charts';
 import { EmptyState, OverviewCard, statusFill } from './overview-card';
-import type { OverviewCardProps } from './overview-types';
+import { hintFor, type OverviewCardProps } from './overview-types';
 
 /** "+€ 200,00" / "−€ 420,00": the sign says which way the result goes. */
 const signed = (cents: number) => `${cents < 0 ? '−' : '+'}${formatCents(Math.abs(cents))}`;
 
 /**
  * Budget: before and during the event, what is spent against the estimate and the expected
- * result; after it, the result itself (actual income against actual costs).
+ * result; after it, the result itself (actual income against actual costs). Mila speaks here
+ * when she can help: a first draft on an empty budget, or the lines she found missing.
  */
 export async function BudgetCard({ eventId, overview, canManage, className }: OverviewCardProps) {
   const t = await getTranslations('overview.budget');
-  const { budget, phase } = overview;
+  const { budget, phase, mila } = overview;
+  const hint = hintFor(overview, 'budget');
+  const milaHint = hint && (
+    <MilaHint
+      // A new key when the hint changes or gets highlighted: it opens or closes accordingly.
+      key={`${hint.key}:${hint.fingerprint}:${hint.highlighted}`}
+      eventId={eventId}
+      hint={hint}
+      pendingBudgetLines={{
+        count: mila.pendingBudgetLines,
+        fromPreviousEdition: mila.pendingBudgetLinesFromPreviousEdition,
+      }}
+    />
+  );
+  const reviewing = mila.enabled && mila.reviewingBudget && <MilaReviewingBudget />;
   const href = `/events/${eventId}/budget`;
   const card = {
     title: t('title'),
@@ -31,18 +47,27 @@ export async function BudgetCard({ eventId, overview, canManage, className }: Ov
   if (budget.entryCount === 0) {
     return (
       <OverviewCard {...card}>
-        <EmptyState
-          title={t('emptyTitle')}
-          body={phase === 'after' ? t('emptyAfter') : t('emptyBody')}
-          action={
-            canManage &&
-            phase !== 'after' && (
-              <Button asChild size="sm">
-                <Link href={href}>{t('emptyAction')}</Link>
-              </Button>
-            )
-          }
-        />
+        {reviewing}
+        {/* Highlighted, Mila is the empty state; otherwise her chip sits below it. */}
+        {hint?.highlighted ? (
+          milaHint
+        ) : (
+          <>
+            <EmptyState
+              title={t('emptyTitle')}
+              body={phase === 'after' ? t('emptyAfter') : t('emptyBody')}
+              action={
+                canManage &&
+                phase !== 'after' && (
+                  <Button asChild size="sm">
+                    <Link href={href}>{t('emptyAction')}</Link>
+                  </Button>
+                )
+              }
+            />
+            {milaHint}
+          </>
+        )}
       </OverviewCard>
     );
   }
@@ -129,6 +154,8 @@ export async function BudgetCard({ eventId, overview, canManage, className }: Ov
       </dl>
       {chart}
       {suppliers}
+      {reviewing}
+      {milaHint}
     </OverviewCard>
   );
 }
